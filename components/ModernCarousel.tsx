@@ -2,19 +2,28 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Compass } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { categories } from "@/app/page";
 
-// A interface para os slides agora usa a estrutura das suas categorias
-interface Slide {
+// --- PALETA DE CORES ---
+const COLORS = {
+  primary: "#017db9", // Azul
+  secondary: "#a8cf45", // Verde
+  tertiary: "#d04798", // Rosa
+};
+
+// Interface ajustada para garantir tipagem
+interface CategoryData {
   id: string;
   title: string;
-  backgroundimg: string;
+  // Adicionei opcional caso a categoria não tenha imagem definida na lista original
+  backgroundimg?: string;
+  [key: string]: any;
 }
 
 interface ModernCarouselProps {
-  currentCategoryId: string; // ID da categoria atual para não a repetir
+  currentCategoryId: string;
   interval?: number;
 }
 
@@ -23,19 +32,20 @@ export default function ModernCarousel({
   interval = 5000,
 }: ModernCarouselProps) {
   const [current, setCurrent] = useState(0);
-  const [displaySlides, setDisplaySlides] = useState<Slide[]>([]);
+  const [displaySlides, setDisplaySlides] = useState<CategoryData[]>([]);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
 
   useEffect(() => {
+    // Filtra a categoria atual para não mostrá-la no carrossel de sugestões
     const otherCategories = categories.filter(
       (cat) => cat.id !== currentCategoryId
     );
 
+    // Embaralha e pega os 5 primeiros
     const shuffled = [...otherCategories].sort(() => 0.5 - Math.random());
-
     setDisplaySlides(shuffled.slice(0, 5));
-  }, [currentCategoryId]); //  efeito executado sempre que a categoria da página muda
+  }, [currentCategoryId]);
 
   const resetTimeout = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -59,22 +69,27 @@ export default function ModernCarousel({
   };
 
   const goToSlide = (index: number) => setCurrent(index);
+
   const prevSlide = () => {
     if (displaySlides.length === 0) return;
     setCurrent(current === 0 ? displaySlides.length - 1 : current - 1);
   };
+
   const nextSlide = () => {
     if (displaySlides.length === 0) return;
     setCurrent(current === displaySlides.length - 1 ? 0 : current + 1);
   };
 
-  // Se não houver slides para mostrar, não renderiza nada
   if (displaySlides.length === 0) {
     return null;
   }
 
   return (
-    <div className="relative w-full h-full rounded-2xl overflow-hidden border border-blue-600">
+    // Borda atualizada para a cor Primária
+    <div
+      className="relative w-full h-full rounded-2xl overflow-hidden border shadow-sm"
+      style={{ borderColor: COLORS.primary }}
+    >
       <div
         className="flex transition-transform duration-700 ease-in-out h-full"
         style={{ transform: `translateX(-${current * 100}%)` }}
@@ -82,53 +97,76 @@ export default function ModernCarousel({
         {displaySlides.map((slide, idx) => (
           <div key={idx} className="min-w-full h-full relative flex-shrink-0">
             <Image
-              src={slide.backgroundimg || "/logo_aquitemods.png"}
+              src={slide.backgroundimg || "/Logo_aquitemods.png"}
               alt={slide.title}
               fill
-              className="object-cover w-full h-full object-right"
-              sizes="100vw"
+              className="object-cover w-full h-full object-center"
+              sizes="(max-width: 768px) 100vw, 50vw"
               priority={idx === 0}
             />
-            <div className="absolute inset-0 bg-black/30"></div>
-            <div className="absolute bottom-9 left-1/2 transform -translate-x-1/2 w-auto text-center z-10">
+            {/* Gradiente de sobreposição para melhorar leitura do texto */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+
+            <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 w-full px-4 text-center z-10 flex flex-col items-center gap-3">
+              <span className="text-white/80 text-xs uppercase tracking-widest font-semibold drop-shadow-md">
+                Descubra também
+              </span>
               <button
                 onClick={() => handleRedirect(slide.id)}
-                className="min-w-[180px] w-fit max-w-[280px] rounded-2xl border-2 border-dashed border-white/80 
-                 bg-black/20 px-3 py-2 font-bold uppercase text-white
-                 transition-all duration-300 hover:translate-x-[-4px] hover:translate-y-[-4px] hover:rounded-md
-                 hover:shadow-[4px_4px_16px_rgba(0,0,0,0.4)] active:translate-x-[0px] active:translate-y-[0px] 
-                 active:rounded-2xl active:shadow-none backdrop-blur-lg text-sm whitespace-normal break-words"
+                className="group relative overflow-hidden rounded-full px-8 py-3 font-bold text-white shadow-lg transition-all duration-300 hover:scale-105 active:scale-95"
+                style={{
+                  background: COLORS.primary, // Cor base azul
+                }}
               >
-                {slide.title}
+                {/* Efeito de hover mudando para a cor Terciária (Rosa) */}
+                <div
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  style={{ background: COLORS.tertiary }}
+                />
+
+                <span className="relative z-10 flex items-center gap-2 text-sm md:text-base">
+                  <Compass size={18} />
+                  {slide.title}
+                </span>
               </button>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
+      {/* Indicadores (Dots) */}
+      <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex gap-2 z-10">
         {displaySlides.map((_, idx) => (
           <button
             key={idx}
             onClick={() => goToSlide(idx)}
-            className={`w-3 h-3 rounded-full transition-all duration-300 ${
-              current === idx ? "bg-white" : "bg-white/50"
-            }`}
+            className="w-2.5 h-2.5 rounded-full transition-all duration-300 shadow-sm"
+            style={{
+              backgroundColor:
+                current === idx ? COLORS.secondary : "rgba(255, 255, 255, 0.5)",
+              transform: current === idx ? "scale(1.2)" : "scale(1)",
+            }}
+            aria-label={`Ir para slide ${idx + 1}`}
           ></button>
         ))}
       </div>
 
+      {/* Botão Anterior */}
       <button
         onClick={prevSlide}
-        className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/50 hover:bg-white p-2 rounded-full z-10"
+        className="absolute left-3 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full z-10 shadow-md backdrop-blur-sm transition-all hover:scale-110"
+        aria-label="Slide anterior"
       >
-        <ChevronLeft className="w-5 h-5 text-blue-700" />
+        <ChevronLeft className="w-5 h-5" style={{ color: COLORS.primary }} />
       </button>
+
+      {/* Botão Próximo */}
       <button
         onClick={nextSlide}
-        className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/50 hover:bg-white p-2 rounded-full z-10"
+        className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full z-10 shadow-md backdrop-blur-sm transition-all hover:scale-110"
+        aria-label="Próximo slide"
       >
-        <ChevronRight className="w-5 h-5 text-blue-700" />
+        <ChevronRight className="w-5 h-5" style={{ color: COLORS.primary }} />
       </button>
     </div>
   );

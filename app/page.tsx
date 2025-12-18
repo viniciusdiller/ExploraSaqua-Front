@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 
 // Dados estáticos de categorias do ExploraSaqua
-const categories = [
+export const categories = [
   {
     id: "compras",
     title: "Compras",
