@@ -21,6 +21,7 @@ import {
   Select,
   Pagination,
   Grid,
+  ConfigProvider,
 } from "antd";
 import {
   UserAddOutlined,
@@ -35,27 +36,33 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getPendingAdminRequests } from "@/lib/api";
-import AdminProjetoModal from "@/components/AdminLocalModal";
-import { Projeto } from "@/types/Interface-Local";
+import AdminLocalModal from "@/components/AdminLocalModal";
+import { Local } from "@/types/Interface-Local";
 import FormattedDescription from "@/components/FormattedDescription";
 
 const { Text, Title } = Typography;
 const { Column } = Table;
 const { TextArea } = Input;
-const { Option } = Select;
 const { useBreakpoint } = Grid;
 
-enum StatusProjeto {
-  PENDENTE_APROVACAO = "pendente_aprovacao",
+// --- CORES ---
+const COLORS = {
+  primary: "#017db9",
+  secondary: "#a8cf45",
+  tertiary: "#d04798",
+};
+
+// --- CORREÇÃO 1: ENUM ALINHADO COM A INTERFACE ---
+enum StatusLocal {
+  // O valor da string deve bater com o que vem do banco de dados/interface
+  PENDENTE_APROVACAO = "pendente",
   PENDENTE_ATUALIZACAO = "pendente_atualizacao",
   PENDENTE_EXCLUSAO = "pendente_exclusao",
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
 const DASHBOARD_PAGE_SIZE = 5;
 
-// Objeto para os ícones dos cards
 const listIcons: { [key: string]: React.ReactNode } = {
   "Novos Cadastros": <UserAddOutlined style={{ color: "#52c41a" }} />,
   Atualizações: <EditOutlined style={{ color: "#1890ff" }} />,
@@ -63,47 +70,42 @@ const listIcons: { [key: string]: React.ReactNode } = {
 };
 
 interface PendingData {
-  cadastros: Projeto[];
-  atualizacoes: Projeto[];
-  exclusoes: Projeto[];
+  cadastros: Local[];
+  atualizacoes: Local[];
+  exclusoes: Local[];
 }
 
 const fieldConfig: {
   [key: string]: { label: string; order: number; group: string };
 } = {
-  projetoId: { label: "ID", order: 1, group: "identificacao" },
-  prefeitura: { label: "Prefeitura", order: 2, group: "identificacao" },
-  secretaria: { label: "Secretaria", order: 3, group: "identificacao" },
-  nomeProjeto: { label: "Nome do Projeto", order: 10, group: "identificacao" },
-  responsavelProjeto: {
-    label: "Responsável",
-    order: 11,
+  localId: { label: "ID", order: 1, group: "identificacao" },
+  prefeitura: {
+    label: "Prefeitura / Entidade",
+    order: 2,
     group: "identificacao",
   },
+  secretaria: { label: "Secretaria / Depto", order: 3, group: "identificacao" },
+  nome: { label: "Nome do Local", order: 10, group: "identificacao" },
+  responsavel: { label: "Responsável", order: 11, group: "identificacao" },
   emailContato: { label: "Email", order: 20, group: "identificacao" },
   oficioUrl: { label: "Ofício Atual", order: 43, group: "identificacao" },
   oficio: { label: "Novo Ofício", order: 43, group: "identificacao" },
 
-  // --- Grupo de Informações do Projeto ---
-  ods: { label: "ODS", order: 4, group: "info" },
-  venceuPspe: { label: "Venceu o Prêmio PSPE", order: 6, group: "info" },
+  // --- Grupo de Informações ---
+  categoria: { label: "Categoria", order: 4, group: "info" },
+  venceuPspe: { label: "Venceu Prêmio Destaque", order: 6, group: "info" },
   endereco: { label: "Endereço", order: 22, group: "info" },
   descricao: { label: "Descrição", order: 30, group: "info" },
   descricaoDiferencial: { label: "Briefing", order: 31, group: "info" },
   outrasAlteracoes: { label: "Outras Alterações", order: 32, group: "info" },
   website: { label: "Website", order: 40, group: "info" },
   instagram: { label: "Instagram", order: 41, group: "info" },
-  linkProjeto: { label: "Link do Projeto", order: 42, group: "info" },
+  linkLocal: { label: "Link Oficial", order: 42, group: "info" },
   logoUrl: { label: "Logo Atual", order: 43, group: "info" },
   logo: { label: "Nova Logo", order: 44, group: "info" },
-  projetoImg: { label: "Portfólio Atual", order: 45, group: "info" },
-  odsRelacionadas: { label: "ODS Relacionadas", order: 50, group: "info" },
-  apoio_planejamento: {
-    label: "Apoio ao Planejamento",
-    order: 60,
-    group: "info",
-  },
-  escala: { label: "Escala de Impacto", order: 61, group: "info" },
+  localImg: { label: "Portfólio Atual", order: 45, group: "info" },
+  imagens: { label: "Novas Imagens", order: 46, group: "info" },
+  escala: { label: "Nota de Impacto", order: 61, group: "info" },
 
   // --- Grupo de Metadados ---
   status: { label: "Status Atual", order: 5, group: "meta" },
@@ -121,7 +123,7 @@ const AdminDashboard: React.FC = () => {
     exclusoes: [],
   });
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<Projeto | null>(null);
+  const [selectedItem, setSelectedItem] = useState<Local | null>(null);
   const router = useRouter();
   const [isActionLoading, setIsActionLoading] = useState(false);
 
@@ -140,6 +142,7 @@ const AdminDashboard: React.FC = () => {
 
   const getFullImageUrl = (path: string): string => {
     if (!path) return "";
+    if (path.startsWith("http") || path.startsWith("blob:")) return path;
     const normalizedPath = path.replace(/\\/g, "/");
     const cleanPath = normalizedPath.startsWith("/")
       ? normalizedPath.substring(1)
@@ -152,25 +155,7 @@ const AdminDashboard: React.FC = () => {
       return <Text type="secondary">Não informado</Text>;
     }
 
-    if (key === "linkProjeto") {
-      const Clicavel = String(value);
-      let href = Clicavel;
-      if (!/^https?:\/\//i.test(href)) {
-        href = `https://${href}`;
-      }
-      return (
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: "#d6386d", textDecoration: "underline" }}
-        >
-          {Clicavel}
-        </a>
-      );
-    }
-
-    if (key === "website") {
+    if (key === "linkLocal" || key === "website") {
       const urlString = String(value);
       let href = urlString;
       if (!/^https?:\/\//i.test(href)) {
@@ -191,16 +176,12 @@ const AdminDashboard: React.FC = () => {
     if (key === "instagram") {
       const val = String(value).trim();
       let href = val;
-
-      if (val.includes("instagram.com") || /^https?:\/\//i.test(val)) {
-        if (!/^https?:\/\//i.test(href)) {
-          href = `https://${href}`;
-        }
-      } else {
+      if (!val.includes("instagram.com") && !/^https?:\/\//i.test(val)) {
         const handle = val.replace(/^@/, "");
         href = `https://www.instagram.com/${handle}`;
+      } else if (!/^https?:\/\//i.test(href)) {
+        href = `https://${href}`;
       }
-
       return (
         <a
           href={href}
@@ -241,7 +222,6 @@ const AdminDashboard: React.FC = () => {
     if (key === "createdAt" || key === "updatedAt") {
       try {
         const date = new Date(value);
-
         return new Intl.DateTimeFormat("pt-BR", {
           day: "2-digit",
           month: "2-digit",
@@ -262,7 +242,7 @@ const AdminDashboard: React.FC = () => {
     }
 
     if (
-      (key === "projetoImg" || key === "imagens") &&
+      (key === "localImg" || key === "imagens") &&
       Array.isArray(value) &&
       value.length > 0
     ) {
@@ -299,7 +279,6 @@ const AdminDashboard: React.FC = () => {
     ) {
       const url = getFullImageUrl(value);
       const isPdf = url.toLowerCase().endsWith(".pdf");
-
       if (isPdf) {
         return (
           <Button type="primary" href={url} target="_blank" size="small">
@@ -307,16 +286,11 @@ const AdminDashboard: React.FC = () => {
           </Button>
         );
       }
-
       return <Image src={url} alt="Ofício" width={150} />;
     }
 
     if (typeof value === "object" && value !== null)
       return JSON.stringify(value);
-
-    if (key === "odsRelacionadas" && Array.isArray(value)) {
-      return value.join(", ");
-    }
 
     return String(value);
   };
@@ -332,11 +306,7 @@ const AdminDashboard: React.FC = () => {
     try {
       const pendingData = await getPendingAdminRequests(token);
       setData(pendingData);
-      setCurrentPages({
-        cadastros: 1,
-        atualizacoes: 1,
-        exclusoes: 1,
-      });
+      setCurrentPages({ cadastros: 1, atualizacoes: 1, exclusoes: 1 });
     } catch (error: any) {
       message.error(error.message || "Falha ao buscar dados.");
     } finally {
@@ -360,9 +330,7 @@ const AdminDashboard: React.FC = () => {
     try {
       const fetchOptions: RequestInit = {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       };
 
       if (action === "reject") {
@@ -376,7 +344,7 @@ const AdminDashboard: React.FC = () => {
       }
 
       const response = await fetch(
-        `${API_URL}/api/admin/${action}/${selectedItem.projetoId}`,
+        `${API_URL}/api/admin/${action}/${selectedItem.localId}`,
         fetchOptions
       );
 
@@ -386,35 +354,32 @@ const AdminDashboard: React.FC = () => {
           const errorJson = JSON.parse(errorText);
           throw new Error(errorJson.message || "Erro do servidor");
         } catch (e) {
-          console.error("Erro não-JSON da API:", errorText);
-          throw new Error(
-            "Falha na comunicação com o servidor. (Recebeu HTML)"
-          );
+          throw new Error("Falha na comunicação com o servidor.");
         }
       }
 
       const result = await response.json();
-
       message.success(result.message || `Ação executada com sucesso!`);
 
       setData((prevData) => {
         const newData = { ...prevData };
-
         (Object.keys(newData) as Array<keyof PendingData>).forEach((key) => {
           newData[key] = newData[key].filter(
-            (item) => item.projetoId !== selectedItem.projetoId
+            (item) => item.localId !== selectedItem.localId
           );
         });
         return newData;
       });
 
-      if (selectedItem.status === StatusProjeto.PENDENTE_APROVACAO) {
+      // CORREÇÃO 2: Cast para string para evitar erro de overlap de tipos
+      const status = selectedItem.status as string;
+
+      if (status === StatusLocal.PENDENTE_APROVACAO)
         handlePageChange("cadastros")(1);
-      } else if (selectedItem.status === StatusProjeto.PENDENTE_ATUALIZACAO) {
+      else if (status === StatusLocal.PENDENTE_ATUALIZACAO)
         handlePageChange("atualizacoes")(1);
-      } else if (selectedItem.status === StatusProjeto.PENDENTE_EXCLUSAO) {
+      else if (status === StatusLocal.PENDENTE_EXCLUSAO)
         handlePageChange("exclusoes")(1);
-      }
 
       setModalVisible(false);
       setIsRejectModalVisible(false);
@@ -427,7 +392,7 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const showModal = (item: Projeto) => {
+  const showModal = (item: Local) => {
     setSelectedItem(item);
     setModalVisible(true);
   };
@@ -439,7 +404,6 @@ const AdminDashboard: React.FC = () => {
 
   const handleEditAndApproveSubmit = async (values: any) => {
     if (!selectedItem) return;
-
     setIsActionLoading(true);
     const token = localStorage.getItem("admin_token");
     if (!token) {
@@ -450,7 +414,7 @@ const AdminDashboard: React.FC = () => {
 
     try {
       const response = await fetch(
-        `${API_URL}/api/admin/edit-and-approve/${selectedItem.projetoId}`,
+        `${API_URL}/api/admin/edit-and-approve/${selectedItem.localId}`,
         {
           method: "POST",
           headers: {
@@ -476,14 +440,15 @@ const AdminDashboard: React.FC = () => {
   };
 
   const renderDiffTable = (
-    status: "pendente_atualizacao" | "pendente_exclusao",
+    status: string,
     alertType: "info" | "error",
     title: string,
     keysToFilter: string[] = []
   ) => {
+    // CORREÇÃO 3: Cast para string para evitar erro de overlap
     if (
       !selectedItem ||
-      selectedItem.status !== status ||
+      (selectedItem.status as string) !== status ||
       !selectedItem.dados_atualizacao
     ) {
       return null;
@@ -491,7 +456,7 @@ const AdminDashboard: React.FC = () => {
 
     const keyMap: { [newKey: string]: { oldKey: string; labelKey: string } } = {
       logo: { oldKey: "logoUrl", labelKey: "logo" },
-      imagens: { oldKey: "projetoImg", labelKey: "projetoImg" },
+      imagens: { oldKey: "localImg", labelKey: "localImg" },
       oficio: { oldKey: "oficioUrl", labelKey: "oficio" },
     };
 
@@ -502,13 +467,13 @@ const AdminDashboard: React.FC = () => {
         const oldKey = mapping ? mapping.oldKey : key;
         const labelKey = mapping ? mapping.labelKey : key;
 
+        // @ts-ignore
         const oldValue = selectedItem[oldKey];
         const fieldLabel = fieldConfig[labelKey]?.label ?? `Novo ${key}`;
 
         let finalLabel = fieldLabel;
-        if (labelKey === "projetoImg") finalLabel = "Portfólio";
+        if (labelKey === "localImg") finalLabel = "Portfólio";
         if (labelKey === "logo") finalLabel = "Logo";
-
         if (key === "motivo") finalLabel = "Motivo da Exclusão";
 
         return {
@@ -525,34 +490,26 @@ const AdminDashboard: React.FC = () => {
           (fieldConfig[b.newKey]?.order ?? 999)
       );
 
-    // 2. Extrai 'outrasAlteracoes' dos dados
     const outrasAlteracoesUpdate = diffDataAll.find(
       (d) => d.newKey === "outrasAlteracoes"
     );
-
     const diffData = diffDataAll.filter((d) => d.newKey !== "outrasAlteracoes");
 
-    // 4. Filtra os dados da tabela (AGORA USANDO 'diffData')
     const identificacaoDiff = diffData.filter(
       (d) =>
         fieldConfig[d.newKey]?.group === "identificacao" ||
         fieldConfig[d.key]?.group === "identificacao"
     );
-
     const infoDiff = diffData.filter(
       (d) =>
         fieldConfig[d.newKey]?.group === "info" ||
         fieldConfig[d.key]?.group === "info"
     );
-
     const metaDiff = diffData.filter(
       (d) =>
         (fieldConfig[d.newKey]?.group === "meta" ||
           fieldConfig[d.key]?.group === "meta") &&
-        fieldConfig[d.newKey]?.group !== "identificacao" &&
-        fieldConfig[d.key]?.group !== "identificacao" &&
-        fieldConfig[d.newKey]?.group !== "info" &&
-        fieldConfig[d.key]?.group !== "info"
+        fieldConfig[d.newKey]?.group !== "identificacao"
     );
 
     const titleColor = alertType === "info" ? "#0050b3" : "#d4380d";
@@ -612,14 +569,13 @@ const AdminDashboard: React.FC = () => {
                 className="my-4"
               />
             )}
-
             {identificacaoDiff.length > 0 && (
               <>
                 <Title
                   level={5}
                   style={{ color: titleColor, marginTop: "16px" }}
                 >
-                  Identificação do Projeto
+                  Identificação do Local
                 </Title>
                 <Table
                   dataSource={identificacaoDiff}
@@ -633,14 +589,13 @@ const AdminDashboard: React.FC = () => {
                 </Table>
               </>
             )}
-
             {infoDiff.length > 0 && (
               <>
                 <Title
                   level={5}
                   style={{ color: titleColor, marginTop: "24px" }}
                 >
-                  Informações do Projeto
+                  Informações do Local
                 </Title>
                 <Table
                   dataSource={infoDiff}
@@ -654,20 +609,17 @@ const AdminDashboard: React.FC = () => {
                 </Table>
               </>
             )}
-
             {metaDiff.length > 0 && (
-              <>
-                <Table
-                  dataSource={metaDiff}
-                  pagination={false}
-                  size="middle"
-                  bordered
-                  className="mt-4"
-                  scroll={{ x: true }}
-                >
-                  {columns.map((col) => col)}
-                </Table>
-              </>
+              <Table
+                dataSource={metaDiff}
+                pagination={false}
+                size="middle"
+                bordered
+                className="mt-4"
+                scroll={{ x: true }}
+              >
+                {columns.map((col) => col)}
+              </Table>
             )}
           </>
         }
@@ -676,15 +628,12 @@ const AdminDashboard: React.FC = () => {
   };
 
   const handlePageChange = (listKey: keyof PendingData) => (page: number) => {
-    setCurrentPages((prev) => ({
-      ...prev,
-      [listKey]: page,
-    }));
+    setCurrentPages((prev) => ({ ...prev, [listKey]: page }));
   };
 
   const renderList = (
     title: string,
-    listData: Projeto[],
+    listData: Local[],
     listKey: keyof PendingData
   ) => {
     const totalCount = listData.length;
@@ -699,14 +648,13 @@ const AdminDashboard: React.FC = () => {
         <Card
           title={
             <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              {listIcons[title]}
-              {title} ({listData.length})
+              {listIcons[title]} {title} ({listData.length})
             </span>
           }
         >
           {listData.length > 0 ? (
+            /* CORREÇÃO 4: Adicionado Fragmento <>...</> para agrupar List e Pagination */
             <>
-              {" "}
               <List
                 dataSource={pagedData}
                 renderItem={(item) => (
@@ -724,7 +672,7 @@ const AdminDashboard: React.FC = () => {
                           icon={listIcons[title]}
                         />
                       }
-                      title={item.nomeProjeto}
+                      title={item.nome}
                       description={`Prefeitura: ${item.prefeitura}`}
                     />
                   </List.Item>
@@ -752,261 +700,283 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="p-8">
-      <Spin spinning={loading}>
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
-          <Title
-            level={isMobile ? 3 : 2}
-            className="m-0 md:text-left text-center"
-          >
-            Painel de Administração
-          </Title>
-
-          <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
-            <Link href="/" passHref target="_blank" rel="noopener noreferrer">
-              <Button
-                icon={<HomeOutlined />}
-                size="large"
-                className={isMobile ? "w-full" : ""}
-              >
-                Ir para Home
-              </Button>
-            </Link>
-          </div>
-
-          <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
-            <Link href="/admin/projetos-ativos" passHref>
-              <Button
-                type="primary"
-                icon={<DatabaseOutlined />}
-                size="large"
-                className={isMobile ? "w-full" : ""}
-              >
-                Gerenciar Projetos Ativos
-              </Button>
-            </Link>
-
-            <Link href="/admin/comentarios" passHref>
-              <Button
-                icon={<CommentOutlined />}
-                size="large"
-                style={{ backgroundColor: "#3C6AB2", color: "#fff" }}
-                className={isMobile ? "w-full" : ""}
-              >
-                Gerenciar Comentários
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        <Row gutter={[16, 16]}>
-          {renderList("Novos Cadastros", data.cadastros, "cadastros")}
-          {renderList("Atualizações", data.atualizacoes, "atualizacoes")}
-          {renderList("Exclusões", data.exclusoes, "exclusoes")}
-        </Row>
-      </Spin>
-
-      {selectedItem && (
-        <Modal
-          title={`Detalhes de ${selectedItem.nomeProjeto}`}
-          open={modalVisible}
-          onCancel={() => setModalVisible(false)}
-          width={1000}
-          footer={[
-            <Button
-              key="reject"
-              onClick={() => setIsRejectModalVisible(true)}
-              icon={<CloseOutlined />}
-              danger
-              loading={isActionLoading}
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: COLORS.primary,
+          colorLink: COLORS.primary,
+          borderRadius: 8,
+        },
+      }}
+    >
+      <div className="p-8">
+        <Spin spinning={loading}>
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+            <Title
+              level={isMobile ? 3 : 2}
+              className="m-0 md:text-left text-center"
+              style={{ color: COLORS.primary }}
             >
-              Recusar
-            </Button>,
+              Painel de Administração
+            </Title>
 
-            selectedItem.status !== StatusProjeto.PENDENTE_EXCLUSAO && (
-              <Button
-                key="edit_and_approve"
-                onClick={handleOpenEditModal}
-                icon={<EditOutlined />}
-                loading={isActionLoading}
-              >
-                Editar Informações
-              </Button>
-            ),
+            <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+              <Link href="/" passHref target="_blank" rel="noopener noreferrer">
+                <Button
+                  icon={<HomeOutlined />}
+                  size="large"
+                  className={isMobile ? "w-full" : ""}
+                >
+                  Ir para Home
+                </Button>
+              </Link>
+            </div>
 
-            selectedItem.status !== StatusProjeto.PENDENTE_EXCLUSAO ? (
+            <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+              <Link href="/admin/projetos-ativos" passHref>
+                <Button
+                  type="primary"
+                  icon={<DatabaseOutlined />}
+                  size="large"
+                  className={isMobile ? "w-full" : ""}
+                >
+                  Gerenciar Locais Ativos
+                </Button>
+              </Link>
+              <Link href="/admin/comentarios" passHref>
+                <Button
+                  icon={<CommentOutlined />}
+                  size="large"
+                  style={{ backgroundColor: COLORS.primary, color: "#fff" }}
+                  className={isMobile ? "w-full" : ""}
+                >
+                  Gerenciar Comentários
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <Row gutter={[16, 16]}>
+            {renderList("Novos Cadastros", data.cadastros, "cadastros")}
+            {renderList("Atualizações", data.atualizacoes, "atualizacoes")}
+            {renderList("Exclusões", data.exclusoes, "exclusoes")}
+          </Row>
+        </Spin>
+
+        {selectedItem && (
+          <Modal
+            title={`Detalhes de ${selectedItem.nome}`}
+            open={modalVisible}
+            onCancel={() => setModalVisible(false)}
+            width={1000}
+            footer={[
               <Button
-                key="approve_direct"
-                type="primary"
-                onClick={() => handleAction("approve")}
-                icon={<CheckOutlined />}
-                loading={isActionLoading}
-              >
-                Aprovar Direto
-              </Button>
-            ) : (
-              <Button
-                key="approve_delete"
-                type="primary"
+                key="reject"
+                onClick={() => setIsRejectModalVisible(true)}
+                icon={<CloseOutlined />}
                 danger
-                onClick={() => handleAction("approve")}
-                icon={<CheckOutlined />}
                 loading={isActionLoading}
               >
-                Confirmar Exclusão
-              </Button>
-            ),
-          ]}
-        >
-          {(() => {
-            const allEntries = Object.entries(selectedItem)
-              .filter(
-                ([key]) =>
-                  key !== "dados_atualizacao" &&
-                  key !== "logoUrl" &&
-                  key !== "projetoImg" &&
-                  key !== "status" &&
-                  fieldConfig[key]
-              )
-              .sort(
-                ([keyA], [keyB]) =>
-                  (fieldConfig[keyA]?.order ?? 999) -
-                  (fieldConfig[keyB]?.order ?? 999)
+                Recusar
+              </Button>,
+
+              /* Cast para string para evitar erro TS */
+              (selectedItem.status as string) !==
+                StatusLocal.PENDENTE_EXCLUSAO && (
+                <Button
+                  key="edit_and_approve"
+                  onClick={handleOpenEditModal}
+                  icon={<EditOutlined />}
+                  loading={isActionLoading}
+                >
+                  Editar Informações
+                </Button>
+              ),
+
+              (selectedItem.status as string) !==
+              StatusLocal.PENDENTE_EXCLUSAO ? (
+                <Button
+                  key="approve_direct"
+                  type="primary"
+                  onClick={() => handleAction("approve")}
+                  icon={<CheckOutlined />}
+                  loading={isActionLoading}
+                >
+                  Aprovar Direto
+                </Button>
+              ) : (
+                <Button
+                  key="approve_delete"
+                  type="primary"
+                  danger
+                  onClick={() => handleAction("approve")}
+                  icon={<CheckOutlined />}
+                  loading={isActionLoading}
+                >
+                  Confirmar Exclusão
+                </Button>
+              ),
+            ]}
+          >
+            {/* ... Renderização dos Detalhes (Conteúdo do Modal) ... */}
+            {(() => {
+              const allEntries = Object.entries(selectedItem)
+                .filter(
+                  ([key]) =>
+                    key !== "dados_atualizacao" &&
+                    key !== "logoUrl" &&
+                    key !== "localImg" &&
+                    key !== "status" &&
+                    fieldConfig[key]
+                )
+                .sort(
+                  ([keyA], [keyB]) =>
+                    (fieldConfig[keyA]?.order ?? 999) -
+                    (fieldConfig[keyB]?.order ?? 999)
+                );
+              const identificacaoEntries = allEntries.filter(
+                ([key]) => fieldConfig[key]?.group === "identificacao"
+              );
+              const infoEntries = allEntries.filter(
+                ([key]) => fieldConfig[key]?.group === "info"
+              );
+              const metaEntries = allEntries.filter(
+                ([key]) => fieldConfig[key]?.group === "meta"
               );
 
-            const identificacaoEntries = allEntries.filter(
-              ([key]) => fieldConfig[key]?.group === "identificacao"
-            );
-            const infoEntries = allEntries.filter(
-              ([key]) => fieldConfig[key]?.group === "info"
-            );
-            const metaEntries = allEntries.filter(
-              ([key]) => fieldConfig[key]?.group === "meta"
-            );
-
-            return (
-              <>
-                {identificacaoEntries.length > 0 && (
-                  <>
-                    <Title level={4} className="mt-4">
-                      Identificação do Projeto
-                    </Title>
-                    <Descriptions bordered column={1} size="small">
-                      {identificacaoEntries.map(([key, value]) => (
-                        <Descriptions.Item
-                          key={key}
-                          label={fieldConfig[key]?.label ?? key}
-                        >
-                          {renderValue(key, value)}
-                        </Descriptions.Item>
-                      ))}
-                    </Descriptions>
-                  </>
-                )}
-
-                <Title level={4} className="mt-6">
-                  Informações do Projeto
-                </Title>
-                <Descriptions bordered column={1} size="small">
-                  {selectedItem.logoUrl && (
-                    <Descriptions.Item label={fieldConfig.logoUrl.label}>
-                      {renderValue("logoUrl", selectedItem.logoUrl)}
-                    </Descriptions.Item>
+              return (
+                <>
+                  {identificacaoEntries.length > 0 && (
+                    <>
+                      <Title
+                        level={4}
+                        className="mt-4"
+                        style={{ color: COLORS.primary }}
+                      >
+                        Identificação do Local
+                      </Title>
+                      <Descriptions bordered column={1} size="small">
+                        {identificacaoEntries.map(([key, value]) => (
+                          <Descriptions.Item
+                            key={key}
+                            label={fieldConfig[key]?.label ?? key}
+                          >
+                            {renderValue(key, value)}
+                          </Descriptions.Item>
+                        ))}
+                      </Descriptions>
+                    </>
                   )}
-                  {selectedItem.projetoImg &&
-                    selectedItem.projetoImg.length > 0 && (
-                      <Descriptions.Item label={fieldConfig.projetoImg.label}>
-                        {renderValue("projetoImg", selectedItem.projetoImg)}
+                  <Title
+                    level={4}
+                    className="mt-6"
+                    style={{ color: COLORS.primary }}
+                  >
+                    Informações do Local
+                  </Title>
+                  <Descriptions bordered column={1} size="small">
+                    {selectedItem.logoUrl && (
+                      <Descriptions.Item label={fieldConfig.logoUrl.label}>
+                        {renderValue("logoUrl", selectedItem.logoUrl)}
                       </Descriptions.Item>
                     )}
-                  {infoEntries.map(([key, value]) => (
-                    <Descriptions.Item
-                      key={key}
-                      label={fieldConfig[key]?.label ?? key}
-                    >
-                      {renderValue(key, value)}
-                    </Descriptions.Item>
-                  ))}
-                </Descriptions>
-
-                {metaEntries.length > 0 && (
-                  <>
-                    <Title level={4} className="mt-6">
-                      Metadados
-                    </Title>
-                    <Descriptions bordered column={1} size="small">
-                      {metaEntries.map(([key, value]) => (
-                        <Descriptions.Item
-                          key={key}
-                          label={fieldConfig[key]?.label ?? key}
-                        >
-                          {renderValue(key, value)}
+                    {selectedItem.localImg &&
+                      selectedItem.localImg.length > 0 && (
+                        <Descriptions.Item label={fieldConfig.localImg.label}>
+                          {renderValue("localImg", selectedItem.localImg)}
                         </Descriptions.Item>
-                      ))}
-                    </Descriptions>
-                  </>
-                )}
-              </>
-            );
-          })()}
+                      )}
+                    {infoEntries.map(([key, value]) => (
+                      <Descriptions.Item
+                        key={key}
+                        label={fieldConfig[key]?.label ?? key}
+                      >
+                        {renderValue(key, value)}
+                      </Descriptions.Item>
+                    ))}
+                  </Descriptions>
+                  {metaEntries.length > 0 && (
+                    <>
+                      <Title
+                        level={4}
+                        className="mt-6"
+                        style={{ color: COLORS.primary }}
+                      >
+                        Metadados
+                      </Title>
+                      <Descriptions bordered column={1} size="small">
+                        {metaEntries.map(([key, value]) => (
+                          <Descriptions.Item
+                            key={key}
+                            label={fieldConfig[key]?.label ?? key}
+                          >
+                            {renderValue(key, value)}
+                          </Descriptions.Item>
+                        ))}
+                      </Descriptions>
+                    </>
+                  )}
+                </>
+              );
+            })()}
 
-          {renderDiffTable(
-            "pendente_exclusao",
-            "error",
-            "Solicitação de Exclusão",
-            ["projetoId", "confirmacao"]
-          )}
+            {renderDiffTable(
+              StatusLocal.PENDENTE_EXCLUSAO,
+              "error",
+              "Solicitação de Exclusão",
+              ["localId", "confirmacao"]
+            )}
+            {renderDiffTable(
+              StatusLocal.PENDENTE_ATUALIZACAO,
+              "info",
+              "Dados para Atualizar",
+              ["motivoExclusao"]
+            )}
+          </Modal>
+        )}
 
-          {renderDiffTable(
-            "pendente_atualizacao",
-            "info",
-            "Dados para Atualizar",
-            ["motivoExclusao"]
-          )}
-        </Modal>
-      )}
+        {isEditModalVisible && (
+          <AdminLocalModal
+            local={selectedItem}
+            visible={isEditModalVisible}
+            onClose={(shouldRefresh) => {
+              setIsEditModalVisible(false);
+              if (shouldRefresh) {
+                setModalVisible(false);
+                setSelectedItem(null);
+                fetchData();
+              }
+            }}
+            mode="edit-and-approve"
+            onEditAndApprove={handleEditAndApproveSubmit}
+          />
+        )}
 
-      {isEditModalVisible && (
-        <AdminProjetoModal
-          projeto={selectedItem}
-          visible={isEditModalVisible}
-          onClose={(shouldRefresh) => {
-            setIsEditModalVisible(false);
-            if (shouldRefresh) {
-              setModalVisible(false);
-              setSelectedItem(null);
-              fetchData();
-            }
+        <Modal
+          title="Confirmar Rejeição"
+          open={isRejectModalVisible}
+          onCancel={() => {
+            setIsRejectModalVisible(false);
+            setRejectionReason("");
           }}
-          mode="edit-and-approve"
-          onEditAndApprove={handleEditAndApproveSubmit}
-        />
-      )}
-
-      <Modal
-        title="Confirmar Rejeição"
-        open={isRejectModalVisible}
-        onCancel={() => {
-          setIsRejectModalVisible(false);
-          setRejectionReason("");
-        }}
-        onOk={() => handleAction("reject", rejectionReason)}
-        confirmLoading={isActionLoading}
-        okText="Confirmar Rejeição"
-        cancelText="Voltar"
-        okButtonProps={{ danger: true }}
-      >
-        <Typography.Text strong className="block mb-2">
-          Por favor, informe o motivo da rejeição (será enviado ao usuário):
-        </Typography.Text>
-        <TextArea
-          rows={4}
-          value={rejectionReason}
-          onChange={(e) => setRejectionReason(e.target.value)}
-          placeholder="O projeto foi rejeitado pois..."
-        />
-      </Modal>
-    </div>
+          onOk={() => handleAction("reject", rejectionReason)}
+          confirmLoading={isActionLoading}
+          okText="Confirmar Rejeição"
+          cancelText="Voltar"
+          okButtonProps={{ danger: true }}
+        >
+          <Typography.Text strong className="block mb-2">
+            Por favor, informe o motivo da rejeição:
+          </Typography.Text>
+          <TextArea
+            rows={4}
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            placeholder="Motivo..."
+          />
+        </Modal>
+      </div>
+    </ConfigProvider>
   );
 };
 

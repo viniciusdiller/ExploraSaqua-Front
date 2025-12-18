@@ -268,8 +268,8 @@ export default function SobreExploraSaquaPage() {
               <div className="overflow-hidden rounded-lg border border-gray-200 group-hover:shadow-xl transition-shadow duration-300 bg-gray-50 p-4">
                 {/* Substituir pelo LogoExplora.png quando disponível */}
                 <Image
-                  src="/LogoExplora.png"
-                  alt="Logo ExploraSaqua"
+                  src="/Logo_Explore.png"
+                  alt="Logo Explore Saquá"
                   width={400}
                   height={300}
                   className="w-full h-auto object-contain transform duration-300 group-hover:scale-105"

@@ -189,7 +189,7 @@ export const getPendingAdminRequests = (token: string) =>
     },
   });
 
-export const getAllActiveLocais = async (token: string) => {
+export const getAllActiveLocal = async (token: string): Promise<any> => {
   const response = await fetch(`${API_URL}/api/admin/locais-ativos`, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -270,8 +270,8 @@ export const adminExportLocais = async (token: string) => {
   return response.blob();
 };
 
-export const getAdminStats = (token: string) =>
-  fetchApi("/api/admin/stats", {
+export const getDashboardStats = (token: string): Promise<any> =>
+  fetchApi("/api/admin/dashboard-stats", {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,

@@ -25,7 +25,7 @@ import { adminUpdateLocal } from "@/lib/api"; // Atualizado para a nova API
 import { Local, Imagens } from "@/types/Interface-Local"; // Atualizado para tipo Local
 import dynamic from "next/dynamic";
 import "react-quill/dist/quill.snow.css";
-import "@/app/cadastro-projeto/quill-styles.css";
+import "@/app/cadastro-locais/quill-styles.css";
 import GerarCertificadoButton from "./GerarCertificadoButton";
 
 const ReactQuill = dynamic(() => import("react-quill"), {

@@ -70,8 +70,8 @@ function ResetPasswordFormComponent() {
         <div className="text-center mb-6">
           <Link href="/" passHref>
             <Image
-              src="/LogoExplora.png"
-              alt="Logo ExploraSaqua"
+              src="/Logo_Explore.png"
+              alt="Logo Explore Saqua"
               width={200}
               height={80}
               className="mx-auto w-auto h-16 object-contain"
