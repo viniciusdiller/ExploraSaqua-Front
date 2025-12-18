@@ -9,7 +9,7 @@ import AccessibilityStyles from "@/components/AccessibilityStyles";
 import { ConditionalNavbar } from "@/components/ConditionalNavbar";
 import { ConditionalAccessibility } from "@/components/ConditionalAccessibility";
 import "react-quill/dist/quill.snow.css";
-import "@/app/cadastro-projeto/quill-styles.css";
+import "@/app/cadastro-locais/quill-styles.css";
 
 import { ConfigProvider } from "antd";
 import ptBR from "antd/locale/pt_BR";
@@ -21,7 +21,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Aqui Tem ODS",
+  title: "Explore Saqua",
   description:
     "O ponto de encontro entre inovação, gestão e sustentabilidade. Conheça o AquiTemODS!",
 
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "pt_BR",
     url: "https://aquitemods.saquarema.rj.gov.br/",
-    title: "Aqui Tem ODS",
+    title: "Explora Saqua",
     description:
       "O ponto de encontro entre inovação, gestão e sustentabilidade. Conheça o AquiTemODS!",
     images: [
@@ -48,16 +48,16 @@ export const metadata: Metadata = {
         url: "https://aquitemods.saquarema.rj.gov.br//og-image.png",
         width: 1200,
         height: 630,
-        alt: "Logo Aqui Tem ODS",
+        alt: "Logo Explora Saqua",
       },
     ],
-    siteName: "Aqui Tem ODS",
+    siteName: "Explora Saqua",
   },
 
   // --- 4. TWITTER CARDS (ESPECÍFICO DO TWITTER) ---
   twitter: {
     card: "summary_large_image",
-    title: "Aqui Tem ODS",
+    title: "Explore Saqua",
     description: "Conectando projetos sociais a voluntários e doadores.",
     images: ["https://aquitemods.saquarema.rj.gov.br//og-image.png"],
   },
@@ -81,7 +81,7 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Organization",
-              name: "Aqui Tem ODS",
+              name: "Explora Saqua",
               url: "https://aquitemods.saquarema.rj.gov.br/",
               logo: "https://aquitemods.saquarema.rj.gov.br/LogoRedonda.png",
             }),

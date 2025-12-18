@@ -17,8 +17,8 @@ import { useAuth } from "@/context/AuthContext";
 const AnimatedLogo = () => {
   const logos = [
     {
-      src: "/Logo_aquitemods.png",
-      alt: "Logo AquiTemODS",
+      src: "/Logo_Explore.png",
+      alt: "Logo ExploreSaquá",
       className: "h-10 w-auto",
     },
     {
@@ -165,28 +165,22 @@ export function Navbar() {
               Sobre o Projeto
             </Link>
             <Link
-              href="/cadastro-projeto"
+              href="/cadastro-locais"
               className="text-gray-700 hover:text-[#D7386E]  transition-colors"
             >
-              Cadastro de Projetos
+              Cadastro de Locais
             </Link>
             <Link
-              href="/espaco-dos-ods"
+              href="/espaco-explore"
               className="text-gray-700 hover:text-[#D7386E]  transition-colors"
             >
-              Espaço dos ODS
+              Espaço Explore
             </Link>
             <Link
               href="/FAQ"
               className="text-gray-700 hover:text-[#D7386E]  transition-colors"
             >
               FAQ
-            </Link>
-            <Link
-              href="/enigmas-do-futuro"
-              className="text-gray-700 hover:text-[#D7386E]  transition-colors"
-            >
-              Enigmas do Futuro
             </Link>
           </nav>
         </div>
@@ -272,18 +266,18 @@ export function Navbar() {
               Sobre o Projeto
             </Link>
             <Link
-              href="/cadastro-projeto"
+              href="/cadastro-locais"
               className="text-gray-700 hover:text-[#D7386E]  transition-colors font-medium"
               onClick={() => setIsOpen(false)}
             >
-              Cadastro de Projetos
+              Cadastro de Locais
             </Link>
             <Link
-              href="/espaco-dos-ods"
+              href="/espaco-explore"
               className="text-gray-700 hover:text-[#D7386E]  transition-colors font-medium"
               onClick={() => setIsOpen(false)}
             >
-              Espaço dos ODS
+              Espaço Explore
             </Link>
             <Link
               href="/FAQ"
@@ -292,13 +286,7 @@ export function Navbar() {
             >
               FAQ
             </Link>
-            <Link
-              href="/enigmas-do-futuro"
-              className="text-gray-700 hover:text-[#D7386E]  transition-colors font-medium"
-              onClick={() => setIsOpen(false)}
-            >
-              Enigmas do Futuro
-            </Link>
+
             <hr className="border-gray-200" />
 
             {isLoading ? (

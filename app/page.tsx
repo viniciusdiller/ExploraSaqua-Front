@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowUp, Search } from "lucide-react";
-// Importando os ícones que estavam no ExploraSaqua
+import ImageCarousel from "@/components/ImageCarousel";
 import {
   UtensilsCrossed,
   MapPin,
@@ -25,103 +25,8 @@ import {
   PhoneCall,
 } from "lucide-react";
 
-// Botão "Fale Conosco" e "ButtonWrapper" vindos do AquiTemODS para manter funcionalidade extra
-// Se não existirem visualmente no ExploraSaqua original, podemos ocultar ou adaptar.
-// Vou mantê-los comentados ou discretos para respeitar a regra "Home igual ao ExploraSaqua".
-
 // Dados estáticos de categorias do ExploraSaqua
 const categories = [
-  {
-    id: "restaurantes",
-    title: "Restaurantes e Lanchonetes",
-    icon: UtensilsCrossed,
-    color: "from-orange-400 to-red-500",
-    description: "Sabores únicos da região",
-  },
-  {
-    id: "pontos-turisticos",
-    title: "Pontos Turísticos",
-    icon: MapPin,
-    color: "from-blue-400 to-purple-500",
-    description: "Lugares imperdíveis",
-  },
-  {
-    id: "trilhas",
-    title: "Trilhas",
-    icon: Mountain,
-    color: "from-green-400 to-emerald-500",
-    description: "Aventuras na natureza",
-  },
-  {
-    id: "telefones-uteis",
-    title: "Telefones Úteis",
-    icon: PhoneCall,
-    color: "from-red-400 to-pink-500",
-    description: "Mantenha-se conectado",
-  },
-  {
-    id: "escolas",
-    title: "Escolas",
-    icon: GraduationCap,
-    color: "from-indigo-400 to-blue-500",
-    description: "Educação de qualidade",
-  },
-  {
-    id: "supermercados",
-    title: "Supermercados",
-    icon: ShoppingCart,
-    color: "from-yellow-400 to-orange-500",
-    description: "Tudo que você precisa",
-  },
-  {
-    id: "transporte",
-    title: "Transporte Público",
-    icon: Bus,
-    color: "from-cyan-400 to-blue-500",
-    description: "Mobilidade urbana",
-  },
-  {
-    id: "hospedagens",
-    title: "Hospedagens",
-    icon: Hotel,
-    color: "from-purple-400 to-pink-500",
-    description: "Conforto e acolhimento",
-  },
-  {
-    id: "eventos",
-    title: "Eventos Locais",
-    icon: Calendar,
-    color: "from-rose-400 to-red-500",
-    description: "Cultura e entretenimento",
-  },
-  {
-    id: "lazer-e-esporte",
-    title: "Lazer e Esporte",
-    icon: Volleyball,
-    color: "from-amber-400 to-yellow-500",
-    description: "Diversão e atividades físicas",
-  },
-  {
-    id: "espacos-culturais",
-    title: "Espaços Culturais",
-    icon: Building,
-    color: "from-violet-400 to-purple-500",
-    description: "Arte e história local",
-  },
-  {
-    id: "praias",
-    title: "Praias e Lagoas",
-    icon: Waves,
-    color: "from-teal-400 to-cyan-500",
-    description: "Paraíso natural",
-  },
-  {
-    id: "mulheres-e-criancas",
-    title: "Mulheres e Crianças",
-    icon: Heart,
-    color: "from-pink-400 to-red-600",
-    description: "Apoio e serviços essenciais",
-  },
   {
     id: "compras",
     title: "Compras",
@@ -137,11 +42,102 @@ const categories = [
     description: "Serviços de emergência e saúde",
   },
   {
+    id: "escolas",
+    title: "Escolas",
+    icon: GraduationCap,
+    color: "from-indigo-400 to-blue-500",
+    description: "Educação de qualidade",
+  },
+  {
+    id: "espacos-culturais",
+    title: "Espaços Culturais",
+    icon: Building,
+    color: "from-violet-400 to-purple-500",
+    description: "Arte e história local",
+  },
+  {
+    id: "eventos",
+    title: "Eventos Locais",
+    icon: Calendar,
+    color: "from-rose-400 to-red-500",
+    description: "Cultura e entretenimento",
+  },
+  {
     id: "feiras",
     title: "Feiras e Produtores Rurais",
     icon: Cherry,
     color: "from-green-400 to-lime-300",
     description: "Produtos locais frescos",
+  },
+  {
+    id: "hospedagens",
+    title: "Hospedagens",
+    icon: Hotel,
+    color: "from-purple-400 to-pink-500",
+    description: "Conforto e acolhimento",
+  },
+  {
+    id: "lazer-e-esporte",
+    title: "Lazer e Esporte",
+    icon: Volleyball,
+    color: "from-amber-400 to-yellow-500",
+    description: "Diversão e atividades físicas",
+  },
+  {
+    id: "mulheres-e-criancas",
+    title: "Mulheres e Crianças",
+    icon: Heart,
+    color: "from-pink-400 to-red-600",
+    description: "Apoio e serviços essenciais",
+  },
+  {
+    id: "pontos-turisticos",
+    title: "Pontos Turísticos",
+    icon: MapPin,
+    color: "from-blue-400 to-purple-500",
+    description: "Lugares imperdíveis",
+  },
+  {
+    id: "praias",
+    title: "Praias e Lagoas",
+    icon: Waves,
+    color: "from-teal-400 to-cyan-500",
+    description: "Paraíso natural",
+  },
+  {
+    id: "restaurantes",
+    title: "Restaurantes e Lanchonetes",
+    icon: UtensilsCrossed,
+    color: "from-orange-400 to-red-500",
+    description: "Sabores únicos da região",
+  },
+  {
+    id: "supermercados",
+    title: "Supermercados",
+    icon: ShoppingCart,
+    color: "from-yellow-400 to-orange-500",
+    description: "Tudo que você precisa",
+  },
+  {
+    id: "telefones-uteis",
+    title: "Telefones Úteis",
+    icon: PhoneCall,
+    color: "from-red-400 to-pink-500",
+    description: "Mantenha-se conectado",
+  },
+  {
+    id: "transporte",
+    title: "Transporte Público",
+    icon: Bus,
+    color: "from-cyan-400 to-blue-500",
+    description: "Mobilidade urbana",
+  },
+  {
+    id: "trilhas",
+    title: "Trilhas",
+    icon: Mountain,
+    color: "from-green-400 to-emerald-500",
+    description: "Aventuras na natureza",
   },
 ];
 
@@ -178,12 +174,7 @@ export default function HomePage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // IMPORTANTE: Aqui integramos a lógica de contagem de visualização do AquiTemODS
-  // Mas renomeada para contexto da Home do ExploraSaqua
-  useEffect(() => {
-    // Exemplo de integração "silenciosa" com backend futuro
-    // fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/locais/visualizacao/HOME`, { method: "POST" }).catch(console.error);
-  }, []);
+  useEffect(() => {}, []);
 
   return (
     <div className="flex flex-col flex-grow bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-100 to-white pt-8">
@@ -199,8 +190,8 @@ export default function HomePage() {
       {/* Link para refresh ou home */}
       <div className="w-fit mx-auto block">
         <Image
-          src="/LogoExplora.png"
-          alt="Logo ExploraSaquá"
+          src="/Logo_Explore.png"
+          alt="Logo ExploreSaquá"
           width={2660}
           height={898}
           className="block h-14 sm:h-20 w-auto mb-5 milecem:h-24"
@@ -212,7 +203,7 @@ export default function HomePage() {
       <div className="w-full max-w-7xl mx-auto px-4 mb-8">
         {/* Se o componente ImageCarousel do ExploraSaqua for diferente, usamos ele. 
              Pelo arquivo fornecido, ele existe. */}
-        {/* <ImageCarousel />  <-- Descomentar se o componente estiver presente */}
+        <ImageCarousel />
       </div>
 
       <section className="flex-grow container mx-auto px-4 py-8 md:py-8 relative z-10 -mt-[1px] md:-mt-[1px]">

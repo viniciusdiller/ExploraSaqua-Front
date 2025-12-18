@@ -31,6 +31,13 @@ export default function Cadastro() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // Definição das cores para uso consistente via style inline ou classes arbitrárias
+  const colors = {
+    primary: "#017db9", // Azul
+    secondary: "#a8cf45", // Verde
+    tertiary: "#d04798", // Rosa/Magenta
+  };
+
   const addNotification = (text: string, type: "success" | "error") => {
     const newNotif: NotificationType = { id: Math.random(), text, type };
     setNotifications((prev) => [newNotif, ...prev]);
@@ -39,6 +46,7 @@ export default function Cadastro() {
   const removeNotif = (id: number) => {
     setNotifications((pv) => pv.filter((n) => n.id !== id));
   };
+
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const valueComEmoji = e.target.value;
     const valueSemEmoji = removeEmojis(valueComEmoji);
@@ -137,20 +145,28 @@ export default function Cadastro() {
           <div className="mb-4">
             <Link
               href="/login"
-              className="flex items-center gap-2 text-gray-600 hover:text-[#3C6AB2] transition-colors"
+              className="flex items-center gap-2 text-gray-600 transition-colors"
+              // Hover com a cor Primária
+              style={{ ":hover": { color: colors.primary } } as any}
             >
-              <ArrowLeft className="w-5 h-5" />
-              <span>Voltar</span>
+              {/* Aplicando cor primária via classe utilitária no hover */}
+              <div className="flex items-center gap-2 hover:text-[#017db9]">
+                <ArrowLeft className="w-5 h-5" />
+                <span>Voltar</span>
+              </div>
             </Link>
           </div>
           <Card
-            className="rounded-2xl border border-[#3C6AB2]/70 bg-white shadow-lg
-                                 focus:outline-none focus:ring-2 focus:border-transparent
-                                 transition-all duration-300 placeholder-gray-400 text-sm
-                                 hover:shadow-md"
+            // Borda com a cor Primária
+            className="rounded-2xl border border-[#017db9]/60 bg-white shadow-lg
+                       focus:outline-none focus:ring-2 focus:border-transparent
+                       transition-all duration-300 placeholder-gray-400 text-sm
+                       hover:shadow-md hover:shadow-[#017db9]/10"
           >
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Crie seu Cadastro</CardTitle>
+              <CardTitle className="text-2xl text-gray-800">
+                Crie seu Cadastro
+              </CardTitle>
               <CardDescription>
                 Insira suas credenciais para poder avaliar os estabelecimentos.
               </CardDescription>
@@ -167,7 +183,10 @@ export default function Cadastro() {
                     value={username}
                     onChange={handleUsernameChange}
                     disabled={isLoading}
-                    className="w-full py-2 rounded-2xl placeholder:text-gray-400 border border-gray-200 bg-white shadow-sm focus:ring-2 focus:border-[#3C6AB2]/70 transition-all duration-300"
+                    // Borda padrão cinza, Focus Border Primária, Focus Ring Secundária
+                    className="w-full py-2 rounded-2xl placeholder:text-gray-400 border border-gray-200 bg-white shadow-sm 
+                               focus:ring-2 focus:ring-[#a8cf45]/50 focus:border-[#017db9] 
+                               transition-all duration-300"
                   />
                 </div>
                 <div className="space-y-2">
@@ -180,7 +199,9 @@ export default function Cadastro() {
                     value={nome_completo_user}
                     onChange={handleNomeCompletoChange}
                     disabled={isLoading}
-                    className="w-full py-2 rounded-2xl placeholder:text-gray-400 border border-gray-200 bg-white shadow-sm focus:ring-2 focus:border-[#3C6AB2]/70 transition-all duration-300"
+                    className="w-full py-2 rounded-2xl placeholder:text-gray-400 border border-gray-200 bg-white shadow-sm 
+                               focus:ring-2 focus:ring-[#a8cf45]/50 focus:border-[#017db9] 
+                               transition-all duration-300"
                   />
                 </div>
                 <div className="space-y-2">
@@ -193,7 +214,9 @@ export default function Cadastro() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isLoading}
-                    className="w-full py-2 rounded-2xl placeholder:text-gray-400 border border-gray-200 bg-white shadow-sm focus:ring-2 focus:border-[#3C6AB2]/70 transition-all duration-300"
+                    className="w-full py-2 rounded-2xl placeholder:text-gray-400 border border-gray-200 bg-white shadow-sm 
+                               focus:ring-2 focus:ring-[#a8cf45]/50 focus:border-[#017db9] 
+                               transition-all duration-300"
                   />
                 </div>
                 <div className="space-y-2">
@@ -207,12 +230,15 @@ export default function Cadastro() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       disabled={isLoading}
-                      className="w-full py-2 pr-10 rounded-2xl placeholder:text-gray-400 border border-gray-200 bg-white shadow-sm focus:ring-2 focus:border-[#3C6AB2]/70 transition-all duration-300"
+                      className="w-full py-2 pr-10 rounded-2xl placeholder:text-gray-400 border border-gray-200 bg-white shadow-sm 
+                                 focus:ring-2 focus:ring-[#a8cf45]/50 focus:border-[#017db9] 
+                                 transition-all duration-300"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                      // Hover do ícone com cor Secundária
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-[#a8cf45] transition-colors"
                       aria-label={
                         showPassword ? "Esconder senha" : "Mostrar senha"
                       }
@@ -226,11 +252,17 @@ export default function Cadastro() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full hover:bg-[#D7386E] rounded-2xl hover:text-white flex justify-center mx-auto px-10 text-gray-700 border border-[#3C6AB2]/70 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  // Texto/Borda Primária. Hover Background Terciária.
+                  className="w-full rounded-2xl flex justify-center mx-auto px-10 
+                             bg-white text-[#017db9] border border-[#017db9]
+                             hover:bg-[#d04798] hover:text-white hover:border-[#d04798]
+                             disabled:bg-gray-300 disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed
+                             transition-all duration-300 font-medium shadow-sm hover:shadow-md"
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {/* Spinner com cor Terciária para contraste ou Secundária se preferir */}
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin text-[#d04798]" />
                       Aguarde...
                     </>
                   ) : (

@@ -55,13 +55,13 @@ export default function PerfilPage() {
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [editUsername, setEditUsername] = useState("");
   const [editEmail, setEditEmail] = useState("");
-  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false); // Estado de carregamento
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false); // Estado de carregamento
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const valueComEmoji = e.target.value;
@@ -69,7 +69,7 @@ export default function PerfilPage() {
 
     if (valueComEmoji !== valueSemEmoji) {
       toast.error("Não é possível adicionar emojis", {
-        id: "emoji-profile-toast", // ID único para evitar duplicatas
+        id: "emoji-profile-toast",
       });
     }
 
@@ -78,7 +78,6 @@ export default function PerfilPage() {
   const handleProfileDialogOpenChange = (open: boolean) => {
     setIsProfileDialogOpen(open);
     if (open && user) {
-      // Quando o modal abre, preenche os campos de edição
       setEditUsername(user.username || "");
       setEditEmail(user.email || "");
     }
@@ -137,7 +136,7 @@ export default function PerfilPage() {
       return;
     }
 
-    setIsUpdatingProfile(true); // Inicia o carregamento
+    setIsUpdatingProfile(true);
     try {
       const updatedUser = await updateUserProfile(profileData, user.token);
       updateUserContext(updatedUser);
@@ -153,7 +152,7 @@ export default function PerfilPage() {
     } catch (error: any) {
       toast.error(`Erro ao atualizar perfil: ${error.message}`);
     } finally {
-      setIsUpdatingProfile(false); // Finaliza o carregamento
+      setIsUpdatingProfile(false);
     }
   };
 
@@ -171,7 +170,7 @@ export default function PerfilPage() {
       return;
     }
 
-    setIsChangingPassword(true); // Inicia o carregamento
+    setIsChangingPassword(true);
     try {
       await changeUserPassword({ currentPassword, newPassword }, user.token);
       toast.success("Senha alterada com sucesso!");
@@ -182,7 +181,7 @@ export default function PerfilPage() {
     } catch (error: any) {
       toast.error(`Erro ao alterar senha: ${error.message}`);
     } finally {
-      setIsChangingPassword(false); // Finaliza o carregamento
+      setIsChangingPassword(false);
     }
   };
 
@@ -216,7 +215,7 @@ export default function PerfilPage() {
                   alt="Avatar"
                   width={96}
                   height={96}
-                  className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-[#D7386E]  object-cover"
+                  className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-[#d04798] object-cover"
                 />
                 <CardTitle>{user.nomeCompleto}</CardTitle>
               </CardHeader>
@@ -287,9 +286,9 @@ export default function PerfilPage() {
                           id="usernameEdit"
                           value={editUsername}
                           onChange={handleUsernameChange}
-                          className="mt-1  w-full py-2
+                          className="mt-1 w-full py-2
                           rounded-2xl border border-gray-200 bg-white shadow-sm
-                          focus:ring-2 focus:border-blue-700 transition-all duration-300 placeholder:text-gray-400"
+                          focus:ring-2 focus:border-[#017db9] transition-all duration-300 placeholder:text-gray-400"
                         />
                       </div>
                       <div>
@@ -298,9 +297,9 @@ export default function PerfilPage() {
                           id="emailEdit"
                           value={editEmail}
                           onChange={(e) => setEditEmail(e.target.value)}
-                          className="mt-1  w-full py-2
+                          className="mt-1 w-full py-2
                           rounded-2xl border border-gray-200 bg-white shadow-sm
-                          focus:ring-2 focus:border-blue-700 transition-all duration-300 placeholder:text-gray-400"
+                          focus:ring-2 focus:border-[#017db9] transition-all duration-300 placeholder:text-gray-400"
                         />
                       </div>
                     </div>
@@ -316,7 +315,7 @@ export default function PerfilPage() {
                       </DialogClose>
                       <Button
                         onClick={handleProfileUpdate}
-                        className="w-fit rounded-full transition-all transform hover:scale-105  active:scale-95 border-2 border-transparent hover:border-blue-700"
+                        className="w-fit rounded-full transition-all transform hover:scale-105 active:scale-95 border-2 border-transparent hover:border-[#017db9]"
                         disabled={isUpdatingProfile}
                       >
                         {isUpdatingProfile && (
@@ -371,7 +370,7 @@ export default function PerfilPage() {
                           onChange={(e) => setCurrentPassword(e.target.value)}
                           className="mt-1 w-full py-2
                           rounded-2xl border border-gray-200 bg-white shadow-sm
-                          focus:ring-2 focus:border-blue-700 transition-all duration-300 placeholder:text-gray-400"
+                          focus:ring-2 focus:border-[#017db9] transition-all duration-300 placeholder:text-gray-400"
                         />
                       </div>
                       <div>
@@ -382,9 +381,9 @@ export default function PerfilPage() {
                           placeholder="Digite a nova senha"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          className="mt-1  w-full py-2
+                          className="mt-1 w-full py-2
                           rounded-2xl border border-gray-200 bg-white shadow-sm
-                          focus:ring-2 focus:border-blue-700 transition-all duration-300 placeholder:text-gray-400"
+                          focus:ring-2 focus:border-[#017db9] transition-all duration-300 placeholder:text-gray-400"
                         />
                       </div>
                       <div>
@@ -397,9 +396,9 @@ export default function PerfilPage() {
                           placeholder="Digite novamente sua nova senha"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="mt-1  w-full py-2
+                          className="mt-1 w-full py-2
                           rounded-2xl border border-gray-200 bg-white shadow-sm
-                          focus:ring-2 focus:border-blue-700 transition-all duration-300 placeholder:text-gray-400"
+                          focus:ring-2 focus:border-[#017db9] transition-all duration-300 placeholder:text-gray-400"
                         />
                       </div>
                     </div>
@@ -415,7 +414,7 @@ export default function PerfilPage() {
                       </DialogClose>
                       <Button
                         onClick={handlePasswordChange}
-                        className="w-fit rounded-full transition-all transform hover:scale-105 hover:bg-[#3C6AB2]tive:scale-95 border-2 border-transparent hover:border-blue-700"
+                        className="w-fit rounded-full transition-all transform hover:scale-105 hover:bg-[#017db9] active:scale-95 border-2 border-transparent hover:border-blue-700"
                         disabled={isChangingPassword}
                       >
                         {isChangingPassword && (
@@ -461,7 +460,7 @@ export default function PerfilPage() {
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel className="w-fit rounded-full  transform hover:scale-105 bg-[#3C6AB2]tive:scale-95 border-2 border-transparent hover:border-green-700">
+                      <AlertDialogCancel className="w-fit rounded-full transform hover:scale-105 bg-[#017db9] text-white active:scale-95 border-2 border-transparent hover:border-[#a8cf45] hover:bg-[#017db9]/90 hover:text-white">
                         Cancelar
                       </AlertDialogCancel>
                       <AlertDialogAction

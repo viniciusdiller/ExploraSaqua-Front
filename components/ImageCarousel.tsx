@@ -5,9 +5,9 @@ import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react"; // Using icons for a cleaner look
 
 const slides = [
-  { src: "/ODS-Roda.png", alt: "ODS" },
-  { src: "/ods-fundo-azul.png", alt: "ODS" },
-  { src: "/ods capa.jpeg", alt: "ODS" },
+  { src: "/igreja-beach.jpg", alt: "vista da Igreja" },
+  { src: "/foto-praia.jpg", alt: "Imagem de cima da praia" },
+  { src: "/igreja-barrinha.jpg", alt: "vista da Igreja na barrinha" },
 ];
 
 export default function ImageCarousel() {

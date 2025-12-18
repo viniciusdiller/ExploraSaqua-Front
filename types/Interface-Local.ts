@@ -1,30 +1,68 @@
 // types/Interface-Local.ts
-// Baseado em types/Interface-Projeto.ts
-export interface Local {
-  id: number;
-  nome: string; // Antes: nomeProjeto
-  descricao: string; // Antes: descricaoProjeto
-  categoriaId: string; // Antes: odsId (Ex: "restaurantes", "trilhas")
-  imagemCapa?: string; // Antes: imagemCapa
-  galeriaImagens?: string[];
-  autorId: number;
-  autorNome: string;
-  dataCriacao: string;
-  aprovado: boolean;
 
-  // Mantendo a lógica de visualizações e avaliações
-  visualizacoes: number;
-  mediaAvaliacao?: number;
-  totalAvaliacoes?: number;
-
-  // Metadados específicos que existiam no projeto (ex: público alvo virar algo genérico ou manter)
-  endereco?: string; // Adaptado de metadados genéricos
-  telefone?: string;
-  website?: string;
+// Tipo auxiliar para imagens (para suportar ID e URL, útil no gerenciamento)
+export interface Imagens {
+  id: string | number;
+  url: string;
 }
 
-// lib/categoryColors.ts
-// Baseado em lib/odsColors.ts, mas usando as cores do ExploraSaqua
+// Tipo para dados de atualização pendente (Lógica do Admin)
+export interface DadosAtualizacaoLocal {
+  nome?: string;
+  descricao?: string;
+  descricaoDiferencial?: string;
+  categoria?: string;
+  logo?: string;
+  imagens?: string[]; // URLs das novas imagens sugeridas
+  outrasAlteracoes?: string; // Texto livre do usuário
+  [key: string]: any;
+}
+
+export interface Local {
+  // Identificadores e Sistema
+  localId: number; // Padronizado para localId (antes era id ou projetoId)
+  slug: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  criadoPor: string;
+
+  // Status e Administração
+  status: "aprovado" | "pendente" | "pendente_atualizacao" | "rejeitado";
+  aprovado: boolean;
+  dados_atualizacao?: DadosAtualizacaoLocal | null; // Para aprovação de edits
+  oficioUrl?: string | null; // Mantido para burocracia/admin
+
+  // Dados Principais
+  nome: string;
+  descricao: string; // Descrição completa (HTML/Rich Text)
+  descricaoDiferencial: string; // Briefing/Resumo curto
+  categoria: string; // Ex: "Restaurantes", "Hospedagens" (string direta ou ID)
+
+  // Mídia
+  logoUrl?: string | null;
+  localImg?: Imagens[]; // Array de objetos de imagem
+
+  // Localização e Responsabilidade
+  bairro?: string;
+  endereco?: string;
+  prefeitura?: string; // Mantido como opcional (pode ser o nome da entidade)
+  secretaria?: string; // Mantido como opcional
+  responsavel?: string; // Nome do dono ou gerente
+
+  // Contato e Redes
+  emailContato?: string;
+  telefone?: string;
+  website?: string;
+  instagram?: string;
+  linkLocal?: string; // Link oficial específico (se houver)
+
+  // Métricas e Legado
+  visualizacoes: number;
+  media: number; // Média de avaliação (0-5)
+  countAvaliacoes: number; // Total de avaliações
+}
+
+// Cores das Categorias (Mantido e expandido)
 export const categoryColors: Record<string, string> = {
   restaurantes: "from-orange-400 to-red-500",
   "pontos-turisticos": "from-blue-400 to-purple-500",
@@ -42,10 +80,16 @@ export const categoryColors: Record<string, string> = {
   compras: "from-gray-400 to-gray-500",
   emergencias: "from-red-600 to-rose-700",
   feiras: "from-green-400 to-lime-300",
-  // Fallback
   default: "from-blue-500 to-cyan-500",
 };
 
-export const getCategoryColor = (catId: string) => {
-  return categoryColors[catId] || categoryColors["default"];
+export const getCategoryColor = (catId: string | undefined) => {
+  if (!catId) return categoryColors["default"];
+  const normalizedKey = catId
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "-");
+
+  return categoryColors[normalizedKey] || categoryColors["default"];
 };

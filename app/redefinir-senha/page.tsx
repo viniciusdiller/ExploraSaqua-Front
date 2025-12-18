@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import Image from "next/image";
-import { resetPassword } from "@/lib/api";
+import { resetPassword } from "@/lib/api"; // Importando função da API refatorada
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Eye, EyeOff } from "lucide-react";
 
@@ -45,9 +45,10 @@ function ResetPasswordFormComponent() {
     }
 
     try {
+      // Usando a função resetPassword do lib/api.ts refatorado
       await resetPassword({ token, newPassword: password });
       toast.success(
-        "Senha redefinida com sucesso! A redirecionar para o login..."
+        "Senha redefinida com sucesso! Redirecionando para o login..."
       );
       setTimeout(() => {
         window.location.href = "/login";
@@ -63,19 +64,21 @@ function ResetPasswordFormComponent() {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-50 px-4 ">
+    <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4">
       <div className="w-full max-w-md">
+        {/* LOGO DO EXPLORA SAQUA */}
         <div className="text-center mb-6">
           <Link href="/" passHref>
             <Image
-              src="/Logo_aquitemods.png"
-              alt="Logo AquiTemODS"
-              width={150}
-              height={150}
-              className="mx-auto"
+              src="/LogoExplora.png"
+              alt="Logo ExploraSaqua"
+              width={200}
+              height={80}
+              className="mx-auto w-auto h-16 object-contain"
             />
           </Link>
         </div>
+
         <div className="mb-4">
           <Link
             href="/login"
@@ -85,9 +88,12 @@ function ResetPasswordFormComponent() {
             <span>Voltar para o Login</span>
           </Link>
         </div>
-        <Card className="rounded-2xl border border-[#017DB9]/70 bg-white shadow-lg">
+
+        <Card className="rounded-2xl border border-[#017DB9]/30 bg-white shadow-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Redefinir a sua Senha</CardTitle>
+            <CardTitle className="text-2xl text-gray-800">
+              Redefinir a sua Senha
+            </CardTitle>
             <CardDescription>Insira a sua nova senha abaixo.</CardDescription>
           </CardHeader>
           <form onSubmit={handlePasswordReset}>
@@ -103,7 +109,7 @@ function ResetPasswordFormComponent() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={isLoading}
-                    className="w-full py-2 pr-10 rounded-2xl border border-gray-200 bg-white shadow-sm focus:ring-2 focus:border-[#22c362]/70 transition-all duration-300 placeholder:text-gray-400"
+                    className="w-full py-2 pr-10 rounded-2xl border border-gray-200 bg-white shadow-sm focus:ring-2 focus:ring-[#017DB9]/20 focus:border-[#017DB9] transition-all duration-300 placeholder:text-gray-400"
                   />
                   <button
                     type="button"
@@ -128,7 +134,7 @@ function ResetPasswordFormComponent() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     disabled={isLoading}
-                    className="w-full py-2 pr-10 rounded-2xl border border-gray-200 bg-white shadow-sm focus:ring-2 focus:border-[#22c362]/70 transition-all duration-300 placeholder:text-gray-400"
+                    className="w-full py-2 pr-10 rounded-2xl border border-gray-200 bg-white shadow-sm focus:ring-2 focus:ring-[#017DB9]/20 focus:border-[#017DB9] transition-all duration-300 placeholder:text-gray-400"
                   />
                   <button
                     type="button"
@@ -147,7 +153,7 @@ function ResetPasswordFormComponent() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full hover:bg-[#22c362] rounded-2xl hover:text-white flex justify-center mx-auto px-10 text-gray-700 border border-[#017DB9]/70 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="w-full bg-[#017DB9] hover:bg-[#005f8d] text-white rounded-2xl flex justify-center mx-auto px-10 transition-colors duration-300 disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <>
@@ -170,8 +176,8 @@ export default function RedefinirSenhaPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex h-screen w-full items-center justify-center">
-          Carregando...
+        <div className="flex h-screen w-full items-center justify-center text-[#017DB9]">
+          <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       }
     >

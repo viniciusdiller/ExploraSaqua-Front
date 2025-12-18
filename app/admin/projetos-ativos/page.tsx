@@ -32,7 +32,7 @@ import {
   adminDeleteProjeto,
   adminExportProjetos,
 } from "@/lib/api";
-import AdminProjetoModal from "@/components/AdminProjetoModal";
+import AdminProjetoModal from "@/components/AdminLocalModal";
 import { Projeto } from "@/types/Interface-Local";
 
 const { Title, Text } = Typography;

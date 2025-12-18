@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 import {
   Accordion,
@@ -5,198 +6,186 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, MapPin } from "lucide-react";
 import FaleConoscoButton from "@/components/FaleConoscoButton";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function FAQPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#D7386E] to-[#3C6AB2] py-20 px-6 sm:px-12">
+    <div className="min-h-screen bg-gradient-to-br from-[#017DB9] to-[#007a73] py-20 px-6 sm:px-12">
       <div className="max-w-5xl mx-auto bg-white rounded-3xl shadow-lg p-10 sm:p-16">
         {/* --- CABEÇALHO --- */}
         <section className="mb-8">
           <div className="md:flex md:items-center md:gap-8 lg:gap-12">
             <div className="md:w-2/3">
               <h1
-                className=" text-4xl font-extrabold mb-6 inline-block pb-2
-                  bg-gradient-to-r from-[#D7386E] to-[#3C6AB2]
+                className="text-4xl font-extrabold mb-6 inline-block pb-2
+                  bg-gradient-to-r from-[#017DB9] to-[#007a73]
                   bg-no-repeat
                   [background-position:0_100%]
                   [background-size:100%_4px]"
               >
-                <span className=" bg-gradient-to-r from-[#D7386E] to-[#3C6AB2] bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-[#017DB9] to-[#007a73] bg-clip-text text-transparent">
                   Perguntas Frequentes (FAQ)
                 </span>
               </h1>
               <p className="text-gray-700 leading-relaxed text-lg">
-                Tire suas dúvidas sobre o funcionamento da plataforma, o
-                cadastro de projetos e os Objetivos de Desenvolvimento
-                Sustentável (ODS).
+                Tire suas dúvidas sobre o <strong>ExploraSaqua</strong>, como
+                encontrar os melhores lugares da cidade, sugerir novos locais e
+                divulgar seu negócio.
               </p>
               <p className="text-gray-700 leading-relaxed text-lg mt-4">
                 Sua pergunta não está listada? Sinta-se à vontade para falar
-                conosco! Estamos disponíveis no link 'Contato' no rodapé, no
-                botão flutuante (canto inferior esquerdo do computador) ou no
-                menu superior (pelo celular).
+                conosco! Estamos disponíveis no link 'Contato' no rodapé ou no
+                botão flutuante de WhatsApp.
               </p>
             </div>
             <div className="mt-8 md:mt-0 md:w-1/3 flex-shrink-0 flex items-center justify-center">
-              {/* Você pode substituir isso por uma imagem de FAQ se desejar */}
-              <HelpCircle
-                size={150}
-                className="text-[#3C6AB2] opacity-20"
-                strokeWidth={1}
-              />
+              {/* Ícone ou Logo alusivo a dúvidas/mapa */}
+              <div className="relative">
+                <HelpCircle
+                  size={150}
+                  className="text-[#017DB9] opacity-20"
+                  strokeWidth={1}
+                />
+                <MapPin
+                  size={60}
+                  className="text-[#007a73] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-80"
+                />
+              </div>
             </div>
           </div>
         </section>
 
-        {/* --- SEÇÃO DE PERGUNTAS --- */}
+        {/* --- SEÇÃO DE PERGUNTAS GERAIS --- */}
         <section className="mb-8 border-t-2 pt-8">
           <h2 className="text-3xl font-bold text-left mb-10">
-            <span className="bg-gradient-to-r from-[#D7386E] to-[#3C6AB2] bg-clip-text text-transparent">
-              Sobre o Projeto e os ODS
+            <span className="bg-gradient-to-r from-[#017DB9] to-[#007a73] bg-clip-text text-transparent">
+              Sobre o ExploraSaqua
             </span>
           </h2>
 
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="item-1">
-              <AccordionTrigger className="text-lg text-left font-semibold">
-                O que é a plataforma Aqui Tem ODS?
+              <AccordionTrigger className="text-lg text-left font-semibold hover:text-[#017DB9]">
+                O que é a plataforma ExploraSaqua?
               </AccordionTrigger>
               <AccordionContent className="text-gray-700 leading-relaxed text-base">
-                O <strong>#AquiTemODS</strong> é uma iniciativa da Prefeitura Municipal de Saquarema, idealizada Secretaria de Governança e Sustentabilidade por meio do Laboratório de Inovação e Sustentabilidade Aplicada (Lab-ISA) . É uma plataforma digital criada para reunir, organizar e divulgar boas práticas de gestão pública municipal que estejam alinhadas aos Objetivos de Desenvolvimento Sustentável (ODS) da ONU.
+                O <strong>#ExploraSaqua</strong> é o guia digital definitivo de
+                Saquarema. Uma iniciativa para conectar moradores e turistas aos
+                melhores pontos turísticos, serviços, comércios e experiências
+                que nossa cidade tem a oferecer. É um espaço colaborativo onde
+                você descobre e compartilha o que Saquarema tem de melhor.
               </AccordionContent>
             </AccordionItem>
 
             <AccordionItem value="item-2">
-              <AccordionTrigger className="text-lg text-left font-semibold">
-                O que são os ODS (Objetivos de Desenvolvimento Sustentável)?
+              <AccordionTrigger className="text-lg text-left font-semibold hover:text-[#017DB9]">
+                A plataforma é gratuita?
               </AccordionTrigger>
               <AccordionContent className="text-gray-700 leading-relaxed text-base">
-                São um conjunto de 17 metas globais estabelecidas pela
-                Organização das Nações Unidas (ONU) em 2015. O propósito é
-                erradicar a pobreza, proteger o planeta e promover prosperidade
-                e paz para todas as pessoas até o ano de 2030, como parte da
-                Agenda 2030.
+                Sim! Tanto para usuários que buscam informações quanto para
+                empreendedores que desejam cadastrar seus locais. O objetivo é
+                fomentar o turismo e a economia local de forma acessível a
+                todos.
               </AccordionContent>
             </AccordionItem>
 
             <AccordionItem value="item-3">
-              <AccordionTrigger className="text-lg text-left font-semibold">
-                Por que a plataforma lista 18 ODS em vez de 17?
+              <AccordionTrigger className="text-lg text-left font-semibold hover:text-[#017DB9]">
+                Quais tipos de locais posso encontrar aqui?
               </AccordionTrigger>
               <AccordionContent className="text-gray-700 leading-relaxed text-base">
-                Além dos 17 ODS originais da ONU, o Brasil incorporou um 18º
-                ODS, criado pela Comissão Nacional dos ODS (CNODS). Este
-                objetivo adicional trata da <strong>Igualdade Étnico/Racial</strong>
-                (Promoção dos Direitos Humanos e da Cidadania), reforçando o
-                compromisso do país com a inclusão, equidade e justiça social.
+                Você encontra de tudo: desde <strong>pontos turísticos</strong>{" "}
+                famosos e <strong>praias</strong>, até{" "}
+                <strong>restaurantes</strong>, <strong>hotéis</strong>, serviços
+                essenciais (como farmácias e escolas), eventos culturais e
+                comércios locais diversos.
               </AccordionContent>
             </AccordionItem>
           </Accordion>
         </section>
 
-        {/* --- SEÇÃO DE CADASTRO --- */}
+        {/* --- SEÇÃO DE CADASTRO E SUGESTÃO --- */}
         <section className="mb-8 border-t-2 pt-8">
           <h2 className="text-3xl font-bold text-left mb-10">
-            <span className="bg-gradient-to-r from-[#D7386E] to-[#3C6AB2] bg-clip-text text-transparent">
-              Cadastro e Gestão de Projetos
+            <span className="bg-gradient-to-r from-[#017DB9] to-[#007a73] bg-clip-text text-transparent">
+              Sugerir e Gerenciar Locais
             </span>
           </h2>
 
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="item-4">
-              <AccordionTrigger className="text-lg text-left font-semibold">
-                Quem pode cadastrar um projeto na plataforma?
+              <AccordionTrigger className="text-lg text-left font-semibold hover:text-[#017DB9]">
+                Quem pode sugerir um novo local?
               </AccordionTrigger>
               <AccordionContent className="text-gray-700 leading-relaxed text-base">
-                O cadastro está disponível para servidores públicos que desejem compartilhar boas práticas e projetos desenvolvidos em seu município, alinhados aos Objetivos de Desenvolvimento Sustentável (ODS) da Agenda 2030 da ONU, contribuindo para a valorização, visibilidade e troca de experiências entre gestões comprometidas com o desenvolvimento sustentável.
+                Qualquer pessoa! Se você é dono de um estabelecimento, pode
+                cadastrá-lo para ganhar visibilidade. Se você é um visitante e
+                descobriu um lugar incrível que não está no mapa, também pode
+                sugeri-lo para ajudar outras pessoas.
               </AccordionContent>
             </AccordionItem>
 
             <AccordionItem value="item-5">
-              <AccordionTrigger className="text-lg text-left font-semibold">
-                Como faço para CADASTRAR meu Projeto na plataforma?
+              <AccordionTrigger className="text-lg text-left font-semibold hover:text-[#017DB9]">
+                Como faço para CADASTRAR um local na plataforma?
               </AccordionTrigger>
               <AccordionContent className="text-gray-700 leading-relaxed text-base">
                 1. Você precisa ter um cadastro de usuário e estar logado. Se
                 não tiver,{" "}
-                <Link href="/cadastro" className="text-blue-600 underline">
+                <Link
+                  href="/cadastro"
+                  className="text-[#017DB9] font-bold underline hover:text-[#005f8d]"
+                >
                   clique aqui para se cadastrar
                 </Link>
                 .
                 <br />
                 2. Acesse a página{" "}
                 <Link
-                  href="/cadastro-projeto"
-                  className="text-blue-600 underline"
+                  href="/sugerir-local"
+                  className="text-[#017DB9] font-bold underline hover:text-[#005f8d]"
                 >
-                  "Cadastro de Projetos"
+                  "Sugerir Local"
                 </Link>{" "}
-                no menu.
+                no menu do seu perfil.
                 <br />
-                3. No seletor, escolha a opção "Cadastrar meu Projeto na
-                plataforma".
+                3. Preencha o formulário com as informações do local (Nome,
+                Categoria, Endereço, Descrição) e adicione fotos atraentes.
                 <br />
-                4. Preencha o formulário completo com as informações do
-                responsável, dados do projeto, descrições, e anexe os arquivos
-                solicitados (Logo, Portfólio e Ofício de Adesão).
-                <br />
-                5. Após o envio, seu cadastro passará por uma análise do
-                administrador antes de ser publicado.
+                4. Após o envio, sua sugestão passará por uma rápida moderação
+                da nossa equipe antes de ser publicada.
               </AccordionContent>
             </AccordionItem>
 
             <AccordionItem value="item-6">
-              <AccordionTrigger className="text-lg text-left font-semibold">
-                Como posso ATUALIZAR as informações de um projeto já cadastrado?
+              <AccordionTrigger className="text-lg text-left font-semibold hover:text-[#017DB9]">
+                Como posso ATUALIZAR as informações do meu negócio?
               </AccordionTrigger>
               <AccordionContent className="text-gray-700 leading-relaxed text-base">
-                1. Acesse a página{" "}
-                <Link
-                  href="/cadastro-projeto"
-                  className="text-blue-600 underline"
-                >
-                  "Cadastro de Projetos"
-                </Link>{" "}
-                <br />
-                2. Escolha a opção "Atualizar uma informação do meu projeto".
-                <br />
-                3. Você precisará preencher os dados de identificação
-                obrigatórios (ID do Projeto, Prefeitura, Secretaria, Nome do
-                Projeto e E-mail) para confirmar a autoria.
-                <br />
-                4. Em seguida, preencha <strong>apenas</strong> os campos que você deseja
-                alterar. Campos deixados em branco não serão modificados.
+                Se você é o proprietário ou o autor do cadastro, pode solicitar
+                a edição através do painel de usuário ou na própria página do
+                local clicando em "Sugerir Edição". Nossa equipe verificará as
+                alterações para manter a qualidade das informações.
               </AccordionContent>
             </AccordionItem>
 
             <AccordionItem value="item-7">
-              <AccordionTrigger className="text-lg text-left font-semibold">
-                Como posso EXCLUIR um projeto da plataforma?
+              <AccordionTrigger className="text-lg text-left font-semibold hover:text-[#017DB9]">
+                Como funcionam as avaliações?
               </AccordionTrigger>
               <AccordionContent className="text-gray-700 leading-relaxed text-base">
-                1. Acesse a página{" "}
-                <Link
-                  href="/cadastro-projeto"
-                  className="text-blue-600 underline"
-                >
-                  "Cadastro de Projetos"
-                </Link>{" "}
-                <br />
-                2. Escolha a opção "Excluir meu projeto da plataforma".
-                <br />
-                3. Você deverá preencher todos os campos de identificação (ID,
-                Prefeitura, Secretaria, Nome do Projeto, Responsável e E-mail)
-                para confirmar sua solicitação.
-                <br />
-                4. Após a confirmação, sua solicitação de exclusão será
-                processada. <strong>Esta ação é permanente e não poderá ser revertida.</strong>
+                Usuários cadastrados podem avaliar os locais com notas
+                (estrelas) e comentários. Isso ajuda a comunidade a identificar
+                os melhores serviços e experiências. Comentários ofensivos ou
+                que violem nossas diretrizes serão removidos pela moderação.
               </AccordionContent>
             </AccordionItem>
           </Accordion>
         </section>
+
         <FaleConoscoButton />
       </div>
     </div>

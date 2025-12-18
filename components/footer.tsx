@@ -5,24 +5,28 @@ import { Mail, MapPin } from "lucide-react";
 
 const address = "R. Cel. Madureira, 77, Saquarema - RJ";
 const encodedAddress = encodeURIComponent(address);
+// Correção da sintaxe da URL
 const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+
 const Footer = () => {
   return (
     <footer className="bg-gray-100 border-t border-gray-200 w-full">
       <div className="container mx-auto px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 text-center md:text-left">
+          {/* Mantendo a coluna vazia para espaçamento conforme solicitado */}
           <div className="text-center"></div>
-          <div className=" text-center">
+
+          <div className="text-center">
             <Link href="/" className="inline-block mb-4">
               <Image
-                src="/Logo_aquitemods_preto.png"
-                alt="Logo MeideSaqua"
+                src="/Logo_ExplorePreto.png"
+                alt="Logo Explore Saqua"
                 width={160}
                 height={57}
-                className="h-14 w-auto mx-auto md:mx-auto "
+                className="h-14 w-auto mx-auto md:mx-auto"
               />
             </Link>
-            <p className="text-gray-600 max-w-xs mx-auto ">
+            <p className="text-gray-600 max-w-xs mx-auto">
               O ecossistema de conhecimento e colaboração entre gestores,
               técnicos, servidores e cidadãos comprometidos com o
               desenvolvimento sustentável municipal alinhado aos Objetivos de
@@ -33,21 +37,22 @@ const Footer = () => {
           <div className="text-center">
             <h3 className="font-bold uppercase text-gray-800 mb-4">Contato</h3>
             <ul className="space-y-3 text-gray-600">
-              <li className="flex items-center justify-center gap-3 hover:text-[#D7386E] transition-colors">
+              {/* Aplicando a nova cor Terciária (#d04798) no Hover */}
+              <li className="flex items-center justify-center gap-3 hover:text-[#d04798] transition-colors">
                 <Mail size={16} />
                 <a
-                  href="mailto:aquitemods@gmail.com"
-                  className="hover:underline hover:text-[#D7386E] transition-colors"
+                  href="mailto:exploresaqua@gmail.com"
+                  className="hover:underline hover:text-[#d04798] transition-colors"
                 >
-                  aquitemods@gmail.com
+                  exploresaqua@gmail.com
                 </a>
               </li>
-              <li className="flex items-center justify-center gap-3 hover:text-[#D7386E] transition-colors">
+              <li className="flex items-center justify-center gap-3 hover:text-[#d04798] transition-colors">
                 <a
                   href={googleMapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center md:justify-start gap-3 text-left hover:underline hover:text-[#D7386E] transition-colors"
+                  className="flex items-center justify-center md:justify-start gap-3 text-left hover:underline hover:text-[#d04798] transition-colors"
                 >
                   <MapPin size={16} className="flex-shrink-0" />
                   <span>{address}</span>

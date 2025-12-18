@@ -35,7 +35,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getPendingAdminRequests } from "@/lib/api";
-import AdminProjetoModal from "@/components/AdminProjetoModal";
+import AdminProjetoModal from "@/components/AdminLocalModal";
 import { Projeto } from "@/types/Interface-Local";
 import FormattedDescription from "@/components/FormattedDescription";
 

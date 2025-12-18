@@ -66,7 +66,10 @@ export default function LoginPage() {
           "error"
         );
       } else {
-        addNotification("Email/usuário ou senha inválidos. Tente novamente.", "error");
+        addNotification(
+          "Email/usuário ou senha inválidos. Tente novamente.",
+          "error"
+        );
       }
 
       console.error(err);
@@ -77,6 +80,7 @@ export default function LoginPage() {
 
   return (
     <div>
+      {/* Notificações Flutuantes */}
       <div className="flex flex-col gap-1 w-72 fixed top-4 right-4 z-50 pointer-events-none">
         <AnimatePresence>
           {notifications.map((n) => (
@@ -85,39 +89,44 @@ export default function LoginPage() {
         </AnimatePresence>
       </div>
 
-      <div className="flex items-center justify-center h-screen bg-gray-50 px-4 ">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4">
         <div className="w-full max-w-md">
+          {/* LOGO EXPLORA SAQUA */}
           <div className="text-center mb-6">
             <Link href="/" passHref>
               <Image
-                src="/Logo_aquitemods.png"
-                alt="Logo AquiTemODS"
-                width={150}
-                height={150}
-                className="mx-auto"
+                src="/LogoExplora.png"
+                alt="Logo ExploraSaqua"
+                width={200}
+                height={80}
+                className="mx-auto w-auto h-16 object-contain"
               />
             </Link>
           </div>
+
           <div className="mb-4">
             <Link
               href="/"
-              className="flex items-center gap-2 text-gray-600 hover:text-[#3C6AB2] transition-colors"
+              className="flex items-center gap-2 text-gray-600 hover:text-[#017DB9] transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
               <span>Voltar</span>
             </Link>
           </div>
+
           <Card
-            className="rounded-2xl border border-[#3C6AB2]/70 bg-white shadow-lg
+            className="rounded-2xl border border-[#017DB9]/30 bg-white shadow-lg
                       focus:outline-none focus:ring-2 focus:border-transparent
                       transition-all duration-300 placeholder-gray-400 text-sm
-                      hover:shadow-md"
+                      hover:shadow-xl"
           >
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Efetue o Login</CardTitle>
+              <CardTitle className="text-2xl text-gray-800">
+                Efetue o Login
+              </CardTitle>
               <CardDescription>
-                Entre com suas credenciais para ter a possibilidade de avaliar
-                ou cadastrar um novo projeto na plataforma.
+                Entre com suas credenciais para avaliar ou cadastrar um novo{" "}
+                <strong>local</strong> na plataforma.
               </CardDescription>
             </CardHeader>
             <form onSubmit={handleLogin}>
@@ -136,7 +145,7 @@ export default function LoginPage() {
                     disabled={isLoading}
                     className="w-full py-2
                       rounded-2xl border border-gray-200 bg-white shadow-sm
-                      focus:ring-2 focus:border-[#3C6AB2]/70 transition-all duration-300 placeholder:text-gray-400
+                      focus:ring-2 focus:ring-[#017DB9]/20 focus:border-[#017DB9] transition-all duration-300 placeholder:text-gray-400
                       "
                   />
                 </div>
@@ -153,7 +162,7 @@ export default function LoginPage() {
                       disabled={isLoading}
                       className="w-full py-2 pr-10
                       rounded-2xl border border-gray-200 bg-white shadow-sm
-                      focus:ring-2 focus:border-[#3C6AB2]/70 transition-all duration-300 placeholder:text-gray-400
+                      focus:ring-2 focus:ring-[#017DB9]/20 focus:border-[#017DB9] transition-all duration-300 placeholder:text-gray-400
                       "
                     />
                     <button
@@ -173,7 +182,7 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="hover:bg-[#D7386E] rounded-2xl hover:text-white flex justify-center mx-auto px-10 text-gray-700 border border-[#3C6AB2]/70 w-full disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  className="bg-[#017DB9] hover:bg-[#005f8d] text-white rounded-2xl flex justify-center mx-auto px-10 w-full transition-colors duration-300 disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
                     <>
@@ -184,20 +193,22 @@ export default function LoginPage() {
                     "Entrar"
                   )}
                 </Button>
-                <Link href="/cadastro" className=" text-gray-600 ">
-                  Novo por aqui?{" "}
-                  <strong className="underline hover:text-[#D7386E]">
-                    {" "}
-                    Cadastre-se
-                  </strong>
-                </Link>
+                <div className="text-sm">
+                  <Link href="/cadastro" className="text-gray-600">
+                    Novo por aqui?{" "}
+                    <strong className="underline hover:text-[#017DB9] transition-colors">
+                      Cadastre-se
+                    </strong>
+                  </Link>
+                </div>
               </CardFooter>
             </form>
           </Card>
+
           <div className="mt-4 text-center text-sm">
             <Link
               href="/esqueci-senha"
-              className="underline text-gray-600 hover:text-[#D7386E]"
+              className="underline text-gray-600 hover:text-[#017DB9] transition-colors"
             >
               Esqueceu sua senha?
             </Link>

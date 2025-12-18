@@ -19,7 +19,7 @@ import { AnimatePresence } from "framer-motion";
 import { Notification, NotificationType } from "@/components/ui/notification";
 import { ArrowLeft, Loader2 } from "lucide-react";
 
-export default function NovaSenha() {
+export default function EsqueciSenhaPage() {
   const [email, setEmail] = useState("");
   const [notifications, setNotifications] = useState<NotificationType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -67,6 +67,7 @@ export default function NovaSenha() {
 
   return (
     <div>
+      {/* Container de Notificações */}
       <div className="flex flex-col gap-1 w-72 fixed top-4 right-4 z-50 pointer-events-none">
         <AnimatePresence>
           {notifications.map((n) => (
@@ -75,36 +76,36 @@ export default function NovaSenha() {
         </AnimatePresence>
       </div>
 
-      <div className="flex items-center justify-center h-screen bg-gray-50 px-4 ">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4">
         <div className="w-full max-w-md">
+          {/* LOGO EXPLORA SAQUA */}
           <div className="text-center mb-6">
             <Link href="/" passHref>
               <Image
-                src="/Logo_aquitemods.png"
-                alt="Logo AquiTemODS"
-                width={150}
-                height={150}
-                className="mx-auto"
+                src="/LogoExplora.png"
+                alt="Logo ExploraSaqua"
+                width={200}
+                height={80}
+                className="mx-auto w-auto h-16 object-contain"
               />
             </Link>
           </div>
+
           <div className="mb-4">
             <Link
               href="/login"
-              className="flex items-center gap-2 text-gray-600 hover:text-[#D7386E] transition-colors"
+              className="flex items-center gap-2 text-gray-600 hover:text-[#017DB9] transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
               <span>Voltar</span>
             </Link>
           </div>
-          <Card
-            className="rounded-2xl border border-[#D7386E]/70 bg-white shadow-lg
-                                 focus:outline-none focus:ring-2 focus:border-transparent
-                                 transition-all duration-300 placeholder-gray-400 text-sm
-                                 hover:shadow-md"
-          >
+
+          <Card className="rounded-2xl border border-[#017DB9]/30 bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Recupere sua senha</CardTitle>
+              <CardTitle className="text-2xl text-gray-800">
+                Recupere sua senha
+              </CardTitle>
               <CardDescription>
                 Insira seu e-mail para receber o link de recuperação.
               </CardDescription>
@@ -121,10 +122,7 @@ export default function NovaSenha() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isLoading}
-                    className="w-full py-2
-                                     rounded-2xl border border-gray-200 bg-white shadow-sm placeholder:text-gray-400
-                                     focus:ring-2 focus:border-[#22c362]/70 transition-all duration-300
-                                     "
+                    className="w-full py-2 rounded-2xl border border-gray-200 bg-white shadow-sm placeholder:text-gray-400 focus:ring-2 focus:ring-[#017DB9]/20 focus:border-[#017DB9] transition-all duration-300"
                   />
                 </div>
               </CardContent>
@@ -132,7 +130,7 @@ export default function NovaSenha() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full hover:bg-[#22c362] rounded-2xl hover:text-white flex justify-center mx-auto px-10 text-gray-700 border border-[#D7386E]/70 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  className="w-full bg-[#017DB9] hover:bg-[#005f8d] text-white rounded-2xl flex justify-center mx-auto px-10 transition-colors duration-300 disabled:bg-gray-300 disabled:cursor-not-allowed border-none"
                 >
                   {isLoading ? (
                     <>
