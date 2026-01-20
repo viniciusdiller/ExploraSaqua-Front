@@ -106,7 +106,7 @@ const AccessibilityFeatures = () => {
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
   const buttonClasses =
-    "bg-[#D7386E] hover:bg-gradient-to-br from-[#D7386E] to-[#3C6AB2] text-white rounded-full p-3 shadow-lg flex items-center justify-center transition-all duration-300 transform hover:scale-110";
+    "bg-[#017db9] hover:bg-gradient-to-br from-[#017db9] to-[#a8cf45] text-white rounded-full p-3 shadow-lg flex items-center justify-center transition-all duration-300 transform hover:scale-110";
 
   const menuVariants = {
     // ... (variantes inalteradas)
@@ -267,7 +267,7 @@ const AccessibilityFeatures = () => {
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 aria-label="Abrir menu de acessibilidade"
                 className={`${buttonClasses} ${
-                  isMenuOpen ? "bg-[#3C6AB2]" : "bg-[#D7386E]" // Corrigido para usar sua cor primária
+                  isMenuOpen ? "bg-[#a8cf45]" : "bg-[#017db9]" // Corrigido para usar sua cor primária
                 }`}
               >
                 <Accessibility size={24} />

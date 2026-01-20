@@ -154,31 +154,31 @@ export function Navbar() {
           <nav className="flex items-center gap-6">
             <Link
               href="/"
-              className="text-gray-700 hover:text-[#D7386E]  transition-colors"
+              className="text-gray-700 hover:text-[#a8cf45]  transition-colors"
             >
               Home
             </Link>
             <Link
               href="/sobre"
-              className="text-gray-700 hover:text-[#D7386E]  transition-colors"
+              className="text-gray-700 hover:text-[#a8cf45]  transition-colors"
             >
               Sobre o Projeto
             </Link>
             <Link
               href="/cadastro-locais"
-              className="text-gray-700 hover:text-[#D7386E]  transition-colors"
+              className="text-gray-700 hover:text-[#a8cf45]  transition-colors"
             >
               Cadastro de Locais
             </Link>
             <Link
               href="/espaco-explore"
-              className="text-gray-700 hover:text-[#D7386E]  transition-colors"
+              className="text-gray-700 hover:text-[#a8cf45]  transition-colors"
             >
               Espaço Explore
             </Link>
             <Link
               href="/FAQ"
-              className="text-gray-700 hover:text-[#D7386E]  transition-colors"
+              className="text-gray-700 hover:text-[#a8cf45]  transition-colors"
             >
               FAQ
             </Link>
@@ -219,7 +219,7 @@ export function Navbar() {
             <div className="flex items-center gap-3">
               <Link
                 href="/perfil"
-                className="flex items-center gap-3 text-gray-700 hover:text-[#D7386E]  transition-colors"
+                className="flex items-center gap-3 text-gray-700 hover:text-[#a8cf45]  transition-colors"
               >
                 <UserIcon size={22} />
                 <span className="font-medium">{user.username}</span>
@@ -233,7 +233,7 @@ export function Navbar() {
             </div>
           ) : (
             <Link href="/login">
-              <button className="bg-[#D7386E]  text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-orange-500 transition-colors">
+              <button className="bg-[#a8cf45]  text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-orange-500 transition-colors">
                 Login
               </button>
             </Link>
@@ -253,35 +253,35 @@ export function Navbar() {
           <nav className="flex flex-col space-y-4 px-6">
             <Link
               href="/"
-              className="text-gray-700 hover:text-[#D7386E]  transition-colors font-medium"
+              className="text-gray-700 hover:text-[#a8cf45]  transition-colors font-medium"
               onClick={() => setIsOpen(false)}
             >
               Home
             </Link>
             <Link
               href="/sobre"
-              className="text-gray-700 hover:text-[#D7386E]  transition-colors font-medium"
+              className="text-gray-700 hover:text-[#a8cf45]  transition-colors font-medium"
               onClick={() => setIsOpen(false)}
             >
               Sobre o Projeto
             </Link>
             <Link
               href="/cadastro-locais"
-              className="text-gray-700 hover:text-[#D7386E]  transition-colors font-medium"
+              className="text-gray-700 hover:text-[#a8cf45]  transition-colors font-medium"
               onClick={() => setIsOpen(false)}
             >
               Cadastro de Locais
             </Link>
             <Link
               href="/espaco-explore"
-              className="text-gray-700 hover:text-[#D7386E]  transition-colors font-medium"
+              className="text-gray-700 hover:text-[#a8cf45]  transition-colors font-medium"
               onClick={() => setIsOpen(false)}
             >
               Espaço Explore
             </Link>
             <Link
               href="/FAQ"
-              className="text-gray-700 hover:text-[#D7386E]  transition-colors font-medium"
+              className="text-gray-700 hover:text-[#a8cf45]  transition-colors font-medium"
               onClick={() => setIsOpen(false)}
             >
               FAQ
@@ -295,7 +295,7 @@ export function Navbar() {
               <>
                 <Link
                   href="/perfil"
-                  className="flex items-center gap-3 text-gray-700 hover:text-[#D7386E]  transition-colors font-medium"
+                  className="flex items-center gap-3 text-gray-700 hover:text-[#a8cf45]  transition-colors font-medium"
                   onClick={() => setIsOpen(false)}
                 >
                   {user.chosenAvatar ? (
@@ -324,7 +324,7 @@ export function Navbar() {
             ) : (
               <Link
                 href="/login"
-                className="flex items-center gap-3 text-gray-700 hover:text-[#D7386E]  transition-colors font-medium"
+                className="flex items-center gap-3 text-gray-700 hover:text-[#a8cf45]  transition-colors font-medium"
                 onClick={() => setIsOpen(false)}
               >
                 <LogIn size={20} /> Efetuar Login

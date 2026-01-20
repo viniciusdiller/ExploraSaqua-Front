@@ -24,6 +24,7 @@ import {
   Cherry,
   PhoneCall,
 } from "lucide-react";
+import FaleConoscoButton from "@/components/FaleConoscoButton";
 
 // Dados estáticos de categorias do ExploraSaqua
 export const categories = [
@@ -314,7 +315,7 @@ export default function HomePage() {
       )}
 
       <div className="mt-auto pt-10 pb-24 text-center text-gray-500 text-sm">
-        {/* Espaço para rodapé ou info extra se necessário */}
+        <FaleConoscoButton />
       </div>
     </div>
   );
