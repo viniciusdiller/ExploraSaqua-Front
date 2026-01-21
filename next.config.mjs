@@ -13,19 +13,19 @@ const nextConfig = {
       {
         protocol: "http",
         hostname: "172.16.32.199",
-        port: "3303",
+        port: "3305",
         pathname: "/uploads/**",
       },
     ],
   },
   experimental: {
-    allowedDevOrigins: ["http://172.16.32.199:3000"],
+    allowedDevOrigins: ["http://172.16.32.199:3004"],
   },
   async rewrites() {
     return [
       {
         source: "/uploads/:path*",
-        destination: "http://localhost:3303/uploads/:path*",
+        destination: "http://localhost:3305/uploads/:path*",
       },
     ];
   },

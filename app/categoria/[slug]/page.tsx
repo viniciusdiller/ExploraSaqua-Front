@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import ModernCarousel from "@/components/ModernCarousel";
-// import { getLocaisByCategoria } from "@/lib/api"; // <-- Importação Real (Comentada)
+import { getLocaisByCategoria } from "@/lib/api"; // <-- Importação Real (Comentada)
 import { Local, getCategoryColor } from "@/types/Interface-Local"; // Importando getCategoryColor
 import { categories } from "@/app/page";
 
@@ -95,7 +95,7 @@ export default function CategoriaPage() {
 
   const category = useMemo(
     () => categories.find((cat) => cat.id === slug) as CategoryData | undefined,
-    [slug]
+    [slug],
   );
 
   // Obtém o gradiente baseado no slug da categoria
@@ -114,9 +114,6 @@ export default function CategoriaPage() {
         setError(null);
         setCurrentPage(1);
 
-        /* ---------------------------------------------------------
-           CÓDIGO REAL (BACKEND) - COMENTADO
-           ---------------------------------------------------------
         try {
           const data = await getLocaisByCategoria(slug);
           setLocais(Array.isArray(data) ? data : []);
@@ -125,7 +122,6 @@ export default function CategoriaPage() {
         } finally {
           setIsLoading(false);
         }
-        --------------------------------------------------------- */
 
         // ---------------------------------------------------------
         // CÓDIGO MOCK (SIMULAÇÃO) - ATIVO
@@ -149,13 +145,12 @@ export default function CategoriaPage() {
     }
   }, [slug]);
 
-  const filteredLocais = useMemo(
-    () =>
-      locais.filter((local) =>
-        local.nome.toLowerCase().includes(searchTerm.toLowerCase())
-      ),
-    [locais, searchTerm]
-  );
+  const filteredLocais = useMemo(() => {
+    return locais.filter((local) => {
+      const nomeParaBusca = local.nome || local.nomeFantasia || "";
+      return nomeParaBusca.toLowerCase().includes(searchTerm.toLowerCase());
+    });
+  }, [locais, searchTerm]);
 
   const paginatedLocais = useMemo(() => {
     const startIndex = (currentPage - 1) * PROJETOS_PER_PAGE;
@@ -299,7 +294,7 @@ export default function CategoriaPage() {
                   {paginatedLocais.map((local, index) => (
                     <Link
                       href={`/categoria/${slug}/${encodeURIComponent(
-                        local.nome
+                        local.nome,
                       )}`}
                       key={local.localId}
                       className="block group h-full"
@@ -330,7 +325,7 @@ export default function CategoriaPage() {
                         {/* Conteúdo */}
                         <div className="p-4 flex flex-col flex-grow">
                           <h3 className="text-lg font-bold text-gray-800 mb-2 line-clamp-2 group-hover:text-[#017db9] transition-colors">
-                            {local.nome}
+                            {local.nome || local.nomeFantasia}
                           </h3>
                           <p className="text-gray-600 text-sm line-clamp-3 mb-4 flex-grow leading-relaxed">
                             {local.descricaoDiferencial}

@@ -34,6 +34,7 @@ export interface Local {
 
   // Dados Principais
   nome: string;
+  nomeFantasia?: string;
   descricao: string; // Descrição completa (HTML/Rich Text)
   descricaoDiferencial: string; // Briefing/Resumo curto
   categoria: string; // Ex: "Restaurantes", "Hospedagens" (string direta ou ID)
@@ -60,6 +61,10 @@ export interface Local {
   visualizacoes: number;
   media: number; // Média de avaliação (0-5)
   countAvaliacoes: number; // Total de avaliações
+
+  // Geolocalização
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 // Cores das Categorias (Mantido e expandido)

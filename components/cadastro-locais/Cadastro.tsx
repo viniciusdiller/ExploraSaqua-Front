@@ -11,15 +11,24 @@ import {
   Row,
   Col,
   Checkbox,
-  Radio,
 } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
+import {
+  UploadOutlined,
+  EnvironmentOutlined,
+  SearchOutlined,
+  UserOutlined,
+  PhoneOutlined,
+  IdcardOutlined,
+  InstagramOutlined,
+} from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
 import { toast } from "sonner";
 import { cadastrarLocal } from "@/lib/api";
 import dynamic from "next/dynamic";
-import { Slider } from "@/components/ui/slider";
 import "react-quill/dist/quill.snow.css";
+
+// Importação do Componente de Mapa
+import LocationPicker from "@/components/map/LocationPicker";
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
@@ -48,31 +57,29 @@ const categoriasLocais = [
   "Trilhas",
 ];
 
+// Labels atualizados para feedback de erro
 const campoLabels: { [key: string]: string } = {
-  prefeitura: "Nome da Prefeitura",
-  secretaria: "Nome da Secretaria",
-  responsavelProjeto: "Responsável pelo Projeto",
-  nomeProjeto: "Nome do Projeto",
-  categoria: "Categoria do Projeto",
-  linkProjeto: "Link do Projeto",
-  venceuPspe: "Prêmio Sebrae",
-  escala: "Avaliação de Impacto",
-  emailContato: "E-mail de Contato",
-  descricaoDiferencial: "Briefing do Projeto",
-  descricao: "Descrição detalhada",
-  confirmacao: "Caixa de Confirmação",
+  nomeResponsavel: "Nome do Responsável",
+  cpfResponsavel: "CPF do Responsável",
+  nomeFantasia: "Nome do Local",
+  categoria: "Categoria",
+  contatoLocal: "Contato/Telefone",
+  endereco: "Endereço",
+  latitude: "Latitude",
+  longitude: "Longitude",
+  descricao: "Descrição",
+  instagram: "Instagram",
+  confirmacao: "Confirmação",
 };
 
 const { Option } = Select;
-const { TextArea } = Input;
 
+// Configuração simplificada do Editor de Texto
 const quillModules = {
   toolbar: [
-    [{ header: [1, 2, 3, false] }],
-    ["bold", "italic", "underline", "strike"],
+    [{ header: [1, 2, false] }],
+    ["bold", "italic", "underline"],
     [{ list: "ordered" }, { list: "bullet" }],
-    [{ align: [] }],
-    ["link"],
     ["clean"],
   ],
 };
@@ -84,55 +91,72 @@ interface CadastroProps {
 const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [searchingAddress, setSearchingAddress] = useState(false);
+
+  // Arquivos
   const [logoFileList, setLogoFileList] = useState<UploadFile[]>([]);
-  const [oficioFileList, setOficioFileList] = useState<UploadFile[]>([]);
   const [portfolioFileList, setPortfolioFileList] = useState<UploadFile[]>([]);
+
+  // Controle de Texto
   const [quillTextLength, setQuillTextLength] = useState(0);
-  const [sliderValue, setSliderValue] = useState(0);
+  const MAX_QUILL_LENGTH = 3000;
 
-  const MAX_QUILL_LENGTH = 5000;
-  const escalaValue = Form.useWatch("escala", form);
+  // Controle do Mapa
+  const [mapPosition, setMapPosition] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
 
-  useEffect(() => {
-    if (escalaValue !== undefined) {
-      setSliderValue(escalaValue);
+  // --- LÓGICA DO MAPA E ENDEREÇO ---
+  const handleMapLocationSelect = (
+    lat: number,
+    lng: number,
+    address?: string,
+  ) => {
+    setMapPosition({ lat, lng });
+    form.setFieldsValue({ latitude: lat, longitude: lng });
+    if (address) {
+      form.setFieldsValue({ endereco: address });
     }
-  }, [escalaValue]);
+  };
 
-  // Tradução da Toolbar do Quill
-  useEffect(() => {
-    const translateQuillToolbar = () => {
-      const toolbar = document.querySelector(".ql-toolbar");
-      if (!toolbar) return false;
-      const translations: { [key: string]: string } = {
-        ".ql-bold": "Negrito",
-        ".ql-italic": "Itálico",
-        ".ql-underline": "Sublinhado",
-        ".ql-strike": "Riscado",
-        '.ql-list[value="ordered"]': "Lista ordenada",
-        '.ql-list[value="bullet"]': "Lista com marcadores",
-        ".ql-link": "Inserir link",
-        ".ql-clean": "Remover formatação",
-      };
-      Object.entries(translations).forEach(([selector, title]) => {
-        const el = toolbar.querySelector(selector) as HTMLElement;
-        if (el) el.title = title;
-      });
-      return (
-        (toolbar.querySelector(".ql-bold") as HTMLElement)?.title === "Negrito"
+  const handleAddressSearch = async () => {
+    const endereco = form.getFieldValue("endereco");
+    if (!endereco) return toast.error("Digite um endereço para buscar.");
+
+    setSearchingAddress(true);
+    try {
+      const query = endereco.toLowerCase().includes("saquarema")
+        ? endereco
+        : `${endereco}, Saquarema, RJ, Brasil`;
+
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=1`,
       );
-    };
-    const intervalId = setInterval(() => {
-      if (translateQuillToolbar()) clearInterval(intervalId);
-    }, 200);
-    return () => clearInterval(intervalId);
-  }, []);
+      const data = await response.json();
 
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        const newPos = { lat: parseFloat(lat), lng: parseFloat(lon) };
+        setMapPosition(newPos);
+        form.setFieldsValue({ latitude: newPos.lat, longitude: newPos.lng });
+        toast.success("Endereço encontrado! Ajuste o pino se necessário.");
+      } else {
+        toast.error("Endereço não encontrado. Tente ser mais específico.");
+      }
+    } catch (error) {
+      toast.error("Erro ao buscar endereço.");
+    } finally {
+      setSearchingAddress(false);
+    }
+  };
+
+  // --- UTILITÁRIOS ---
   const stripEmojis = (value: string) => {
     if (!value) return "";
     return value.replace(
       /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g,
-      ""
+      "",
     );
   };
 
@@ -145,88 +169,39 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
   };
 
   const customUploadAction = async (options: any) => {
-    const { onSuccess, onError, file } = options;
-    setTimeout(() => {
-      try {
-        onSuccess(file);
-      } catch (err) {
-        onError(new Error("Erro no upload simulado"));
-      }
-    }, 500);
+    const { onSuccess } = options;
+    setTimeout(() => onSuccess("ok"), 0);
   };
 
-  const onFinishFailed = (errorInfo: any) => {
-    if (!errorInfo.errorFields || errorInfo.errorFields.length === 0) return;
-    const labelsComErro = errorInfo.errorFields
-      .map((field: any) => {
-        const fieldName = field.name[0];
-        return campoLabels[fieldName] || fieldName;
-      })
-      .filter(
-        (value: string, index: number, self: string[]) =>
-          self.indexOf(value) === index
-      );
-
-    if (labelsComErro.length > 0) {
-      const plural = labelsComErro.length > 1;
-      const mensagem = `Por favor, preencha ${
-        plural ? "os campos obrigatórios" : "o campo obrigatório"
-      }: ${labelsComErro.join(", ")}.`;
-      toast.error(mensagem);
-    } else {
-      toast.error("Por favor, verifique os campos obrigatórios.");
-    }
-  };
-
-  const handleFormValuesChange = (changedValues: any) => {
-    if (changedValues.hasOwnProperty("descricao")) {
-      const length = getQuillTextLength(changedValues.descricao);
-      setQuillTextLength(length);
-    }
-  };
-
-  const validateQuill = (required: boolean) => (_: any, value: string) => {
-    const textContentLength = getQuillTextLength(value);
-    if (required && textContentLength === 0) {
-      return Promise.reject(new Error("Por favor, descreva seu projeto!"));
-    }
-    if (textContentLength > MAX_QUILL_LENGTH) {
-      return Promise.reject(
-        new Error(
-          `A descrição não pode ter mais de ${MAX_QUILL_LENGTH} caracteres.`
-        )
-      );
-    }
-    return Promise.resolve();
-  };
-
+  // --- SUBMIT ---
   const handleRegisterSubmit = async (values: any) => {
     setLoading(true);
     try {
       const formData = new FormData();
-      Object.entries(values).forEach(([key, value]) => {
-        if (key === "descricao" && (value === "<p><br></p>" || value === ""))
-          return;
-        if (
-          value &&
-          key !== "logo" &&
-          key !== "projeto" &&
-          key !== "venceuPspe"
-        ) {
-          if (Array.isArray(value)) {
-            formData.append(key, value.join(", "));
-          } else {
-            formData.append(key, value as string);
-          }
+
+      // Mapeamento direto para os campos do DB
+      const camposTexto = [
+        "nomeFantasia",
+        "categoria",
+        "nomeResponsavel",
+        "cpfResponsavel",
+        "contatoLocal",
+        "endereco",
+        "descricao",
+        "instagram",
+        "latitude",
+        "longitude",
+      ];
+
+      camposTexto.forEach((key) => {
+        if (values[key] !== undefined && values[key] !== null) {
+          formData.append(key, String(values[key]));
         }
       });
-      formData.append("venceuPspe", String(values.venceuPspe));
 
+      // Uploads
       if (logoFileList.length > 0 && logoFileList[0].originFileObj) {
         formData.append("logo", logoFileList[0].originFileObj);
-      }
-      if (oficioFileList.length > 0 && oficioFileList[0].originFileObj) {
-        formData.append("oficio", oficioFileList[0].originFileObj);
       }
       portfolioFileList.forEach((file) => {
         if (file.originFileObj) {
@@ -237,13 +212,11 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
       await cadastrarLocal(formData);
 
       onSuccess(
-        "Cadastro realizado com sucesso!",
-        "Sua solicitação foi recebida e será analisada em breve."
+        "Local cadastrado com sucesso!",
+        "Seu cadastro foi enviado para análise.",
       );
     } catch (error: any) {
-      message.error(
-        error.message || "Ocorreu um erro. Por favor, tente novamente."
-      );
+      message.error(error.message || "Erro ao cadastrar. Verifique os dados.");
     } finally {
       setLoading(false);
     }
@@ -251,14 +224,10 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
 
   const commonTitle = (title: string) => (
     <h2
-      className="relative text-2xl font-semibold text-gray-800 mb-6 pl-4 
-        before:content-[''] before:absolute before:left-0 before:top-0 before:h-full before:w-1"
-      style={{
-        borderLeft: `4px solid ${COLORS.primary}`,
-        background: `linear-gradient(90deg, ${COLORS.primary}0D, transparent)`,
-      }}
+      className="text-xl font-semibold text-gray-800 mb-4 pl-3 border-l-4"
+      style={{ borderColor: COLORS.primary }}
     >
-      <span style={{ color: COLORS.primary }}>{title}</span>
+      {title}
     </h2>
   );
 
@@ -267,26 +236,28 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
       form={form}
       layout="vertical"
       onFinish={handleRegisterSubmit}
-      onValuesChange={handleFormValuesChange}
+      onValuesChange={(changed) => {
+        if (changed.descricao)
+          setQuillTextLength(getQuillTextLength(changed.descricao));
+      }}
       autoComplete="off"
-      onFinishFailed={onFinishFailed}
     >
+      {/* SEÇÃO 1: RESPONSÁVEL */}
       <section className="mb-8 border-t pt-4">
-        {commonTitle("Informações do Responsável")}
+        {commonTitle("Responsável")}
         <Row gutter={24}>
           <Col xs={24} md={12}>
             <Form.Item
-              name="prefeitura"
-              label="Nome da Prefeitura"
-              rules={[
-                { required: true, message: "Insira o nome da Prefeitura!" },
-              ]}
+              name="nomeResponsavel"
+              label="Nome Completo do Responsável"
+              rules={[{ required: true, message: "Obrigatório" }]}
             >
               <Input
-                placeholder="Ex: Prefeitura Municipal de..."
+                prefix={<UserOutlined className="text-gray-400" />}
+                placeholder="Seu nome completo"
                 onChange={(e) =>
                   form.setFieldsValue({
-                    prefeitura: stripEmojis(e.target.value),
+                    nomeResponsavel: stripEmojis(e.target.value),
                   })
                 }
               />
@@ -294,96 +265,35 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
           </Col>
           <Col xs={24} md={12}>
             <Form.Item
-              name="secretaria"
-              label="Nome da Secretaria"
-              rules={[
-                {
-                  required: true,
-                  message: "O Nome da Secretaria é obrigatório!",
-                },
-              ]}
+              name="cpfResponsavel"
+              label="CPF do Responsável"
+              rules={[{ required: true, message: "Obrigatório" }]}
             >
               <Input
-                placeholder="Ex: Secretaria de Obras"
-                onChange={(e) =>
-                  form.setFieldsValue({
-                    secretaria: stripEmojis(e.target.value),
-                  })
-                }
+                prefix={<IdcardOutlined className="text-gray-400" />}
+                placeholder="000.000.000-00"
+                maxLength={14}
               />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Row gutter={24}>
-          <Col xs={24} md={12}>
-            <Form.Item
-              name="responsavelProjeto"
-              label="Responsável pelo Projeto"
-              rules={[
-                { required: true, message: "Insira o nome do responsável!" },
-              ]}
-            >
-              <Input
-                placeholder="Nome do Responsável Principal"
-                onChange={(e) =>
-                  form.setFieldsValue({
-                    responsavelProjeto: stripEmojis(e.target.value),
-                  })
-                }
-              />
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={12}>
-            <Form.Item
-              name="oficio"
-              label="Ofício de Requerimento"
-              rules={[
-                {
-                  required: true,
-                  message: "O envio do Ofício é obrigatório!",
-                  validator: () =>
-                    oficioFileList.length > 0
-                      ? Promise.resolve()
-                      : Promise.reject(new Error("Obrigatório!")),
-                },
-              ]}
-              help="Anexe o documento de ofício (.pdf) com anuência do secretário."
-            >
-              <Upload
-                customRequest={customUploadAction}
-                fileList={oficioFileList}
-                onChange={({ fileList }) => setOficioFileList(fileList)}
-                listType="picture"
-                maxCount={1}
-                accept=".pdf,image/png, image/jpg,image/jpeg"
-                onRemove={() => {
-                  setOficioFileList([]);
-                  form.validateFields(["oficio"]);
-                }}
-              >
-                <Button icon={<UploadOutlined />}>Carregar Ofício</Button>
-              </Upload>
             </Form.Item>
           </Col>
         </Row>
       </section>
 
+      {/* SEÇÃO 2: DADOS DO LOCAL */}
       <section className="mb-8 border-t pt-4">
-        {commonTitle("Informações do Projeto")}
+        {commonTitle("Dados do Local")}
         <Row gutter={24}>
           <Col xs={24} md={12}>
             <Form.Item
-              name="nomeProjeto"
-              label="Nome do Projeto"
-              rules={[
-                { required: true, message: "Insira o nome do seu Projeto!" },
-              ]}
+              name="nomeFantasia"
+              label="Nome do Local (Fantasia)"
+              rules={[{ required: true, message: "Obrigatório" }]}
             >
               <Input
-                placeholder="Ex: Projeto Reciclar"
+                placeholder="Ex: Restaurante da Praia"
                 onChange={(e) =>
                   form.setFieldsValue({
-                    nomeProjeto: stripEmojis(e.target.value),
+                    nomeFantasia: stripEmojis(e.target.value),
                   })
                 }
               />
@@ -392,10 +302,10 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
           <Col xs={24} md={12}>
             <Form.Item
               name="categoria"
-              label="Categoria do Projeto"
-              rules={[{ required: true, message: "Selecione uma categoria!" }]}
+              label="Categoria Principal"
+              rules={[{ required: true, message: "Selecione uma categoria" }]}
             >
-              <Select placeholder="Selecione a categoria principal">
+              <Select placeholder="Selecione...">
                 {categoriasLocais.map((cat) => (
                   <Option key={cat} value={cat}>
                     {cat}
@@ -405,205 +315,140 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
             </Form.Item>
           </Col>
         </Row>
-        <Row gutter={24}>
-          <Col xs={24} md={12}>
-            <Form.Item
-              name="linkProjeto"
-              label="Link do Projeto"
-              rules={[
-                {
-                  required: true,
-                  message: "Por favor, insira o link do projeto!",
-                },
-              ]}
-            >
-              <Input
-                placeholder="Link oficial ou repositório"
-                onChange={(e) =>
-                  form.setFieldsValue({
-                    linkProjeto: stripEmojis(e.target.value),
-                  })
-                }
-              />
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={12}>
-            <Form.Item
-              name="venceuPspe"
-              label="Vencedor do Prêmio Sebrae?"
-              initialValue={false}
-            >
-              <Radio.Group>
-                <Radio value={true}>Sim</Radio>
-                <Radio value={false}>Não</Radio>
-              </Radio.Group>
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Form.Item
-          rules={[{ required: true, message: "Por favor, avalie o impacto!" }]}
-          name="escala"
-          label="Em uma escala de 0 a 10, como você avalia o impacto potencial deste projeto para a comunidade local?"
-          className="mt-6"
-        >
-          <>
-            <Slider
-              value={[sliderValue]}
-              max={10}
-              step={1}
-              onValueChange={(value) => {
-                setSliderValue(value[0]);
-                form.setFieldsValue({ escala: value[0] });
-              }}
-            />
-            <div
-              className="text-center font-bold text-lg mt-2"
-              style={{ color: COLORS.primary }}
-            >
-              {sliderValue}
-            </div>
-          </>
-        </Form.Item>
-      </section>
-
-      <section className="mb-8 border-t pt-4">
-        {commonTitle("Contato e Localização")}
-        <Form.Item
-          name="emailContato"
-          label="E-mail de Contato"
-          rules={[
-            {
-              required: true,
-              message: "O e-mail é obrigatório!",
-              type: "email",
-            },
-          ]}
-        >
-          <Input
-            placeholder="contato@email.com"
-            onChange={(e) =>
-              form.setFieldsValue({ emailContato: stripEmojis(e.target.value) })
-            }
-          />
-        </Form.Item>
-        <Form.Item name="endereco" label="Endereço Físico (Opcional)">
-          <Input
-            placeholder="Rua, Bairro, Nº"
-            onChange={(e) =>
-              form.setFieldsValue({ endereco: stripEmojis(e.target.value) })
-            }
-          />
-        </Form.Item>
-      </section>
-
-      <section className="mb-8 border-t pt-5">
-        {commonTitle("Descrição do Projeto")}
-        <Form.Item
-          name="descricaoDiferencial"
-          label="Briefing do Projeto"
-          rules={[{ required: true, message: "Faça um resumo do projeto!" }]}
-        >
-          <TextArea
-            showCount
-            maxLength={150}
-            rows={2}
-            placeholder="Resumo curto (até 150 caracteres)"
-            onChange={(e) =>
-              form.setFieldsValue({
-                descricaoDiferencial: stripEmojis(e.target.value),
-              })
-            }
-          />
-        </Form.Item>
-
-        <Form.Item
-          name="descricao"
-          label="Descrição detalhada"
-          rules={[
-            {
-              validator: validateQuill(true),
-              required: true,
-              message: "Descreva seu projeto!",
-            },
-          ]}
-          help={
-            <div className="flex justify-end w-full">
-              <span
-                className={
-                  quillTextLength > MAX_QUILL_LENGTH
-                    ? "text-red-500"
-                    : "text-gray-500"
-                }
-              >
-                {quillTextLength}/{MAX_QUILL_LENGTH}
-              </span>
-            </div>
-          }
-        >
-          <ReactQuill
-            theme="snow"
-            modules={quillModules}
-            placeholder="Detalhe o funcionamento e objetivos do projeto..."
-            style={{ minHeight: "10px" }}
-          />
-        </Form.Item>
 
         <Row gutter={24}>
           <Col xs={24} md={12}>
-            <Form.Item name="website" label="Site da Prefeitura (Opcional)">
+            <Form.Item
+              name="contatoLocal"
+              label="Telefone / WhatsApp"
+              rules={[{ required: true, message: "Obrigatório para contato" }]}
+            >
               <Input
-                placeholder="https://..."
-                onChange={(e) =>
-                  form.setFieldsValue({ website: stripEmojis(e.target.value) })
-                }
+                prefix={<PhoneOutlined className="text-gray-400" />}
+                placeholder="(22) 99999-9999"
               />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
             <Form.Item name="instagram" label="Instagram (Opcional)">
               <Input
-                placeholder="@perfil"
-                onChange={(e) =>
-                  form.setFieldsValue({
-                    instagram: stripEmojis(e.target.value),
-                  })
-                }
+                prefix={<InstagramOutlined className="text-gray-400" />}
+                placeholder="@seulocal"
               />
             </Form.Item>
           </Col>
         </Row>
 
+        {/* MAPA */}
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
+          <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <EnvironmentOutlined /> Localização
+          </h3>
+          <Row gutter={12} align="bottom">
+            <Col flex="auto">
+              <Form.Item
+                name="endereco"
+                label="Endereço Completo"
+                rules={[{ required: true, message: "Obrigatório" }]}
+                help="Digite o endereço e clique na lupa para posicionar no mapa."
+                style={{ marginBottom: 0 }}
+              >
+                <Input
+                  onPressEnter={(e) => {
+                    e.preventDefault();
+                    handleAddressSearch();
+                  }}
+                  onChange={(e) =>
+                    form.setFieldsValue({
+                      endereco: stripEmojis(e.target.value),
+                    })
+                  }
+                />
+              </Form.Item>
+            </Col>
+            <Col>
+              <Button
+                icon={<SearchOutlined />}
+                onClick={handleAddressSearch}
+                loading={searchingAddress}
+                className="mb-0 mt-8" // Ajuste visual
+              >
+                Buscar
+              </Button>
+            </Col>
+          </Row>
+
+          <div className="mt-4 h-[350px]">
+            <LocationPicker
+              position={mapPosition}
+              onLocationSelect={handleMapLocationSelect}
+            />
+          </div>
+
+          {/* Hidden Fields */}
+          <div className="hidden">
+            <Form.Item name="latitude">
+              <Input />
+            </Form.Item>
+            <Form.Item name="longitude">
+              <Input />
+            </Form.Item>
+          </div>
+        </div>
+
+        <Form.Item
+          name="descricao"
+          label="Descrição Detalhada / Sobre"
+          rules={[{ required: true, message: "Descreva o local" }]}
+          help={`${quillTextLength}/${MAX_QUILL_LENGTH}`}
+        >
+          <ReactQuill
+            theme="snow"
+            modules={quillModules}
+            placeholder="Horários, diferenciais, história..."
+          />
+        </Form.Item>
+
+        {/* UPLOADS */}
         <Row gutter={24}>
           <Col xs={24} md={12}>
-            <Form.Item
-              label="Logo do Projeto"
-              help="Envie 1 imagem (.jpg, .png)"
-            >
+            <Form.Item label="Logo (Capa)" help="1 imagem (.jpg, .png)">
               <Upload
                 customRequest={customUploadAction}
                 fileList={logoFileList}
                 onChange={({ fileList }) => setLogoFileList(fileList)}
-                listType="picture"
+                listType="picture-card"
                 maxCount={1}
                 accept="image/*"
+                showUploadList={{ showPreviewIcon: false }}
               >
-                <Button icon={<UploadOutlined />}>Carregar Logo</Button>
+                {logoFileList.length < 1 && (
+                  <div>
+                    <UploadOutlined />
+                    <div style={{ marginTop: 8 }}>Logo</div>
+                  </div>
+                )}
               </Upload>
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
-            <Form.Item label="Galeria de Imagens" help="Envie até 4 imagens">
+            <Form.Item label="Galeria de Fotos" help="Até 4 imagens">
               <Upload
                 customRequest={customUploadAction}
                 fileList={portfolioFileList}
                 onChange={({ fileList }) => setPortfolioFileList(fileList)}
-                listType="picture"
+                listType="picture-card"
                 multiple
                 maxCount={4}
                 accept="image/*"
+                showUploadList={{ showPreviewIcon: false }}
               >
-                <Button icon={<UploadOutlined />}>Carregar Imagens</Button>
+                {portfolioFileList.length < 4 && (
+                  <div>
+                    <UploadOutlined />
+                    <div style={{ marginTop: 8 }}>Fotos</div>
+                  </div>
+                )}
               </Upload>
             </Form.Item>
           </Col>
@@ -617,14 +462,11 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
               validator: (_, val) =>
                 val
                   ? Promise.resolve()
-                  : Promise.reject(new Error("Confirme a caixa.")),
+                  : Promise.reject("Confirme a veracidade."),
             },
           ]}
         >
-          <Checkbox>
-            Confirmo que as informações são verdadeiras e estou ciente do uso
-            dos dados para divulgação.
-          </Checkbox>
+          <Checkbox>Declaro que as informações são verdadeiras.</Checkbox>
         </Form.Item>
       </section>
 
@@ -634,9 +476,10 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
           htmlType="submit"
           block
           loading={loading}
-          style={{ height: 45, fontSize: "1rem" }}
+          size="large"
+          className="bg-[#017db9] hover:bg-[#016fa0]"
         >
-          Enviar Cadastro
+          Cadastrar Local
         </Button>
       </Form.Item>
     </Form>

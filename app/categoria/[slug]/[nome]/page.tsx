@@ -11,13 +11,15 @@ import {
   Share2,
   Link as LinkIcon,
   MapPin,
+  Navigation,
 } from "lucide-react";
+import GoogleMapEmbed from "@/components/map/GoogleMapEmbed";
 import React, { useState, useEffect, useRef, Suspense, useMemo } from "react";
 import { TiltImage } from "@/components/ui/TiltImage";
 import "leaflet/dist/leaflet.css";
 import Image from "next/image";
 import {
-  getLocalByNome, // Atualizado
+  getLocalByNome,
   deleteReview,
   formatarDataParaMesAno,
   registerShareClick,
@@ -29,7 +31,6 @@ import {
   PaginationLink,
 } from "@/components/ui/pagination";
 import { motion, useInView } from "framer-motion";
-import TagsAnimate from "@/components/ui/tagsanimate";
 import ImageGrid from "@/components/ProjectImages";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -46,11 +47,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { useParams } from "next/navigation";
 import FormattedDescription from "@/components/FormattedDescription";
-import OdsTag from "@/components/ui/OdsTag"; // Pode renomear para CategoriaTag se quiser
 import AvaliacaoModal from "@/components/Pop-up Coments";
 import { ReviewComment } from "@/components/ReviewComments";
 import DOMPurify from "dompurify";
-import { Local } from "@/types/Interface-Local"; // Importa a interface correta
+import { Local } from "@/types/Interface-Local";
 
 // --- PALETA DE CORES ---
 const COLORS = {
@@ -340,8 +340,10 @@ function LocalPageContent() {
     (image: any, index: number) => ({
       id: `${local.localId}-${index}`,
       img: `${API_URL}/${normalizeImagePath(image.url)}`,
-    })
+    }),
   );
+
+  const hasLocation = local?.latitude && local?.longitude;
 
   const formatInstagramUrl = (handleOrUrl: string | undefined) => {
     if (!handleOrUrl) return "#";
@@ -358,7 +360,7 @@ function LocalPageContent() {
   const totalPages = Math.ceil(reviews.length / REVIEWS_PER_PAGE);
   const paginatedReviews = reviews.slice(
     (currentPage - 1) * REVIEWS_PER_PAGE,
-    currentPage * REVIEWS_PER_PAGE
+    currentPage * REVIEWS_PER_PAGE,
   );
 
   return (
@@ -504,19 +506,6 @@ function LocalPageContent() {
                       </a>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {/* Mantém ODS se existir no backend, senão exibe categoria */}
-                    {local.categoria ? (
-                      (() => {
-                        const match = String(local.categoria).match(/\d+/);
-                        return match ? <OdsTag odsNumber={match[0]} /> : null;
-                      })()
-                    ) : (
-                      <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">
-                        {local.categoria}
-                      </span>
-                    )}
-                  </div>
                 </div>
               </div>
 
@@ -651,6 +640,60 @@ function LocalPageContent() {
                 </div>
               )}
             </motion.section>
+          )}
+
+          {/* --- MAPA --- */}
+          {hasLocation && (
+            <AnimatedSection>
+              <div className="bg-white p-6 rounded-3xl shadow-lg md:mx-auto md:max-w-[85%] mb-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h3
+                    className="text-2xl font-bold text-gray-900 border-l-4 pl-3"
+                    style={{ borderColor: COLORS.tertiary }}
+                  >
+                    Como Chegar
+                  </h3>
+
+                  {/* Botão que abre o App de Mapas do celular */}
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
+                  >
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${local.latitude},${local.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Navigation size={16} />
+                      Traçar Rota
+                    </a>
+                  </Button>
+                </div>
+
+                {/* O Iframe do Google Maps */}
+                <div className="h-[400px] w-full relative z-0">
+                  <GoogleMapEmbed
+                    latitude={Number(local.latitude)}
+                    longitude={Number(local.longitude)}
+                  />
+                </div>
+
+                {/* Endereço por escrito abaixo */}
+                {local.endereco && (
+                  <div className="mt-4 bg-gray-50 p-4 rounded-xl flex items-start gap-3 border border-gray-100">
+                    <MapPin
+                      className="text-red-500 flex-shrink-0 mt-1"
+                      size={20}
+                    />
+                    <div>
+                      <p className="text-gray-900 font-medium">Endereço:</p>
+                      <p className="text-gray-600">{local.endereco}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </AnimatedSection>
           )}
 
           {/* --- PORTFÓLIO --- */}
