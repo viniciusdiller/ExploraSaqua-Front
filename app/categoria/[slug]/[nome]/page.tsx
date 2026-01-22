@@ -169,10 +169,7 @@ function LocalPageContent() {
   const { user } = useAuth();
 
   const categorySlug = params.slug as string;
-  // Assume que a rota é /categoria/[slug]/[nome] ou similar
-  // Se for pelo ID, mude para getLocalById. Aqui mantive por nome conforme solicitado.
   const nomeDoLocal = decodeURIComponent(params.nome as string);
-
   const [local, setLocal] = useState<Local | null>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -210,12 +207,13 @@ function LocalPageContent() {
     }
     try {
       const detailsData = await getLocalByNome(nomeDoLocal);
+      const localEncontrado = Array.isArray(detailsData)
+        ? detailsData[0]
+        : detailsData;
 
-      // Verifica se retornou dados válidos (adaptar conforme retorno real da sua API)
-      if (detailsData && (detailsData.localId || detailsData.id)) {
-        setLocal(detailsData);
-        // Se reviews vierem junto no objeto local, use-os. Senão, busque separadamente.
-        setReviews(detailsData.avaliacoes || []);
+      if (localEncontrado && (localEncontrado.localId || localEncontrado.id)) {
+        setLocal(localEncontrado);
+        setReviews(localEncontrado.avaliacoes || []);
       } else {
         setLocal(null);
         setReviews([]);
@@ -436,11 +434,6 @@ function LocalPageContent() {
                     >
                       {local.nome}
                     </h2>
-                    {local.prefeitura && (
-                      <span className="flex items-center text-sm text-gray-500 border-gray-300 md:ml-4">
-                        | {local.prefeitura}
-                      </span>
-                    )}
                   </div>
                   <div className="flex items-center justify-center md:justify-start gap-2">
                     <StarRating rating={rating} />
@@ -472,7 +465,7 @@ function LocalPageContent() {
                 </div>
 
                 <div className="text-gray-700 leading-relaxed md:pl-2">
-                  <FormattedDescription text={local.descricaoDiferencial} />
+                  <FormattedDescription text={local.descricao} />
                 </div>
 
                 <div className="hidden quinhentos:flex flex-col md:flex-row md:items-center md:justify-between gap-6 mt-6">
@@ -489,20 +482,6 @@ function LocalPageContent() {
                           <Instagram size={18} strokeWidth={2} />
                         </div>
                         <span className="text-sm font-medium">Instagram</span>
-                      </a>
-                    )}
-                    {local.website && (
-                      <a
-                        href={local.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-gray-600 transition-colors"
-                        style={{ color: COLORS.primary }}
-                      >
-                        <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#017db9]/10">
-                          <Globe size={18} strokeWidth={2} />
-                        </div>
-                        <span className="text-sm font-medium">Site</span>
                       </a>
                     )}
                   </div>
@@ -541,20 +520,6 @@ function LocalPageContent() {
                         <Instagram size={18} />
                       </div>
                       <span className="text-sm font-medium">Instagram</span>
-                    </a>
-                  )}
-                  {local.website && (
-                    <a
-                      href={local.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-gray-600"
-                      style={{ color: COLORS.primary }}
-                    >
-                      <div className="w-9 h-9 rounded-full bg-[#017db9]/10 flex items-center justify-center">
-                        <Globe size={18} />
-                      </div>
-                      <span className="text-sm font-medium">Site</span>
                     </a>
                   )}
                 </div>
@@ -613,24 +578,6 @@ function LocalPageContent() {
                 </button>
               </div>
 
-              {local.linkLocal && (
-                <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm mt-4 group">
-                  <LinkIcon
-                    className="flex-shrink-0"
-                    style={{ color: COLORS.primary }}
-                    size={20}
-                  />
-                  <a
-                    href={local.linkLocal}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium break-all transition-colors group-hover:underline"
-                    style={{ color: COLORS.primary }}
-                  >
-                    {local.linkLocal}
-                  </a>
-                </div>
-              )}
               {local.endereco && (
                 <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm mt-2">
                   <MapPin className="flex-shrink-0 text-gray-500" size={20} />

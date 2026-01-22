@@ -34,9 +34,8 @@ export interface Local {
 
   // Dados Principais
   nome: string;
-  nomeFantasia?: string;
+  nomeLocal?: string;
   descricao: string; // Descrição completa (HTML/Rich Text)
-  descricaoDiferencial: string; // Briefing/Resumo curto
   categoria: string; // Ex: "Restaurantes", "Hospedagens" (string direta ou ID)
 
   // Mídia
@@ -46,16 +45,9 @@ export interface Local {
   // Localização e Responsabilidade
   bairro?: string;
   endereco?: string;
-  prefeitura?: string; // Mantido como opcional (pode ser o nome da entidade)
-  secretaria?: string; // Mantido como opcional
-  responsavel?: string; // Nome do dono ou gerente
 
   // Contato e Redes
-  emailContato?: string;
-  telefone?: string;
-  website?: string;
   instagram?: string;
-  linkLocal?: string; // Link oficial específico (se houver)
 
   // Métricas e Legado
   visualizacoes: number;

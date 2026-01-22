@@ -22,7 +22,7 @@ const Exclusao: React.FC<ExclusaoProps> = ({ onSuccess }) => {
     if (!value) return "";
     return value.replace(
       /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g,
-      ""
+      "",
     );
   };
 
@@ -46,7 +46,7 @@ const Exclusao: React.FC<ExclusaoProps> = ({ onSuccess }) => {
     try {
       const {
         projetoId,
-        nomeProjeto,
+        nomeLocal,
         motivo,
         prefeitura,
         secretaria,
@@ -55,7 +55,7 @@ const Exclusao: React.FC<ExclusaoProps> = ({ onSuccess }) => {
 
       if (
         !projetoId ||
-        !nomeProjeto ||
+        !nomeLocal ||
         !motivo ||
         !prefeitura ||
         !secretaria ||
@@ -68,7 +68,7 @@ const Exclusao: React.FC<ExclusaoProps> = ({ onSuccess }) => {
 
       const dadosParaEnviar = {
         projetoId,
-        nomeProjeto,
+        nomeLocal,
         motivo,
         prefeitura,
         secretaria,
@@ -79,11 +79,11 @@ const Exclusao: React.FC<ExclusaoProps> = ({ onSuccess }) => {
 
       onSuccess(
         "Solicitação de exclusão recebida!",
-        "Sua solicitação foi registrada. A remoção do seu perfil será processada em breve."
+        "Sua solicitação foi registrada. A remoção do seu perfil será processada em breve.",
       );
     } catch (error: any) {
       message.error(
-        error.message || "Ocorreu um erro ao solicitar a exclusão."
+        error.message || "Ocorreu um erro ao solicitar a exclusão.",
       );
     } finally {
       setLoading(false);
@@ -151,14 +151,14 @@ const Exclusao: React.FC<ExclusaoProps> = ({ onSuccess }) => {
         <Row gutter={24}>
           <Col span={12}>
             <Form.Item
-              name="nomeProjeto"
+              name="nomeLocal"
               label="Projeto"
               rules={[{ required: true }]}
             >
               <Input
                 onChange={(e) =>
                   form.setFieldsValue({
-                    nomeProjeto: stripEmojis(e.target.value),
+                    nomeLocal: stripEmojis(e.target.value),
                   })
                 }
               />

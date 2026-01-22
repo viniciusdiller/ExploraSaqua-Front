@@ -50,7 +50,7 @@ const campoLabels: { [key: string]: string } = {
   prefeitura: "Nome da Prefeitura",
   secretaria: "Nome da Secretaria",
   responsavelProjeto: "Responsável pelo Projeto",
-  nomeProjeto: "Nome do Projeto",
+  nomeLocal: "Nome do Local",
   categoria: "Categoria do Projeto",
   linkProjeto: "Link do Projeto",
   venceuPspe: "Prêmio Sebrae",
@@ -123,7 +123,7 @@ const Atualizacao: React.FC<AtualizacaoProps> = ({ onSuccess }) => {
     if (!value) return "";
     return value.replace(
       /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g,
-      ""
+      "",
     );
   };
 
@@ -157,7 +157,7 @@ const Atualizacao: React.FC<AtualizacaoProps> = ({ onSuccess }) => {
       })
       .filter(
         (value: string, index: number, self: string[]) =>
-          self.indexOf(value) === index
+          self.indexOf(value) === index,
       );
 
     if (labelsComErro.length > 0) {
@@ -227,11 +227,11 @@ const Atualizacao: React.FC<AtualizacaoProps> = ({ onSuccess }) => {
       await solicitarAtualizacaoLocal(projetoId, formData);
       onSuccess(
         "Atualização enviada com sucesso!",
-        "Recebemos suas alterações. Elas serão analisadas e aplicadas em seu perfil em breve."
+        "Recebemos suas alterações. Elas serão analisadas e aplicadas em seu perfil em breve.",
       );
     } catch (error: any) {
       message.error(
-        error.message || "Ocorreu um erro ao enviar a atualização."
+        error.message || "Ocorreu um erro ao enviar a atualização.",
       );
     } finally {
       setLoading(false);
@@ -324,14 +324,14 @@ const Atualizacao: React.FC<AtualizacaoProps> = ({ onSuccess }) => {
         <Row gutter={24}>
           <Col xs={24} md={12}>
             <Form.Item
-              name="nomeProjeto"
+              name="nomeLocal"
               label="Nome do Projeto"
               rules={[{ required: true }]}
             >
               <Input
                 onChange={(e) =>
                   form.setFieldsValue({
-                    nomeProjeto: stripEmojis(e.target.value),
+                    nomeLocal: stripEmojis(e.target.value),
                   })
                 }
               />

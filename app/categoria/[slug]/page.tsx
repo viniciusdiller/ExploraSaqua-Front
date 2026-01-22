@@ -31,49 +31,6 @@ const COLORS = {
   tertiary: "#d04798",
 };
 
-// --- MOCK DATA (DADOS FALSOS PARA VISUALIZAÇÃO) ---
-const MOCK_LOCAIS: Local[] = [
-  {
-    localId: 1,
-    slug: "igreja-nossa-senhora-de-nazareth",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    criadoPor: "admin",
-    status: "aprovado",
-    aprovado: true,
-    nome: "Igreja de Nossa Senhora de Nazareth",
-    descricao: "O principal cartão postal de Saquarema.",
-    descricaoDiferencial:
-      "Localizada no alto do morro, oferece uma vista incrível da cidade e do mar.",
-    categoria: "Pontos Turísticos",
-    logoUrl: "/placeholder_igreja.jpg",
-    bairro: "Centro",
-    responsavel: "Paróquia Local",
-    visualizacoes: 1500,
-    media: 4.8,
-    countAvaliacoes: 320,
-  },
-  {
-    localId: 2,
-    slug: "praia-de-itauna",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    criadoPor: "admin",
-    status: "aprovado",
-    aprovado: true,
-    nome: "Praia de Itaúna",
-    descricao: "O Maracanã do Surf.",
-    descricaoDiferencial: "Famosa mundialmente por suas ondas perfeitas.",
-    categoria: "Praias e Lagoas",
-    logoUrl: null,
-    bairro: "Itaúna",
-    responsavel: "Prefeitura",
-    visualizacoes: 5000,
-    media: 5.0,
-    countAvaliacoes: 850,
-  },
-];
-
 interface CategoryData {
   id: string;
   title: string;
@@ -122,24 +79,6 @@ export default function CategoriaPage() {
         } finally {
           setIsLoading(false);
         }
-
-        // ---------------------------------------------------------
-        // CÓDIGO MOCK (SIMULAÇÃO) - ATIVO
-        // ---------------------------------------------------------
-        setTimeout(() => {
-          const categoriasComDados = [
-            "pontos-turisticos",
-            "restaurantes",
-            "praias",
-          ];
-          if (categoriasComDados.includes(slug)) {
-            setLocais([...MOCK_LOCAIS, ...MOCK_LOCAIS]);
-          } else {
-            setLocais([]);
-          }
-          setIsLoading(false);
-        }, 1000);
-        // ---------------------------------------------------------
       };
       fetchLocais();
     }
@@ -147,7 +86,7 @@ export default function CategoriaPage() {
 
   const filteredLocais = useMemo(() => {
     return locais.filter((local) => {
-      const nomeParaBusca = local.nome || local.nomeFantasia || "";
+      const nomeParaBusca = local.nome || local.nomeLocal || "";
       return nomeParaBusca.toLowerCase().includes(searchTerm.toLowerCase());
     });
   }, [locais, searchTerm]);
@@ -287,15 +226,11 @@ export default function CategoriaPage() {
                 </Link>
               </motion.div>
             ) : (
-              /* --------------------------------------------------------- */
-
               <>
                 <div className="space-y-4 pb-1 sm:grid sm:grid-cols-2 sm:gap-6 sm:space-y-0">
                   {paginatedLocais.map((local, index) => (
                     <Link
-                      href={`/categoria/${slug}/${encodeURIComponent(
-                        local.nome,
-                      )}`}
+                      href={`/categoria/${params.slug}/${local.nomeLocal}`}
                       key={local.localId}
                       className="block group h-full"
                     >
@@ -325,13 +260,10 @@ export default function CategoriaPage() {
                         {/* Conteúdo */}
                         <div className="p-4 flex flex-col flex-grow">
                           <h3 className="text-lg font-bold text-gray-800 mb-2 line-clamp-2 group-hover:text-[#017db9] transition-colors">
-                            {local.nome || local.nomeFantasia}
+                            {local.nome || local.nomeLocal}
                           </h3>
-                          <p className="text-gray-600 text-sm line-clamp-3 mb-4 flex-grow leading-relaxed">
-                            {local.descricaoDiferencial}
-                          </p>
+
                           <div className="pt-3 border-t border-gray-50 flex justify-between items-center text-xs text-gray-400">
-                            <span>Por: {local.responsavel || "Admin"}</span>
                             <span className="font-semibold text-[#017db9] flex items-center gap-1 group/btn">
                               Detalhes{" "}
                               <ArrowIcon

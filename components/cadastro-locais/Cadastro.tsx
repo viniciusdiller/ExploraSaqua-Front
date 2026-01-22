@@ -61,7 +61,7 @@ const categoriasLocais = [
 const campoLabels: { [key: string]: string } = {
   nomeResponsavel: "Nome do Responsável",
   cpfResponsavel: "CPF do Responsável",
-  nomeFantasia: "Nome do Local",
+  nomeLocal: "Nome do Local",
   categoria: "Categoria",
   contatoLocal: "Contato/Telefone",
   endereco: "Endereço",
@@ -181,7 +181,7 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
 
       // Mapeamento direto para os campos do DB
       const camposTexto = [
-        "nomeFantasia",
+        "nomeLocal",
         "categoria",
         "nomeResponsavel",
         "cpfResponsavel",
@@ -285,15 +285,15 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
         <Row gutter={24}>
           <Col xs={24} md={12}>
             <Form.Item
-              name="nomeFantasia"
-              label="Nome do Local (Fantasia)"
+              name="nomeLocal"
+              label="Nome do Local"
               rules={[{ required: true, message: "Obrigatório" }]}
             >
               <Input
                 placeholder="Ex: Restaurante da Praia"
                 onChange={(e) =>
                   form.setFieldsValue({
-                    nomeFantasia: stripEmojis(e.target.value),
+                    nomeLocal: stripEmojis(e.target.value),
                   })
                 }
               />
