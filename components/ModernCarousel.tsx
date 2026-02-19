@@ -39,7 +39,7 @@ export default function ModernCarousel({
   useEffect(() => {
     // Filtra a categoria atual para não mostrá-la no carrossel de sugestões
     const otherCategories = categories.filter(
-      (cat) => cat.id !== currentCategoryId
+      (cat) => cat.id !== currentCategoryId,
     );
 
     // Embaralha e pega os 5 primeiros
@@ -57,7 +57,7 @@ export default function ModernCarousel({
     resetTimeout();
     timeoutRef.current = setTimeout(() => {
       setCurrent((prevIndex) =>
-        prevIndex === displaySlides.length - 1 ? 0 : prevIndex + 1
+        prevIndex === displaySlides.length - 1 ? 0 : prevIndex + 1,
       );
     }, interval);
 
@@ -97,7 +97,7 @@ export default function ModernCarousel({
         {displaySlides.map((slide, idx) => (
           <div key={idx} className="min-w-full h-full relative flex-shrink-0">
             <Image
-              src={slide.backgroundimg || "/Logo_aquitemods.png"}
+              src={slide.backgroundimg || "/logos/Logo_Explore.png"}
               alt={slide.title}
               fill
               className="object-cover w-full h-full object-center"

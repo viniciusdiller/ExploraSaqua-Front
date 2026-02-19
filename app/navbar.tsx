@@ -17,22 +17,22 @@ import { useAuth } from "@/context/AuthContext";
 const AnimatedLogo = () => {
   const logos = [
     {
-      src: "/Logo_Explore.png",
+      src: "/logos/Logo_Explore.png",
       alt: "Logo ExploreSaquá",
       className: "h-10 w-auto",
     },
     {
-      src: "/Logo-Lab-ISA.png",
+      src: "/logos/Logo-Lab-ISA.png",
       alt: "Logo LAB-ISA",
       className: "h-10 w-auto",
     },
     {
-      src: "/logo2sq.png",
+      src: "/logos/logo2sq.png",
       alt: "Logo Prefeitura de Saquarema",
       className: "h-12 w-auto",
     },
     {
-      src: "/logoSMGS.png",
+      src: "/logos/logoSMGS.png",
       alt: "Logo Secretaria Municipal de Governança e Sustentabilidade",
       className: "h-12 w-auto",
     },

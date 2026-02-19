@@ -63,12 +63,12 @@ export default function LoginPage() {
       if (errorMessage.includes("Conta não ativada")) {
         addNotification(
           "Sua conta ainda não foi verificada. Por favor, confirme seu e-mail antes de entrar.",
-          "error"
+          "error",
         );
       } else {
         addNotification(
           "Email/usuário ou senha inválidos. Tente novamente.",
-          "error"
+          "error",
         );
       }
 
@@ -95,7 +95,7 @@ export default function LoginPage() {
           <div className="text-center mb-6">
             <Link href="/" passHref>
               <Image
-                src="/Logo_Explore.png"
+                src="/logos/Logo_Explore.png"
                 alt="Logo Explore Saqua"
                 width={200}
                 height={80}

@@ -100,7 +100,7 @@ export default function Cadastro() {
       await registerUser(userData);
       addNotification(
         "Cadastro realizado com sucesso! Para finalizar, verifique seu email.",
-        "success"
+        "success",
       );
       setTimeout(() => {
         window.location.href = "/login";
@@ -134,7 +134,7 @@ export default function Cadastro() {
           <div className="text-center mb-6">
             <Link href="/" passHref>
               <Image
-                src="/Logo_Explore.png"
+                src="/logos/Logo_Explore.png"
                 alt="Logo Explore Saquá"
                 width={150}
                 height={150}

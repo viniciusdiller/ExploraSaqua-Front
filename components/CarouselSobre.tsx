@@ -6,10 +6,10 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 // 1. ATUALIZEI OS SLIDES PARA COMEÇAR COM SUA LOGO
 const slides = [
-  { src: "/Logo_Explore.png", alt: "Logo Explore Saqua" },
-  { src: "/Logo-Lab-ISA.png", alt: "Logo Lab ISA" },
+  { src: "/logos/Logo_Explore.png", alt: "Logo Explore Saqua" },
+  { src: "/logos/Logo-Lab-ISA.png", alt: "Logo Lab ISA" },
   {
-    src: "/logoSMGS.png",
+    src: "/logos/logoSMGS.png",
     alt: "Logo da Secretaria Municipal de Governança e Sustentabilidade",
   },
   // Adicione mais slides aqui conforme necessário
@@ -30,7 +30,7 @@ export default function CarouselSobre() {
     resetTimeout();
     timeoutRef.current = setTimeout(() => {
       setCurrent((prevIndex) =>
-        prevIndex === slides.length - 1 ? 0 : prevIndex + 1
+        prevIndex === slides.length - 1 ? 0 : prevIndex + 1,
       );
     }, 5000);
 

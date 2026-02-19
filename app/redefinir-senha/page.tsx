@@ -48,14 +48,14 @@ function ResetPasswordFormComponent() {
       // Usando a função resetPassword do lib/api.ts refatorado
       await resetPassword({ token, newPassword: password });
       toast.success(
-        "Senha redefinida com sucesso! Redirecionando para o login..."
+        "Senha redefinida com sucesso! Redirecionando para o login...",
       );
       setTimeout(() => {
         window.location.href = "/login";
       }, 2000);
     } catch (err) {
       toast.error(
-        "Erro ao redefinir a senha. O token pode ser inválido ou ter expirado."
+        "Erro ao redefinir a senha. O token pode ser inválido ou ter expirado.",
       );
       console.error(err);
     } finally {
@@ -70,7 +70,7 @@ function ResetPasswordFormComponent() {
         <div className="text-center mb-6">
           <Link href="/" passHref>
             <Image
-              src="/Logo_Explore.png"
+              src="/logos/Logo_Explore.png"
               alt="Logo Explore Saqua"
               width={200}
               height={80}

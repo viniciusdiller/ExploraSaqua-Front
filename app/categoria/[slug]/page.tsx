@@ -59,7 +59,7 @@ export default function CategoriaPage() {
   const bgGradient = getCategoryColor(slug);
 
   const getImageUrl = (url?: string | null) => {
-    if (!url) return "/Logo_aquitemods.png";
+    if (!url) return "/logos/Logo_Explore.png";
     if (!url.startsWith("http")) return url;
     return url;
   };

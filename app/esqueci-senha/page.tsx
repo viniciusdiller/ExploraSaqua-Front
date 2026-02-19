@@ -49,7 +49,7 @@ export default function EsqueciSenhaPage() {
       await requestPasswordReset(userData);
       addNotification(
         "Email enviado com sucesso! Verifique sua caixa de entrada.",
-        "success"
+        "success",
       );
       setTimeout(() => {
         window.location.href = "/login";
@@ -57,7 +57,7 @@ export default function EsqueciSenhaPage() {
     } catch (err) {
       addNotification(
         "Erro ao processar o pedido. Verifique os dados e tente novamente.",
-        "error"
+        "error",
       );
       console.error(err);
     } finally {
@@ -82,7 +82,7 @@ export default function EsqueciSenhaPage() {
           <div className="text-center mb-6">
             <Link href="/" passHref>
               <Image
-                src="/Logo_Explore.png"
+                src="/logos/Logo_Explore.png"
                 alt="Logo Explore Saqua"
                 width={200}
                 height={80}

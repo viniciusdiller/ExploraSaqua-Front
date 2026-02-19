@@ -25,7 +25,7 @@ export default function ImageCarousel() {
     resetTimeout();
     timeoutRef.current = setTimeout(() => {
       setCurrent((prevIndex) =>
-        prevIndex === slides.length - 1 ? 0 : prevIndex + 1
+        prevIndex === slides.length - 1 ? 0 : prevIndex + 1,
       );
     }, 5000); // Changed to 5 seconds for a better rhythm
 

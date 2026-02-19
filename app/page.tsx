@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowUp, Search } from "lucide-react";
-import ImageCarousel from "@/components/ImageCarousel";
+import ImageCarousel from "@/components/CarroselPrincipal";
 import {
   UtensilsCrossed,
   MapPin,
@@ -181,7 +181,7 @@ export default function HomePage() {
     <div className="flex flex-col flex-grow bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-100 to-white pt-8">
       {/* Logos (Layout ExploraSaqua) */}
       <Image
-        src="/logo2sq.png"
+        src="/logos/logo2sq.png"
         alt="Logo Prefeitura de Saquarema"
         width={2660}
         height={898}
@@ -191,7 +191,7 @@ export default function HomePage() {
       {/* Link para refresh ou home */}
       <div className="w-fit mx-auto block">
         <Image
-          src="/Logo_Explore.png"
+          src="/logos/Logo_Explore.png"
           alt="Logo ExploreSaquá"
           width={2660}
           height={898}
@@ -255,7 +255,9 @@ export default function HomePage() {
             .filter(
               (cat) =>
                 cat.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                cat.description.toLowerCase().includes(searchTerm.toLowerCase())
+                cat.description
+                  .toLowerCase()
+                  .includes(searchTerm.toLowerCase()),
             )
             .map((category, index) => {
               const Icon = category.icon;

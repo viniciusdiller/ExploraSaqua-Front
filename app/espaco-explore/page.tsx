@@ -4,6 +4,17 @@ import React, { useState, useEffect } from "react";
 import FaleConoscoButton from "@/components/FaleConoscoButton";
 import { MapPin, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+// IMPORTANDO OS DADOS E A TIPAGEM
+import { LOCAIS_DESAFIO, LocalDesafio } from "@/lib/locais-explore";
 
 // Função para calcular distância usando a Fórmula de Haversine (retorna em metros)
 const getDistanceFromLatLonInM = (
@@ -27,46 +38,6 @@ const getDistanceFromLatLonInM = (
 
 const deg2rad = (deg: number) => deg * (Math.PI / 180);
 
-// Lista de locais do desafio
-const LOCAIS_DESAFIO = [
-  {
-    id: "igreja-nazareth",
-    nome: "Igreja de N. Sra. de Nazareth",
-    descricao:
-      "Erguida no alto do promontório, esta igreja histórica é o principal mirante da cidade com vista para a Praia da Vila e Itaúna.",
-    lat: -22.936618,
-    lng: -42.492821,
-    etiqueta: "Explorador da Fé",
-  },
-  {
-    id: "praia-itauna",
-    nome: "Praia de Itaúna",
-    descricao:
-      "O Maracanã do Surf! Conhecida mundialmente por suas ondas perfeitas e por sediar etapas do mundial de surf (WSL).",
-    lat: -22.93647,
-    lng: -42.47654,
-    etiqueta: "Explorador das Ondas",
-  },
-  {
-    id: "mirante-cruz",
-    nome: "Mirante do Morro da Cruz",
-    descricao:
-      "O ponto ideal para uma vista panorâmica de toda a geografia da cidade, englobando a imensa lagoa e o oceano.",
-    lat: -22.9242,
-    lng: -42.515,
-    etiqueta: "Explorador das Alturas",
-  },
-  {
-    id: "centro-volei",
-    nome: "Centro de Voleibol (CBV)",
-    descricao:
-      "A casa das seleções brasileiras de vôlei. Um espaço que respira esporte olímpico às margens da Lagoa de Saquarema.",
-    lat: -22.9215,
-    lng: -42.485,
-    etiqueta: "Espírito Olímpico",
-  },
-];
-
 export default function EspacoExplorePage() {
   const [unlockedLocais, setUnlockedLocais] = useState<string[]>([]);
   const [loadingId, setLoadingId] = useState<string | null>(null);
@@ -83,7 +54,8 @@ export default function EspacoExplorePage() {
     }
   }, []);
 
-  const handleCheckIn = (local: (typeof LOCAIS_DESAFIO)[0]) => {
+  // Agora tipamos usando a interface LocalDesafio que criamos
+  const handleCheckIn = (local: LocalDesafio) => {
     setLoadingId(local.id);
     setFeedback(null);
 
@@ -233,7 +205,7 @@ export default function EspacoExplorePage() {
             </span>
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {LOCAIS_DESAFIO.map((local) => {
               const isUnlocked = unlockedLocais.includes(local.id);
 
@@ -246,69 +218,122 @@ export default function EspacoExplorePage() {
                       : "border-gray-200 bg-white hover:border-[#017DB9] hover:shadow-md"
                   }`}
                 >
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">
+                  <div className="mb-4">
+                    <h3 className="text-xl font-bold text-gray-800">
                       {local.nome}
                     </h3>
-                    <p className="text-gray-700 leading-relaxed text-md mb-6">
-                      {local.descricao}
-                    </p>
-                  </div>
-
-                  <div>
-                    {isUnlocked ? (
-                      <div className="flex justify-center items-center gap-2 bg-gradient-to-r from-[#017DB9] to-[#007a73] text-white font-semibold py-3 px-4 rounded-xl shadow-md">
-                        <MapPin size={20} />
-                        Etiqueta: {local.etiqueta}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-3">
-                        {/* BOTÕES DE AÇÃO: TRAÇAR ROTA & CHECK-IN */}
-                        <div className="flex flex-col sm:flex-row gap-3">
-                          {/* Botão Traçar Rota (Mesmo estilo da página do local) */}
-                          <Button
-                            asChild
-                            variant="outline"
-                            className="w-full sm:w-1/2 flex items-center justify-center gap-2 border-blue-200 text-[#017DB9] hover:bg-blue-50 py-6 rounded-xl"
-                          >
-                            <a
-                              href={`https://www.google.com/maps/dir/?api=1&destination=${local.lat},${local.lng}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <Navigation size={18} />
-                              Traçar Rota
-                            </a>
-                          </Button>
-
-                          {/* Botão Validar Localização */}
-                          <button
-                            onClick={() => handleCheckIn(local)}
-                            disabled={loadingId === local.id}
-                            className="w-full sm:w-1/2 bg-[#017DB9] hover:bg-[#007a73] text-white font-semibold py-3 px-4 rounded-xl transition-colors disabled:opacity-70 flex justify-center items-center gap-2"
-                          >
-                            {loadingId === local.id ? (
-                              "GPS..."
-                            ) : (
-                              <>
-                                <MapPin size={18} />
-                                Validar
-                              </>
-                            )}
-                          </button>
-                        </div>
-
-                        {/* Feedback de Erro/Sucesso */}
-                        {feedback?.id === local.id && (
-                          <div
-                            className={`text-center text-sm font-semibold mt-2 ${feedback.type === "success" ? "text-[#007a73]" : "text-red-500"}`}
-                          >
-                            {feedback.message}
-                          </div>
-                        )}
+                    {isUnlocked && (
+                      <div className="inline-flex items-center gap-1 mt-2 text-[#007a73] text-sm font-semibold bg-[#e6f7f6] px-3 py-1 rounded-full">
+                        <MapPin size={14} /> Desbloqueado
                       </div>
                     )}
                   </div>
+
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant={isUnlocked ? "ghost" : "default"}
+                        className={`w-full ${
+                          !isUnlocked
+                            ? "bg-[#017DB9] hover:bg-[#007a73] text-white"
+                            : "text-[#007a73] hover:bg-[#e6f7f6]"
+                        }`}
+                      >
+                        {isUnlocked ? "Ver Detalhes" : "Saiba Mais"}
+                      </Button>
+                    </DialogTrigger>
+
+                    <DialogContent
+                      className="sm:max-w-[500px] p-6 border-0 rounded-2xl shadow-lg"
+                      overlayClassName="bg-black/60 backdrop-blur-sm"
+                    >
+                      <DialogHeader>
+                        <DialogTitle className="text-2xl font-bold text-gray-800">
+                          {local.nome}
+                        </DialogTitle>
+                      </DialogHeader>
+
+                      <div className="flex flex-col gap-4 mt-2">
+                        {/* Imagem do Local */}
+                        <div className="w-full h-48 rounded-xl overflow-hidden bg-gray-100">
+                          <img
+                            src={local.imagem}
+                            alt={local.nome}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+
+                        {/* Descrição */}
+                        <DialogDescription className="text-gray-700 text-base leading-relaxed">
+                          {local.descricao}
+                        </DialogDescription>
+
+                        {/* Botões e Interações */}
+                        <div className="mt-4 border-t pt-4">
+                          {isUnlocked ? (
+                            <div className="flex flex-col items-center gap-2">
+                              <p className="text-sm text-gray-500 font-medium">
+                                Você já visitou este local!
+                              </p>
+                              <div className="flex justify-center items-center gap-2 bg-gradient-to-r from-[#017DB9] to-[#007a73] text-white font-semibold py-3 px-6 rounded-xl shadow-md w-full">
+                                <MapPin size={20} />
+                                Etiqueta: {local.etiqueta}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-3">
+                              <div className="flex flex-col sm:flex-row gap-3">
+                                {/* Botão Traçar Rota */}
+                                <Button
+                                  asChild
+                                  variant="outline"
+                                  className="w-full sm:w-1/2 flex items-center justify-center gap-2 border-blue-200 text-[#017DB9] hover:bg-blue-50 py-6 rounded-xl"
+                                >
+                                  <a
+                                    href={`https://www.google.com/maps/dir/?api=1&destination=${local.lat},${local.lng}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <Navigation size={18} />
+                                    Traçar Rota
+                                  </a>
+                                </Button>
+
+                                {/* Botão Validar Localização */}
+                                <button
+                                  onClick={() => handleCheckIn(local)}
+                                  disabled={loadingId === local.id}
+                                  className="w-full sm:w-1/2 bg-[#017DB9] hover:bg-[#007a73] text-white font-semibold py-3 px-4 rounded-xl transition-colors disabled:opacity-70 flex justify-center items-center gap-2"
+                                >
+                                  {loadingId === local.id ? (
+                                    "Buscando GPS..."
+                                  ) : (
+                                    <>
+                                      <MapPin size={18} />
+                                      Validar Local
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+
+                              {/* Feedback de Erro/Sucesso */}
+                              {feedback?.id === local.id && (
+                                <div
+                                  className={`text-center text-sm font-semibold mt-2 p-2 rounded-lg ${
+                                    feedback.type === "success"
+                                      ? "bg-[#e6f7f6] text-[#007a73]"
+                                      : "bg-red-50 text-red-500"
+                                  }`}
+                                >
+                                  {feedback.message}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               );
             })}
