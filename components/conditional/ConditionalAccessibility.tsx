@@ -2,7 +2,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import AccessibilityFeatures from "@/components/AccessibilityFeatures";
+import AccessibilityFeatures from "@/components/acessibilidade/AccessibilityFeatures";
 
 export function ConditionalAccessibility() {
   const pathname = usePathname();

@@ -1,380 +1,332 @@
-// EPAÇO MEI
-
 "use client";
-import Link from "next/link";
-import React from "react";
-import Image from "next/image";
-import FaleConoscoButton from "@/components/FaleConoscoButton";
-import { useRef, useEffect } from "react";
 
-export default function SobrePage() {
-  const jaContabilizou = useRef(false);
+import React, { useState, useEffect } from "react";
+import FaleConoscoButton from "@/components/FaleConoscoButton";
+import { MapPin, Navigation } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+// Função para calcular distância usando a Fórmula de Haversine (retorna em metros)
+const getDistanceFromLatLonInM = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+) => {
+  const R = 6371e3;
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(lat1)) *
+      Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+const deg2rad = (deg: number) => deg * (Math.PI / 180);
+
+// Lista de locais do desafio
+const LOCAIS_DESAFIO = [
+  {
+    id: "igreja-nazareth",
+    nome: "Igreja de N. Sra. de Nazareth",
+    descricao:
+      "Erguida no alto do promontório, esta igreja histórica é o principal mirante da cidade com vista para a Praia da Vila e Itaúna.",
+    lat: -22.936618,
+    lng: -42.492821,
+    etiqueta: "Explorador da Fé",
+  },
+  {
+    id: "praia-itauna",
+    nome: "Praia de Itaúna",
+    descricao:
+      "O Maracanã do Surf! Conhecida mundialmente por suas ondas perfeitas e por sediar etapas do mundial de surf (WSL).",
+    lat: -22.93647,
+    lng: -42.47654,
+    etiqueta: "Explorador das Ondas",
+  },
+  {
+    id: "mirante-cruz",
+    nome: "Mirante do Morro da Cruz",
+    descricao:
+      "O ponto ideal para uma vista panorâmica de toda a geografia da cidade, englobando a imensa lagoa e o oceano.",
+    lat: -22.9242,
+    lng: -42.515,
+    etiqueta: "Explorador das Alturas",
+  },
+  {
+    id: "centro-volei",
+    nome: "Centro de Voleibol (CBV)",
+    descricao:
+      "A casa das seleções brasileiras de vôlei. Um espaço que respira esporte olímpico às margens da Lagoa de Saquarema.",
+    lat: -22.9215,
+    lng: -42.485,
+    etiqueta: "Espírito Olímpico",
+  },
+];
+
+export default function EspacoExplorePage() {
+  const [unlockedLocais, setUnlockedLocais] = useState<string[]>([]);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{
+    id: string;
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
   useEffect(() => {
-    if (!jaContabilizou.current) {
-      jaContabilizou.current = true;
-      fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/projetos/visualizacao/ESPACO_ODS`,
-        {
-          method: "POST",
-        }
-      ).catch((err) => console.error("Erro contador Espaço ODS:", err));
+    const saved = localStorage.getItem("explora_saqua_badges");
+    if (saved) {
+      setUnlockedLocais(JSON.parse(saved));
     }
   }, []);
 
+  const handleCheckIn = (local: (typeof LOCAIS_DESAFIO)[0]) => {
+    setLoadingId(local.id);
+    setFeedback(null);
+
+    if (!navigator.geolocation) {
+      setFeedback({
+        id: local.id,
+        message: "Geolocalização não suportada.",
+        type: "error",
+      });
+      setLoadingId(null);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const userLat = position.coords.latitude;
+        const userLng = position.coords.longitude;
+        const distanceMeters = getDistanceFromLatLonInM(
+          userLat,
+          userLng,
+          local.lat,
+          local.lng,
+        );
+
+        if (distanceMeters <= 300) {
+          // Raio de 300 metros
+          const newUnlocked = [...unlockedLocais, local.id];
+          setUnlockedLocais(newUnlocked);
+          localStorage.setItem(
+            "explora_saqua_badges",
+            JSON.stringify(newUnlocked),
+          );
+          setFeedback({
+            id: local.id,
+            message: "Check-in confirmado com sucesso!",
+            type: "success",
+          });
+        } else {
+          setFeedback({
+            id: local.id,
+            message: `Você está a ${Math.round(distanceMeters)}m. Aproxime-se do local!`,
+            type: "error",
+          });
+        }
+        setLoadingId(null);
+      },
+      (error) => {
+        setFeedback({
+          id: local.id,
+          message: "Ative o GPS do seu dispositivo.",
+          type: "error",
+        });
+        setLoadingId(null);
+      },
+      { enableHighAccuracy: true },
+    );
+  };
+
+  const progress = Math.round(
+    (unlockedLocais.length / LOCAIS_DESAFIO.length) * 100,
+  );
+  const isCompleted = unlockedLocais.length === LOCAIS_DESAFIO.length;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#D7386E] to-[#3C6AB2] py-20 px-6 sm:px-12">
+    <div className="min-h-screen bg-gradient-to-br from-[#017DB9] to-[#007a73] py-20 px-6 sm:px-12">
       <div className="max-w-5xl mx-auto bg-white rounded-3xl shadow-lg p-10 sm:p-16">
-        {/* --- SEÇÃO INICIAL --- */}
+        {/* --- CABEÇALHO --- */}
         <section className="mb-8">
           <div className="md:flex md:items-start md:gap-8 lg:gap-12">
-            <div className="md:w-2/3">
+            <div className="w-full">
               <h1
-                className=" text-4xl font-extrabold mb-6 inline-block pb-2
-                    bg-gradient-to-r from-[#D7386E] to-[#3C6AB2]
-                    bg-no-repeat
-                    [background-position:0_100%]
-                    [background-size:100%_4px]"
+                className="text-4xl font-extrabold mb-6 inline-block pb-2
+                  bg-gradient-to-r from-[#017DB9] to-[#007a73]
+                  bg-no-repeat
+                  [background-position:0_100%]
+                  [background-size:100%_4px]"
               >
-                <span className=" bg-gradient-to-r from-[#D7386E] to-[#3C6AB2] bg-clip-text text-transparent ">
-                  Os Objetivos de Desenvolvimento Sustentável no Brasil
+                <span className="bg-gradient-to-r from-[#017DB9] to-[#007a73] bg-clip-text text-transparent">
+                  Espaço Explore
                 </span>
               </h1>
-              <p className="text-gray-700 leading-relaxed text-lg">
-                Os{" "}
-                <strong>Objetivos de Desenvolvimento Sustentável(ODS)</strong>{" "}
-                são um conjunto de{" "}
-                <strong>
-                  metas globais estabelecidas pela Organização das Nações Unidas
-                  (ONU)
-                </strong>{" "}
-                em 2015, com o propósito de{" "}
-                <strong>
-                  erradicar a pobreza, proteger o planeta e promover
-                  prosperidade e paz para todas as pessoas até 2030.
-                </strong>
-              </p>
-              <p className="text-gray-700 leading-relaxed text-lg">
-                erradicar a pobreza, proteger o planeta e promover prosperidade
-                e paz para todas as pessoas até 2030.
-              </p>
-              <p className="text-gray-700 leading-relaxed text-lg mt-4">
-                A Agenda 2030 é o pacto internacional que reúne esses objetivos
-                — um plano de ação global, assinado por 193 países, que propõe
-                um novo modelo de desenvolvimento baseado no equilíbrio entre as
-                dimensões econômica, social, ambiental e institucional. No
-                Brasil, além dos 17 ODS originais da ONU, foi incorporado um 18º
-                ODS, criado pela Comissão Nacional dos ODS (CNODS), que trata da
-                Promoção dos Direitos Humanos e da Cidadania, reforçando o
-                compromisso brasileiro com a inclusão, a equidade e a justiça
-                social.
-              </p>
-            </div>
 
-            <div className="mt-8 md:mt-0 md:w-1/3 flex-shrink-0">
-              <Image
-                src="/odss.png"
-                alt="Imagem representando os Objetivos de Desenvolvimento Sustentável"
-                width={400}
-                height={400}
-                className="w-full h-auto rounded-2xl shadow-md"
-              />
+              <p className="text-gray-700 leading-relaxed text-lg">
+                O <strong>Espaço Explore</strong> é uma experiência interativa
+                projetada para conectar você aos principais tesouros históricos,
+                culturais e naturais de Saquarema.
+              </p>
+
+              <p className="text-gray-700 leading-relaxed text-lg mt-4">
+                <strong>Como funciona?</strong> Visite fisicamente os locais
+                listados abaixo. Ao chegar, clique em "Validar Localização". O
+                sistema utilizará o GPS do seu celular para confirmar sua
+                presença e desbloqueará uma{" "}
+                <span className="bg-gradient-to-r from-[#017DB9] to-[#007a73] bg-clip-text text-transparent font-bold">
+                  etiqueta de conquista exclusiva.
+                </span>
+              </p>
             </div>
           </div>
         </section>
 
-        {/* --- CONTEÚDO PRINCIPAL --- */}
-        <section className="mt-8 border-t pt-6">
-          <h2 className="text-3xl font-semibold text-left mb-10">
-            <span className="bg-gradient-to-r from-[#D7386E] to-[#3C6AB2] bg-clip-text text-transparent">
-              Por que os ODS são importantes?
+        {/* --- SEU PROGRESSO --- */}
+        <section className="mb-8 border-t pt-8">
+          <h2 className="text-3xl font-semibold text-left mb-6">
+            <span className="bg-gradient-to-r from-[#017DB9] to-[#007a73] bg-clip-text text-transparent">
+              Seu Progresso de Exploração
             </span>
           </h2>
-          <p className="text-gray-700 leading-relaxed text-lg mt-4">
-            Os ODS funcionam como um guia universal de políticas públicas e
-            ações locais. Eles apontam caminhos concretos para enfrentar
-            desafios como desigualdade, mudanças climáticas, pobreza,
-            desemprego, saneamento, educação, saúde e meio ambiente, entre
-            outros.
-          </p>
 
-          <p className="text-gray-700 leading-relaxed text-lg mt-4">
-            Cada objetivo está interligado, mostrando que o desenvolvimento
-            sustentável depende da cooperação entre governos, empresas e
-            cidadãos.
-          </p>
+          <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-gray-700 text-lg font-medium">
+                Locais Visitados
+              </span>
+              <span className="text-2xl font-bold bg-gradient-to-r from-[#017DB9] to-[#007a73] bg-clip-text text-transparent">
+                {progress}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 h-3 rounded-full overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-[#017DB9] to-[#007a73] h-full transition-all duration-1000 ease-out"
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+          </div>
 
-          <p className="text-gray-700 leading-relaxed text-lg mt-4 mb-8">
-            Implementar os ODS significa melhorar a qualidade de vida das
-            pessoas, proteger os recursos naturais e fortalecer a gestão pública
-            com base em resultados e transparência.
-          </p>
+          {/* MENSAGEM DE 100% */}
+          {isCompleted && (
+            <div className="mt-6 bg-[#e6f7f6] border border-[#007a73] p-6 rounded-2xl text-center">
+              <h3 className="text-2xl font-bold text-[#007a73] mb-2">
+                🎉 Objetivo Concluído! 🎉
+              </h3>
+              <p className="text-gray-700 text-lg leading-relaxed">
+                Você completou 100% do roteiro. Apresente esta tela na{" "}
+                <strong>Secretaria de Turismo de Saquarema</strong> para
+                resgatar sua recompensa de explorador!
+              </p>
+            </div>
+          )}
         </section>
 
+        {/* --- LISTA DE DESAFIOS --- */}
         <section className="mb-8 border-t pt-8">
           <h2 className="text-3xl font-semibold text-left mb-10">
-            <span className="bg-gradient-to-r from-[#D7386E] to-[#3C6AB2] bg-clip-text text-transparent">
-              O papel dos municípios
-            </span>
-          </h2>
-          <p className="text-gray-700 leading-relaxed text-lg mt-4">
-            Os <strong>municípios são o coração da Agenda 2030</strong>. É nas
-            cidades, vilas e comunidades que os ODS se tornam realidade — onde
-            as políticas públicas ganham forma e afetam diretamente a vida das
-            pessoas.
-          </p>
-          <p className="text-gray-700 leading-relaxed text-lg mt-4">
-            Quando um município adota os ODS como diretriz de planejamento e
-            gestão, ele:
-          </p>
-
-          <ul className=" mt-3 list-disc list-inside text-gray-700 leading-relaxed text-lg space-y-2">
-            <li>
-              <strong>Integra políticas públicas</strong> (educação, saúde, meio
-              ambiente, mobilidade, economia) sob uma mesma visão de futuro;{" "}
-            </li>
-            <li>
-              <strong>Monitora resultados e indicadores locais</strong>,
-              fortalecendo a transparência e a eficiência administrativa;
-            </li>
-            <li>
-              <strong>Estimula a participação social</strong>, aproximando
-              cidadãos, servidores e instituições em torno de metas comuns;
-            </li>
-            <li>
-              <strong>Atrai investimentos e parcerias</strong> nacionais e
-              internacionais voltadas ao desenvolvimento sustentável;
-            </li>
-            <li>
-              <strong>Inspira inovação e cooperação</strong>, permitindo que
-              boas práticas sejam replicadas em outras cidades.
-            </li>
-          </ul>
-          <p className="text-gray-700 leading-relaxed text-lg mt-4">
-            Assim, a atuação municipal é decisiva: quanto mais alinhadas às
-            metas da Agenda 2030 estiverem as políticas locais, maior será o
-            impacto coletivo para o país e para o planeta.
-          </p>
-        </section>
-
-        <section className="mt-8 border-t pt-6">
-          <h2 className="text-3xl font-semibold text-left mb-10">
-            <span className="bg-gradient-to-r from-[#D7386E] to-[#3C6AB2] bg-clip-text text-transparent">
-              Um compromisso que começa no território
-            </span>
-          </h2>
-          <p className="text-gray-700 leading-relaxed text-lg mt-4">
-            No Brasil, diversas cidades já criaram planos locais de
-            desenvolvimento sustentável, laboratórios de inovação, observatórios
-            de indicadores e plataformas de boas práticas — como o Aqui tem ODS,
-            de Saquarema. Essas iniciativas demonstram que o desenvolvimento
-            sustentável se constrói de baixo para cima, com o protagonismo dos
-            governos locais e a participação ativa da sociedade.
-          </p>
-
-          <p className="text-gray-700 leading-relaxed text-lg mt-4">
-            Cada projeto municipal alinhado aos ODS — seja na educação, na
-            economia, no meio ambiente ou na inclusão social — contribui para um
-            mundo mais equilibrado, justo e humano.
-          </p>
-        </section>
-
-        {/* --- SEÇÃO DE CURSOS --- */}
-        <section className="mt-12 border-t pt-6">
-          <h2 className="text-3xl font-semibold text-center mb-10">
-            <span className="bg-gradient-to-r from-[#D7386E] to-[#3C6AB2] bg-clip-text text-transparent">
-              Capacitações e Conteúdos sobre os ODS:
+            <span className="bg-gradient-to-r from-[#017DB9] to-[#007a73] bg-clip-text text-transparent">
+              Desafios Disponíveis
             </span>
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Exemplo de Curso */}
-            <Link
-              href="https://brasil.un.org/sites/default/files/2020-09/agenda2030-pt-br.pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group block text-center"
-            >
-              <div className="overflow-hidden rounded-lg border border-gray-200 group-hover:shadow-xl transition-shadow duration-300">
-                <Image
-                  src="/Cursos/1.png"
-                  alt="Agenda 2030"
-                  width={400}
-                  height={300}
-                  className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-              <p className="mt-3 text-md font-semibold text-gray-800 group-hover:text-[#D7386E] transition-colors duration-300">
-                Transformando Nosso Mundo: A Agenda 2030 para o Desenvolvimento
-                Sustentável
-              </p>
-            </Link>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {LOCAIS_DESAFIO.map((local) => {
+              const isUnlocked = unlockedLocais.includes(local.id);
 
-            <Link
-              href="https://www.gov.br/culturaviva/pt-br/biblioteca-cultura-viva/documentos-e-publicacoes/cartilhas/nacoes-unidas-objetivos-de-desenvolvimento-sustentavel-agenda-2030.pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group block text-center"
-            >
-              <div className="overflow-hidden rounded-lg border border-gray-200 group-hover:shadow-xl transition-shadow duration-300">
-                <Image
-                  src="/Cursos/2.png"
-                  alt="Cartilha dos ODS"
-                  width={400}
-                  height={300}
-                  className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-              <p className="mt-3 text-md font-semibold text-gray-800 group-hover:text-[#D7386E] transition-colors duration-300">
-                Cartilha dos ODS
-              </p>
-            </Link>
+              return (
+                <div
+                  key={local.id}
+                  className={`flex flex-col justify-between p-6 rounded-2xl border transition-all duration-300 ${
+                    isUnlocked
+                      ? "border-[#007a73] bg-[#f0f9f8]"
+                      : "border-gray-200 bg-white hover:border-[#017DB9] hover:shadow-md"
+                  }`}
+                >
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">
+                      {local.nome}
+                    </h3>
+                    <p className="text-gray-700 leading-relaxed text-md mb-6">
+                      {local.descricao}
+                    </p>
+                  </div>
 
-            <Link
-              href="https://www.escolavirtual.gov.br/curso/719"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group block text-center"
-            >
-              <div className="overflow-hidden rounded-lg border border-gray-200 group-hover:shadow-xl transition-shadow duration-300">
-                <Image
-                  src="/Cursos/curso1.png"
-                  alt="curso1"
-                  width={400}
-                  height={300}
-                  className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-              <p className="mt-3 text-md font-semibold text-gray-800 group-hover:text-[#D7386E] transition-colors duration-300">
-                Agenda para o desenvolvimento sustentável: conceitos,
-                mobilização e articulação
-              </p>
-            </Link>
+                  <div>
+                    {isUnlocked ? (
+                      <div className="flex justify-center items-center gap-2 bg-gradient-to-r from-[#017DB9] to-[#007a73] text-white font-semibold py-3 px-4 rounded-xl shadow-md">
+                        <MapPin size={20} />
+                        Etiqueta: {local.etiqueta}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        {/* BOTÕES DE AÇÃO: TRAÇAR ROTA & CHECK-IN */}
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          {/* Botão Traçar Rota (Mesmo estilo da página do local) */}
+                          <Button
+                            asChild
+                            variant="outline"
+                            className="w-full sm:w-1/2 flex items-center justify-center gap-2 border-blue-200 text-[#017DB9] hover:bg-blue-50 py-6 rounded-xl"
+                          >
+                            <a
+                              href={`https://www.google.com/maps/dir/?api=1&destination=${local.lat},${local.lng}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Navigation size={18} />
+                              Traçar Rota
+                            </a>
+                          </Button>
 
-            <Link
-              href="https://www.escolavirtual.gov.br/curso/841"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group block text-center"
-            >
-              <div className="overflow-hidden rounded-lg border border-gray-200 group-hover:shadow-xl transition-shadow duration-300">
-                <Image
-                  src="/Cursos/curso2.png"
-                  alt="Agenda 2030 para o desenvolvimento sustentável: desafios para a
-                implementação"
-                  width={400}
-                  height={300}
-                  className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-              <p className="mt-3 text-md font-semibold text-gray-800 group-hover:text-[#D7386E] transition-colors duration-300">
-                Agenda 2030 para o desenvolvimento sustentável: desafios para a
-                implementação
-              </p>
-            </Link>
+                          {/* Botão Validar Localização */}
+                          <button
+                            onClick={() => handleCheckIn(local)}
+                            disabled={loadingId === local.id}
+                            className="w-full sm:w-1/2 bg-[#017DB9] hover:bg-[#007a73] text-white font-semibold py-3 px-4 rounded-xl transition-colors disabled:opacity-70 flex justify-center items-center gap-2"
+                          >
+                            {loadingId === local.id ? (
+                              "GPS..."
+                            ) : (
+                              <>
+                                <MapPin size={18} />
+                                Validar
+                              </>
+                            )}
+                          </button>
+                        </div>
 
-            <Link
-              href="https://www.escolaaberta3setor.org.br/sebrades-cursos/esg-e-os-objetivos-do-desenvolvimento-sustentavel/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group block text-center"
-            >
-              <div className="overflow-hidden rounded-lg border border-gray-200 group-hover:shadow-xl transition-shadow duration-300">
-                <Image
-                  src="/Cursos/curso3.jpg"
-                  alt="ESG e os Objetivos do Desenvolvimento Sustentável"
-                  width={400}
-                  height={300}
-                  className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-              <p className="mt-3 text-md font-semibold text-gray-800 group-hover:text-[#D7386E] transition-colors duration-300">
-                ESG e os Objetivos do Desenvolvimento Sustentável
-              </p>
-            </Link>
-
-            <Link
-              href="https://procids.ufms.br/curso-multiplicadores-dos-ods/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group block text-center"
-            >
-              <div className="overflow-hidden rounded-lg border border-gray-200 group-hover:shadow-xl transition-shadow duration-300">
-                <Image
-                  src="/Cursos/curso4.png"
-                  alt="Curso Multiplicadores dos ODS"
-                  width={400}
-                  height={300}
-                  className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-              <p className="mt-3 text-md font-semibold text-gray-800 group-hover:text-[#D7386E] transition-colors duration-300">
-                Curso Multiplicadores dos ODS
-              </p>
-            </Link>
-            <Link
-              href="https://emasp.prefeitura.sp.gov.br/formacoes/monitoramento-e-avaliacao-dos-objetivos-de-desenvolvimento-sustentavel-em-cidades-ibero-americanas-ead/?utm_source=chatgpt.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group block text-center"
-            >
-              <div className="overflow-hidden rounded-lg border border-gray-200 group-hover:shadow-xl transition-shadow duration-300">
-                <Image
-                  src="/Cursos/curso5.png"
-                  alt="Monitoramento e Avaliação dos Objetivos de Desenvolvimento
-                Sustentável em Cidades Ibero Americanas"
-                  width={400}
-                  height={300}
-                  className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-              <p className="mt-3 text-md font-semibold text-gray-800 group-hover:text-[#D7386E] transition-colors duration-300">
-                Monitoramento e Avaliação dos Objetivos de Desenvolvimento
-                Sustentável em Cidades Ibero Americanas
-              </p>
-            </Link>
-
-            <Link
-              href="https://suap.enap.gov.br/vitrine/curso/1847/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group block text-center"
-            >
-              <div className="overflow-hidden rounded-lg border border-gray-200 group-hover:shadow-xl transition-shadow duration-300">
-                <Image
-                  src="/Cursos/curso6.png"
-                  alt="ODS na prática: Agenda 2030 como estratégia de desenvolvimento local"
-                  width={400}
-                  height={300}
-                  className="w-full h-auto object-cover transform group-hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-              <p className="mt-3 text-md font-semibold text-gray-800 group-hover:text-[#D7386E] transition-colors duration-300">
-                ODS na prática: Agenda 2030 como estratégia de desenvolvimento
-                local
-              </p>
-            </Link>
+                        {/* Feedback de Erro/Sucesso */}
+                        {feedback?.id === local.id && (
+                          <div
+                            className={`text-center text-sm font-semibold mt-2 ${feedback.type === "success" ? "text-[#007a73]" : "text-red-500"}`}
+                          >
+                            {feedback.message}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
 
-        <section className="mt-8 border-t pt-6">
-          <p className="text-gray-700 leading-relaxed text-lg mt-4">
-            Os ODS e a Agenda 2030 representam{" "}
-            <strong>um compromisso coletivo pelo futuro</strong>. E os
-            municípios, ao adotarem essas metas,{" "}
-            <strong>
-              transformam compromissos globais em ações reais no território
-            </strong>
-            , mostrando que as{" "}
-            <strong>mudanças que o mundo precisa começam em cada cidade</strong>{" "}
-            — e em Saquarema,{" "}
-            <span className=" bg-gradient-to-r from-[#D7386E] to-[#3C6AB2] bg-clip-text text-transparent font-bold">
-              #AquiTemODS.{" "}
+        {/* --- CHAMADA PARA AÇÃO FINAL --- */}
+        <section className="mt-12 border-t pt-8 text-center">
+          <p className="text-gray-700 leading-relaxed text-lg mb-8 flex justify-center items-center gap-2">
+            Explore, valide e compartilhe com o{""}
+            <span className="bg-gradient-to-r from-[#017DB9] to-[#007a73] bg-clip-text text-transparent font-bold">
+              #ExploraSaqua.
             </span>
           </p>
+
+          <FaleConoscoButton />
         </section>
       </div>
-      <FaleConoscoButton />
     </div>
   );
 }
