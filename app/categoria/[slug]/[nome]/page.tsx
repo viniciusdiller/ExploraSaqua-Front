@@ -495,7 +495,7 @@ function LocalPageContent() {
                     src={
                       (local.logoUrl &&
                         `${API_URL}/${normalizeImagePath(local.logoUrl)}`) ||
-                      "/Logo_aquitemods.png"
+                      "/logos/Logo_Explore.png"
                     }
                     alt={`Logo de ${local.nome}`}
                     width={500}
