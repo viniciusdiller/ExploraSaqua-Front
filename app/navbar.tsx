@@ -174,7 +174,13 @@ export function Navbar() {
               href="/espaco-explore"
               className="text-gray-700 hover:text-[#a8cf45]  transition-colors"
             >
-              Espaço Explore
+              Espaço Explorador
+            </Link>
+            <Link
+              href="/meis-saqua"
+              className="text-gray-700 hover:text-[#a8cf45] transition-colors"
+            >
+              MEI de Saqua
             </Link>
             <Link
               href="/FAQ"
@@ -277,7 +283,14 @@ export function Navbar() {
               className="text-gray-700 hover:text-[#a8cf45]  transition-colors font-medium"
               onClick={() => setIsOpen(false)}
             >
-              Espaço Explore
+              Espaço Explorador
+            </Link>
+            <Link
+              href="/meis-saqua"
+              className="text-gray-700 hover:text-[#a8cf45] transition-colors font-medium"
+              onClick={() => setIsOpen(false)}
+            >
+               MEI de Saqua
             </Link>
             <Link
               href="/FAQ"

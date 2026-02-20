@@ -22,6 +22,96 @@ export const LOCAIS_DESAFIO: LocalDesafio[] = [
     imagem: "/explore/igreja.png",
   },
   {
+    id: "gruta-nossa-senhora",
+    nome: "Gruta de N. Sra. de Lurdes",
+    descricao:
+      "Erguida no alto do promontório, esta igreja histórica é o principal mirante da cidade com vista para a Praia da Vila e Itaúna.",
+    lat: -22.936985885148317,
+    lng: -42.49301865767105,
+    etiqueta: "Explorador da Fé",
+    imagem: "/explore/igreja.png",
+  },
+  {
+    id: "prainha",
+    nome: "Prainha",
+    descricao:
+      "Erguida no alto do promontório, esta igreja histórica é o principal mirante da cidade com vista para a Praia da Vila e Itaúna.",
+    lat: -22.935686063165196,
+    lng: -42.49359523603969,
+    etiqueta: "Explorador da Fé",
+    imagem: "/explore/igreja.png",
+  },
+  {
+    id: "Casa-da-pedra",
+    nome: "Casa da Pedra",
+    descricao:
+      "Erguida no alto do promontório, esta igreja histórica é o principal mirante da cidade com vista para a Praia da Vila e Itaúna.",
+    lat: -22.93564618731398, 
+    lng: -42.494988615865104,
+    etiqueta: "Explorador da Fé",
+    imagem: "/explore/igreja.png",
+  },
+  {
+    id: "praia-da-vila",
+    nome: "Praia da Vila",
+    descricao:
+      "Erguida no alto do promontório, esta igreja histórica é o principal mirante da cidade com vista para a Praia da Vila e Itaúna.",
+    lat: -22.93462134620007, 
+    lng: -42.49905305951972,
+    etiqueta: "Explorador da Fé",
+    imagem: "/explore/praiadavila.png",
+  },
+    {
+    id: "teatro-mario-lago",
+    nome: "Teatro Mario Lago",
+    descricao:
+      "Teatro histórico localizado na Praia da Vila, com arquitetura característica do início do século XX.",
+    lat: -22.93215963281999,
+    lng: -42.496844674861826,
+    etiqueta: "Explorador da Fé",
+    imagem: "/explore/teatro.png",
+  },
+  {
+    id: "Casa-cultural-walmir-ayla",
+    nome: "Casa Cultural Walmir Ayla",
+    descricao:
+      "Espaço cultural e artístico localizado na Praia da Vila, com exposições e eventos culturais.",
+    lat: -22.93221924174673, 
+    lng: -42.49692608835524,
+    etiqueta: "Explorador da Fé",
+    imagem: "/explore/teatro.png",
+  },
+  {
+    id: "pista-de-skate",
+    nome: "Pista de Skate",
+    descricao:
+      "Pista de skate localizada na Praia da Vila, com equipamentos para prática de skate e outros esportes radicais.",
+    lat: -22.93274480395663,
+    lng: -42.49474258406037,
+    etiqueta: "Explorador da Fé",
+    imagem: "/explore/teatro.png",
+  },
+  {
+    id: "praça-do-canhão",
+    nome: "Praça do Canhão",
+    descricao:
+      "Local histórico com vista panorâmica da cidade e da lagoa. Um ponto de encontro popular para os moradores.",
+    lat: -22.933494147612656,
+    lng: -42.494397342328945,
+    etiqueta: "Explorador da Fé",
+    imagem: "/explore/praça.png",
+  },
+  {
+    id: "praça-oscar-de-macedo",
+    nome: "Praça Oscar de Macedo",
+    descricao:
+      "Local histórico com vista panorâmica da cidade e da lagoa. Um ponto de encontro popular para os moradores.",
+    lat: -22.934145040923845, 
+    lng: -42.49432120184867,
+    etiqueta: "Explorador da Fé",
+    imagem: "/explore/praça-oscar-de-macedo.png",
+  },
+  {
     id: "praia-itauna",
     nome: "Praia de Itaúna",
     descricao:
