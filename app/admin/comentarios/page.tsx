@@ -19,8 +19,8 @@ import {
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeftOutlined, CommentOutlined } from "@ant-design/icons";
-import { getAllActiveProjetos, adminGetReviewsByProject } from "@/lib/api";
-import { Projeto } from "@/types/Interface-Local";
+import { getAllActiveLocal, adminGetReviewsByLocal } from "@/lib/api";
+import { Local } from "@/types/Interface-Local";
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -28,7 +28,7 @@ const { TabPane } = Tabs;
 const { useBreakpoint } = Grid;
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
-const PAGE_SIZE = 6; // Mesmo Page Size
+const PAGE_SIZE = 6;
 
 const getFullImageUrl = (path: string): string => {
   if (!path) return "";
@@ -41,8 +41,8 @@ const getFullImageUrl = (path: string): string => {
 
 const AdminComentariosPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
-  const [projetos, setProjetos] = useState<Projeto[]>([]);
-  const [filteredProjetos, setFilteredProjetos] = useState<Projeto[]>([]);
+  const [locais, setLocais] = useState<Local[]>([]);
+  const [filteredLocais, setFilteredLocais] = useState<Local[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const router = useRouter();
   const screens = useBreakpoint();
@@ -56,14 +56,15 @@ const AdminComentariosPage: React.FC = () => {
       return;
     }
     try {
-      const allProjetos = await getAllActiveProjetos(token);
+      // Busca todos os locais ativos no sistema
+      const allLocais = await getAllActiveLocal(token);
 
-      const projetosComComentarios: Projeto[] = [];
+      const locaisComComentarios: Local[] = [];
 
-      for (const projeto of allProjetos) {
+      for (const local of allLocais) {
         try {
-          const response = await adminGetReviewsByProject(
-            String(projeto.projetoId),
+          const response = await adminGetReviewsByLocal(
+            String(local.localId),
             token
           );
           let reviewsList = [];
@@ -78,19 +79,19 @@ const AdminComentariosPage: React.FC = () => {
           }
 
           if (reviewsList.length > 0) {
-            projetosComComentarios.push(projeto);
+            locaisComComentarios.push(local);
           }
         } catch (error) {
           console.error(
-            `Erro ao verificar reviews do projeto ${projeto.projetoId}:`,
+            `Erro ao verificar avaliações do local ${local.localId}:`,
             error
           );
         }
       }
-      setProjetos(projetosComComentarios);
-      setFilteredProjetos(projetosComComentarios);
+      setLocais(locaisComComentarios);
+      setFilteredLocais(locaisComComentarios);
     } catch (error: any) {
-      message.error(error.message || "Falha ao buscar projetos.");
+      message.error(error.message || "Falha ao buscar locais.");
     } finally {
       setLoading(false);
     }
@@ -100,17 +101,22 @@ const AdminComentariosPage: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  // Lógica de busca atualizada para incluir ID
+  // Lógica de busca atualizada para os novos campos
   const handleSearch = (value: string) => {
     const lowerCaseValue = value.toLowerCase();
-    const filtered = projetos.filter(
-      (p) =>
-        p.nomeProjeto.toLowerCase().includes(lowerCaseValue) ||
-        p.prefeitura.toLowerCase().includes(lowerCaseValue) ||
-        (p.secretaria && p.secretaria.toLowerCase().includes(lowerCaseValue)) ||
-        String(p.projetoId).includes(lowerCaseValue)
-    );
-    setFilteredProjetos(filtered);
+    const filtered = locais.filter((l) => {
+      const nome = l.nomeLocal || (l as any).nome || "";
+      const responsavel = l.nomeResponsavel || (l as any).responsavel || "";
+      const categoria = l.categoria || "";
+      
+      return (
+        nome.toLowerCase().includes(lowerCaseValue) ||
+        responsavel.toLowerCase().includes(lowerCaseValue) ||
+        categoria.toLowerCase().includes(lowerCaseValue) ||
+        String(l.localId).includes(lowerCaseValue)
+      );
+    });
+    setFilteredLocais(filtered);
     setCurrentPage(1);
   };
 
@@ -118,31 +124,28 @@ const AdminComentariosPage: React.FC = () => {
     setCurrentPage(1);
   };
 
-  // Lógica de agrupar projetos (levemente ajustada para consistência)
-  const groupedProjetos = filteredProjetos.reduce((acc, projeto) => {
-    const ods = projeto.ods || "Sem Categoria";
-    if (!acc[ods]) {
-      acc[ods] = [];
+  // Agrupa locais pelas suas Categorias
+  const groupedLocais = filteredLocais.reduce((acc, local) => {
+    const categoria = local.categoria || "Sem Categoria";
+    if (!acc[categoria]) {
+      acc[categoria] = [];
     }
-    acc[ods].push(projeto);
+    acc[categoria].push(local);
     return acc;
-  }, {} as { [key: string]: Projeto[] });
+  }, {} as { [key: string]: Local[] });
 
-  // Lógica de ordenar categorias
-  const sortedCategories = Object.keys(groupedProjetos).sort((a, b) => {
+  // Ordena categorias alfabeticamente
+  const sortedCategories = Object.keys(groupedLocais).sort((a, b) => {
     if (a === "Sem Categoria") return 1;
     if (b === "Sem Categoria") return -1;
-    const aNum = parseInt(a.split(" ")[1]);
-    const bNum = parseInt(b.split(" ")[1]);
-    if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
     return a.localeCompare(b);
   });
 
   const tabPosition = screens.md ? "left" : "top";
 
-  // Lógica de paginação para a aba "Todos"
-  const totalTodos = filteredProjetos.length;
-  const paginatedTodos = filteredProjetos.slice(
+  // Paginação para a aba "Todos"
+  const totalTodos = filteredLocais.length;
+  const paginatedTodos = filteredLocais.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE
   );
@@ -156,11 +159,11 @@ const AdminComentariosPage: React.FC = () => {
       </Link>
 
       <Title level={2} className="mb-6">
-        Gerenciar Comentários por Projeto ({projetos.length})
+        Gerenciar Comentários por Local ({locais.length})
       </Title>
 
       <Search
-        placeholder="Buscar por ID, nome, prefeitura ou secretaria..."
+        placeholder="Buscar por ID, nome, categoria ou responsável..."
         onSearch={handleSearch}
         onChange={(e) => handleSearch(e.target.value)}
         enterButton
@@ -169,23 +172,23 @@ const AdminComentariosPage: React.FC = () => {
       />
 
       <Spin spinning={loading}>
-        {filteredProjetos.length === 0 && !loading ? (
-          <Empty description="Nenhum projeto ativo encontrado." />
+        {filteredLocais.length === 0 && !loading ? (
+          <Empty description="Nenhum local com comentários encontrado." />
         ) : (
           <Tabs
             defaultActiveKey="todos"
             tabPosition={tabPosition}
             onChange={handleTabChange}
           >
-            <TabPane tab={`Todos os Projetos (${totalTodos})`} key="todos">
+            <TabPane tab={`Todos os Locais (${totalTodos})`} key="todos">
               <Row gutter={[16, 16]}>
-                {paginatedTodos.map((projeto) => (
-                  <Col xs={24} md={12} lg={8} key={projeto.projetoId}>
+                {paginatedTodos.map((local) => (
+                  <Col xs={24} md={12} lg={8} key={local.localId}>
                     <Card
                       hoverable
                       actions={[
                         <Link
-                          href={`/admin/comentarios/${projeto.projetoId}`}
+                          href={`/admin/comentarios/${local.localId}`}
                           passHref
                           key="comentarios"
                         >
@@ -202,24 +205,23 @@ const AdminComentariosPage: React.FC = () => {
                       <Card.Meta
                         avatar={
                           <Avatar
-                            src={getFullImageUrl(projeto.logoUrl || "")}
+                            src={getFullImageUrl(local.logoUrl || "")}
                           />
                         }
-                        title={projeto.nomeProjeto}
+                        title={local.nomeLocal || (local as any).nome}
                         description={
                           <>
                             <Text>
-                              <strong>ID do Projeto:</strong>{" "}
-                              {projeto.projetoId}
+                              <strong>ID do Local:</strong> {local.localId}
                             </Text>
                             <br />
                             <Text>
-                              <strong>Prefeitura:</strong> {projeto.prefeitura}
+                              <strong>Categoria:</strong> {local.categoria || "N/A"}
                             </Text>
                             <br />
                             <Text>
-                              <strong>Secretaria:</strong>{" "}
-                              {projeto.secretaria || "N/A"}
+                              <strong>Responsável:</strong>{" "}
+                              {local.nomeResponsavel || (local as any).responsavel || "N/A"}
                             </Text>
                           </>
                         }
@@ -242,25 +244,25 @@ const AdminComentariosPage: React.FC = () => {
               )}
             </TabPane>
 
-            {/* Abas de Categoria (lógica original) */}
-            {sortedCategories.map((ods) => {
-              const allProjetosForOds = groupedProjetos[ods];
-              const totalCount = allProjetosForOds.length;
-              const projetosToShow = allProjetosForOds.slice(
+            {/* Abas de Categoria */}
+            {sortedCategories.map((categoria) => {
+              const allLocaisForCat = groupedLocais[categoria];
+              const totalCount = allLocaisForCat.length;
+              const locaisToShow = allLocaisForCat.slice(
                 (currentPage - 1) * PAGE_SIZE,
                 currentPage * PAGE_SIZE
               );
 
               return (
-                <TabPane tab={`${ods} (${allProjetosForOds.length})`} key={ods}>
+                <TabPane tab={`${categoria} (${allLocaisForCat.length})`} key={categoria}>
                   <Row gutter={[16, 16]}>
-                    {projetosToShow.map((projeto) => (
-                      <Col xs={24} md={12} lg={8} key={projeto.projetoId}>
+                    {locaisToShow.map((local) => (
+                      <Col xs={24} md={12} lg={8} key={local.localId}>
                         <Card
                           hoverable
                           actions={[
                             <Link
-                              href={`/admin/comentarios/${projeto.projetoId}`}
+                              href={`/admin/comentarios/${local.localId}`}
                               passHref
                               key="comentarios"
                             >
@@ -277,25 +279,23 @@ const AdminComentariosPage: React.FC = () => {
                           <Card.Meta
                             avatar={
                               <Avatar
-                                src={getFullImageUrl(projeto.logoUrl || "")}
+                                src={getFullImageUrl(local.logoUrl || "")}
                               />
                             }
-                            title={projeto.nomeProjeto}
+                            title={local.nomeLocal || (local as any).nome}
                             description={
                               <>
                                 <Text>
-                                  <strong>ID do Projeto:</strong>{" "}
-                                  {projeto.projetoId}
+                                  <strong>ID do Local:</strong> {local.localId}
                                 </Text>
                                 <br />
                                 <Text>
-                                  <strong>Prefeitura:</strong>{" "}
-                                  {projeto.prefeitura}
+                                  <strong>Categoria:</strong> {local.categoria || "N/A"}
                                 </Text>
                                 <br />
                                 <Text>
-                                  <strong>Secretaria:</strong>{" "}
-                                  {projeto.secretaria || "N/A"}
+                                  <strong>Responsável:</strong>{" "}
+                                  {local.nomeResponsavel || (local as any).responsavel || "N/A"}
                                 </Text>
                               </>
                             }

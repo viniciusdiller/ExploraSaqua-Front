@@ -54,9 +54,9 @@ import { Local } from "@/types/Interface-Local";
 
 // --- PALETA DE CORES ---
 const COLORS = {
-  primary: "#017db9",
-  secondary: "#a8cf45",
-  tertiary: "#d04798",
+  primary: "#027DB7",
+  secondary: "#027A74",
+  tertiary: "#B5D662",
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -365,7 +365,7 @@ function LocalPageContent() {
     <div
       className="min-h-screen"
       style={{
-        background: `linear-gradient(to bottom right, ${COLORS.tertiary}, ${COLORS.primary})`,
+        background: `linear-gradient(to bottom right, ${COLORS.primary}, ${COLORS.secondary})`,
       }}
     >
       {/* --- HEADER STICKY --- */}
@@ -384,7 +384,7 @@ function LocalPageContent() {
             >
               <div
                 className="flex items-center gap-1.5"
-                style={{ color: COLORS.tertiary }}
+                style={{ color: "#gray-600" }}
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span className="font-medium">Voltar</span>
@@ -400,7 +400,7 @@ function LocalPageContent() {
             >
               <div
                 className="flex items-center gap-1.5"
-                style={{ color: COLORS.primary }}
+                style={{ color: "#gray-600" }}
               >
                 <span className="font-medium">Compartilhar</span>
                 <Share2 className="w-4 h-4" />
@@ -475,8 +475,7 @@ function LocalPageContent() {
                         href={formatInstagramUrl(local.instagram)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-gray-600 transition-colors"
-                        style={{ color: COLORS.tertiary }}
+                        className="flex items-center gap-2 text-gray-600 transition-colors hover:text-pink-500"
                       >
                         <div className="w-9 h-9 rounded-full flex items-center justify-center bg-[#d04798]/10">
                           <Instagram size={18} strokeWidth={2} />
@@ -514,9 +513,9 @@ function LocalPageContent() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 text-gray-600"
-                      style={{ color: COLORS.tertiary }}
+                      style={{ color: COLORS.primary }}
                     >
-                      <div className="w-9 h-9 rounded-full bg-[#d04798]/10 flex items-center justify-center">
+                      <div className="w-9 h-9 rounded-full bg-[#027DB7]/10 flex items-center justify-center">
                         <Instagram size={18} />
                       </div>
                       <span className="text-sm font-medium">Instagram</span>
@@ -572,7 +571,7 @@ function LocalPageContent() {
                     }
                   }}
                   className="text-md font-bold mt-2 md:pl-2 hover:underline transition-colors"
-                  style={{ color: COLORS.tertiary }}
+                  style={{ color: COLORS.primary }}
                 >
                   {descricaoExpandida ? "Ler menos" : "Ler mais"}
                 </button>
@@ -596,7 +595,7 @@ function LocalPageContent() {
                 <div className="flex items-center justify-between mb-6">
                   <h3
                     className="text-2xl font-bold text-gray-900 border-l-4 pl-3"
-                    style={{ borderColor: COLORS.tertiary }}
+                    style={{ borderColor: COLORS.primary }}
                   >
                     Como Chegar
                   </h3>
@@ -679,7 +678,7 @@ function LocalPageContent() {
                 onClick={handleNewReviewClick}
                 className="rounded-full px-6 font-semibold shadow-md transition-all hover:scale-105 mb-4"
                 style={{
-                  background: `linear-gradient(to bottom right, ${COLORS.tertiary}, ${COLORS.primary})`,
+                  background: `linear-gradient(to bottom right, ${COLORS.primary}, ${COLORS.secondary})`,
                   color: "white",
                 }}
               >

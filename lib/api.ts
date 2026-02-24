@@ -317,3 +317,7 @@ export function formatarDataParaMesAno(dateString: string): string {
     year: "numeric",
   }).format(data);
 }
+
+export function getAdminStats(token: string) {
+  throw new Error("Function not implemented.");
+}

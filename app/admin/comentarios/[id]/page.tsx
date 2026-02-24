@@ -23,16 +23,15 @@ import {
 } from "@ant-design/icons";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { adminGetReviewsByProject, adminDeleteReview } from "@/lib/api";
+import { adminGetReviewsByLocal, adminDeleteReview } from "@/lib/api";
 
 const { Title, Text, Paragraph } = Typography;
 const { confirm } = Modal;
 const { useBreakpoint } = Grid;
 
-// Sugestão: Aumente o PAGE_SIZE para 6 ou 8 para preencher melhor o grid
 const PAGE_SIZE = 8;
 
-// --- 1. INTERFACES (Sem mudanças) ---
+// --- 1. INTERFACES ---
 interface AvaliacaoAdmin {
   avaliacoesId: number;
   comentario: string;
@@ -47,17 +46,15 @@ interface AvaliacaoAdmin {
 }
 
 interface PageData {
-  projeto: {
-    projetoId: number;
-    nomeProjeto: string;
-    ods: string;
+  local: {
+    localId: number;
+    nomeLocal: string;
+    categoria: string;
   };
   avaliacoes: AvaliacaoAdmin[];
 }
 
-// --- 2. COMPONENTE RECURSIVO (REFATORADO PARA O GRID) ---
-// Este componente agora é um 'card' (<div>) para funcionar dentro do grid
-// ---
+// --- 2. COMPONENTE RECURSIVO PARA O GRID ---
 interface AdminReviewCommentItemProps {
   review: AvaliacaoAdmin;
   handleDelete: (id: number) => void;
@@ -85,8 +82,7 @@ const AdminReviewCommentItem: React.FC<AdminReviewCommentItemProps> = ({
       onClick={() => handleDelete(review.avaliacoesId)}
       loading={isActionLoading}
       size={isReply || isMobile ? "small" : "middle"}
-      // --- CORREÇÃO DE ALINHAMENTO ---
-      className="ml-auto" // Alterado de ml-8 para ml-auto
+      className="ml-auto"
     >
       {isMobile ? null : "Excluir"}
     </Button>
@@ -105,11 +101,9 @@ const AdminReviewCommentItem: React.FC<AdminReviewCommentItemProps> = ({
   );
 
   return (
-    // --- MUDANÇA: Isto não é mais um <List.Item>, é um card <div> ---
-    // 'h-full' e 'flex-col' garantem que os cards no grid tenham a mesma altura
     <div
       className={`h-full flex flex-col p-4 border rounded-lg shadow-sm bg-white ${
-        isReply ? "ml-4 md:ml-8" : "" // Indentação de resposta
+        isReply ? "ml-4 md:ml-8" : ""
       }`}
     >
       {/* 1. Meta (Cabeçalho do card) */}
@@ -144,7 +138,7 @@ const AdminReviewCommentItem: React.FC<AdminReviewCommentItemProps> = ({
         </div>
       </div>
 
-      {/* 2. Conteúdo (com 'flex-1' para empurrar o rodapé para baixo) */}
+      {/* 2. Conteúdo */}
       <div
         className={`mt-3 ${
           isReply ? "pl-10 text-sm" : "pl-2 text-base"
@@ -163,7 +157,7 @@ const AdminReviewCommentItem: React.FC<AdminReviewCommentItemProps> = ({
             dataSource={review.respostas}
             renderItem={(reply) => (
               <AdminReviewCommentItem
-                key={reply.avaliacoesId} // Key aqui está correta (lista aninhada)
+                key={reply.avaliacoesId}
                 review={reply}
                 handleDelete={handleDelete}
                 isReply={true}
@@ -183,19 +177,19 @@ const AdminReviewCommentItem: React.FC<AdminReviewCommentItemProps> = ({
   );
 };
 
-// --- 3. COMPONENTE PRINCIPAL (ATUALIZADO) ---
-const AdminComentariosDoProjeto: React.FC = () => {
+// --- 3. COMPONENTE PRINCIPAL ---
+const AdminComentariosDoLocal: React.FC = () => {
   const [pageData, setPageData] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const router = useRouter();
   const params = useParams();
-  const projetoId = params.id as string;
+  const localId = params.id as string;
   const screens = useBreakpoint();
 
   const fetchData = useCallback(async () => {
-    if (!projetoId) return;
+    if (!localId) return;
     setLoading(true);
     const token = localStorage.getItem("admin_token");
     if (!token) {
@@ -205,17 +199,21 @@ const AdminComentariosDoProjeto: React.FC = () => {
     }
 
     try {
-      const data = await adminGetReviewsByProject(projetoId, token);
-      setPageData(data);
+      const data = await adminGetReviewsByLocal(localId, token);
+      
+      // Mapeamento de fallback para suportar a estrutura que a API retornar
+      setPageData({
+        local: data.local || data.projeto || { localId: Number(localId), nomeLocal: "Local", categoria: "N/A" },
+        avaliacoes: data.avaliacoes || data.reviews || [],
+      });
+      
       setCurrentPage(1);
     } catch (error: any) {
       message.error(error.message || "Falha ao buscar comentários.");
     } finally {
       setLoading(false);
     }
-    // --- CORREÇÃO DO LOOP INFINITO ---
-    // Removemos 'router' da lista de dependências
-  }, [projetoId]);
+  }, [localId, router]);
 
   useEffect(() => {
     fetchData();
@@ -251,11 +249,11 @@ const AdminComentariosDoProjeto: React.FC = () => {
 
   const isMobile = !screens.md;
 
-  const pageTitle = pageData?.projeto?.nomeProjeto
-    ? `Comentários de: ${pageData.projeto.nomeProjeto}`
+  const nomeLocalDisplay = pageData?.local?.nomeLocal || (pageData as any)?.local?.nomeProjeto;
+  const pageTitle = nomeLocalDisplay
+    ? `Comentários de: ${nomeLocalDisplay}`
     : "Carregando comentários...";
 
-  // Paginação dos comentários-PAI
   const allAvaliacoes = pageData?.avaliacoes || [];
   const totalCount = allAvaliacoes.length;
   const paginatedAvaliacoes = allAvaliacoes.slice(
@@ -265,19 +263,19 @@ const AdminComentariosDoProjeto: React.FC = () => {
 
   return (
     <div className="p-4 md:p-8">
-      {/* Cabeçalho responsivo (sem mudanças) */}
+      {/* Cabeçalho responsivo */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-6">
         <div>
           <Title level={isMobile ? 3 : 2} className="m-0" ellipsis>
             {pageTitle}
           </Title>
-          {pageData?.projeto?.ods && (
+          {(pageData?.local?.categoria || (pageData as any)?.local?.ods) && (
             <Tag
               color="blue"
               className="mt-2"
               style={{ fontSize: "14px", padding: "5px 10px" }}
             >
-              Categoria: {pageData.projeto.ods}
+              Categoria: {pageData?.local?.categoria || (pageData as any)?.local?.ods}
             </Tag>
           )}
         </div>
@@ -287,28 +285,20 @@ const AdminComentariosDoProjeto: React.FC = () => {
             size={isMobile ? "middle" : "large"}
             className={isMobile ? "w-full" : ""}
           >
-            Voltar para Projetos
+            Voltar para Locais
           </Button>
         </Link>
       </div>
 
       <Spin spinning={loading}>
-        {/* --- MUDANÇA PARA O LAYOUT DE GRID --- */}
+        {/* Layout em Grid */}
         <List
-          // 1. Removemos classes de layout e fundo
-          //    (itemLayout="vertical" e className="...")
-
-          // 2. Adicionamos a prop 'grid'
-          //    1 coluna em mobile, 2 em desktop
           grid={{ gutter: 16, xs: 1, sm: 1, md: 2, lg: 2, xl: 2, xxl: 2 }}
           dataSource={paginatedAvaliacoes}
           locale={{
             emptyText: <Empty description="Nenhum comentário encontrado." />,
           }}
-          // 3. O renderItem agora envolve o componente no <List.Item>
           renderItem={(item: AvaliacaoAdmin) => (
-            // --- CORREÇÃO DA KEY ---
-            // A 'key' deve estar no item de lista de nível superior
             <List.Item key={item.avaliacoesId} style={{ height: "100%" }}>
               <AdminReviewCommentItem
                 review={item}
@@ -321,7 +311,7 @@ const AdminComentariosDoProjeto: React.FC = () => {
           )}
         />
 
-        {/* Paginação (sem mudanças) */}
+        {/* Paginação */}
         {totalCount > PAGE_SIZE && (
           <div className="mt-6 text-center">
             <Pagination
@@ -339,4 +329,4 @@ const AdminComentariosDoProjeto: React.FC = () => {
   );
 };
 
-export default AdminComentariosDoProjeto;
+export default AdminComentariosDoLocal;

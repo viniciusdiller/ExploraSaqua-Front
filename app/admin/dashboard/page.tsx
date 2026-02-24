@@ -728,7 +728,7 @@ const AdminDashboard: React.FC = () => {
             </div>
 
             <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
-              <Link href="/admin/projetos-ativos" passHref>
+              <Link href="/admin/locais-ativos" passHref>
                 <Button
                   type="primary"
                   icon={<DatabaseOutlined />}

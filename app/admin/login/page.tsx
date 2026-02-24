@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { Form, Input, Button, message, Card, Row, Col } from "antd";
+import { Form, Input, Button, message, ConfigProvider } from "antd";
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
-import Cookies from "js-cookie"; // Importe os Cookies
+import Cookies from "js-cookie";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -26,78 +26,107 @@ const AdminLoginPage: React.FC = () => {
       const data = await response.json();
 
       if (response.ok && data.token) {
-        // --- MUDANÇA AQUI ---
-        // Salvamos em Cookie para que o Middleware consiga ler
-        Cookies.set("token", data.token, { expires: 1 }); // Expira em 1 dia
-        
-        // Opcional: manter no localStorage para outras funções
+        // Salvamos em Cookie para o Middleware
+        Cookies.set("token", data.token, { expires: 1 });
+        // Mantemos no localStorage para requisições no client-side
         localStorage.setItem("admin_token", data.token);
 
-        message.success("Login bem-sucedido!");
-
-        // Use window.location.href em vez de router.push para garantir 
-        // que o Middleware intercepte a nova requisição com o cookie fresco
+        message.success("Acesso autorizado!");
         window.location.href = "/admin/dashboard"; 
-        
       } else {
-        message.error(data.message || "Usuário ou senha inválidos.");
+        message.error(data.message || "Credenciais inválidas. Tente novamente.");
       }
     } catch (error) {
       console.error("Erro de conexão:", error);
-      message.error("Não foi possível conectar ao servidor. Tente novamente.");
+      message.error("Não foi possível conectar ao servidor. Verifique sua rede.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center p-4">
-      <Row justify="center" className="w-full">
-        <Col xs={24} sm={16} md={12} lg={8}>
-          <Card
-            title={
-              <div className="text-center text-2xl font-bold text-gray-800">
-                Painel do Administrador
-              </div>
-            }
-            bordered={false}
-            className="shadow-2xl rounded-lg"
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: "#017DB9", // Azul ExploreSaquá
+          borderRadius: 12,        // Bordas mais arredondadas (moderno)
+          controlHeight: 52,       // Inputs bem mais altos e confortáveis
+          colorBorder: "#e2e8f0",  // Cinza super claro para as bordas
+          fontFamily: "inherit",
+        },
+        components: {
+          Input: {
+            activeShadow: "0 0 0 3px rgba(1, 125, 185, 0.1)", // Sombra de foco suave
+            errorActiveShadow: "0 0 0 3px rgba(255, 77, 79, 0.1)",
+          },
+          Button: {
+            fontWeight: 600,
+          },
+        },
+      }}
+    >
+      {/* Fundo super limpo e neutro */}
+      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4 sm:p-8">
+        
+        {/* Card minimalista com sombra difusa e muito respiro (padding) */}
+        <div className="w-full max-w-[420px] bg-white rounded-[24px] shadow-[0_8px_40px_rgba(0,0,0,0.04)] border border-gray-100 p-8 sm:p-10">
+          
+          <div className="mb-8 text-left">
+            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">
+              Acesso Restrito
+            </h1>
+            <p className="text-gray-500 text-sm font-medium leading-relaxed">
+              Insira suas credenciais para acessar o painel administrativo do ExploreSaquá.
+            </p>
+          </div>
+
+          <Form
+            name="admin_login"
+            initialValues={{ remember: true }}
+            onFinish={handleLogin}
+            autoComplete="off"
+            layout="vertical"
+            requiredMark={false} // Remove os asteriscos vermelhos para ficar mais limpo
           >
-            <Form
-              name="admin_login"
-              initialValues={{ remember: true }}
-              onFinish={handleLogin}
-              autoComplete="off"
+            <Form.Item
+              name="username"
+              label={<span className="text-gray-700 font-medium">Usuário</span>}
+              rules={[{ required: true, message: "Insira seu usuário." }]}
             >
-              <Form.Item
-                name="username"
-                rules={[{ required: true, message: "Por favor, insira o nome de usuário!" }]}
+              <Input 
+                prefix={<UserOutlined className="text-gray-400 mr-2" />} 
+                placeholder="Ex: admin" 
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="password"
+              label={<span className="text-gray-700 font-medium">Senha</span>}
+              rules={[{ required: true, message: "Insira sua senha." }]}
+              className="mb-8"
+            >
+              <Input.Password 
+                prefix={<LockOutlined className="text-gray-400 mr-2" />} 
+                placeholder="••••••••" 
+              />
+            </Form.Item>
+
+            <Form.Item className="mb-0">
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={loading}
+                block
+                className="shadow-sm hover:shadow-md transition-all duration-300"
               >
-                <Input prefix={<UserOutlined />} placeholder="Usuário" size="large" />
-              </Form.Item>
-              <Form.Item
-                name="password"
-                rules={[{ required: true, message: "Por favor, insira a senha!" }]}
-              >
-                <Input.Password prefix={<LockOutlined />} placeholder="Senha" size="large" />
-              </Form.Item>
-              <Form.Item>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  loading={loading}
-                  block
-                  size="large"
-                  style={{ backgroundColor: "#808080", borderColor: "#808080" }}
-                >
-                  Entrar
-                </Button>
-              </Form.Item>
-            </Form>
-          </Card>
-        </Col>
-      </Row>
-    </div>
+                Entrar no Sistema
+              </Button>
+            </Form.Item>
+          </Form>
+
+        </div>
+      </div>
+    </ConfigProvider>
   );
 };
 

@@ -27,13 +27,12 @@ import {
   BarChartOutlined,
 } from "@ant-design/icons";
 import {
-  getAllActiveProjetos,
-  adminUpdateProjeto, // Esta função não está sendo usada neste arquivo, mas mantida
-  adminDeleteProjeto,
-  adminExportProjetos,
+  getAllActiveLocal,
+  adminDeleteLocal,
+  adminExportLocais,
 } from "@/lib/api";
-import AdminProjetoModal from "@/components/AdminLocalModal";
-import { Projeto } from "@/types/Interface-Local";
+import AdminLocalModal from "@/components/AdminLocalModal";
+import { Local } from "@/types/Interface-Local";
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -52,11 +51,11 @@ const getFullImageUrl = (path: string): string => {
   return `${API_URL}/${cleanPath}`;
 };
 
-const ProjetosAtivosPage: React.FC = () => {
+const LocaisAtivosPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
-  const [projetos, setProjetos] = useState<Projeto[]>([]);
-  const [filteredProjetos, setFilteredProjetos] = useState<Projeto[]>([]);
-  const [selectedItem, setSelectedItem] = useState<Projeto | null>(null);
+  const [locais, setLocais] = useState<Local[]>([]);
+  const [filteredLocais, setFilteredLocais] = useState<Local[]>([]);
+  const [selectedItem, setSelectedItem] = useState<Local | null>(null);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -72,11 +71,11 @@ const ProjetosAtivosPage: React.FC = () => {
       return;
     }
     try {
-      const data = await getAllActiveProjetos(token);
-      setProjetos(data);
-      setFilteredProjetos(data);
+      const data = await getAllActiveLocal(token);
+      setLocais(data);
+      setFilteredLocais(data);
     } catch (error: any) {
-      message.error(error.message || "Falha ao buscar projetos.");
+      message.error(error.message || "Falha ao buscar locais.");
     } finally {
       setLoading(false);
     }
@@ -86,22 +85,27 @@ const ProjetosAtivosPage: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  // --- ALTERAÇÃO 1: ATUALIZADO handleSearch PARA INCLUIR ID ---
+  // --- LÓGICA DE BUSCA ATUALIZADA PARA LOCAIS ---
   const handleSearch = (value: string) => {
     const lowerCaseValue = value.toLowerCase();
-    const filtered = projetos.filter(
-      (p) =>
-        p.nomeProjeto.toLowerCase().includes(lowerCaseValue) ||
-        p.prefeitura.toLowerCase().includes(lowerCaseValue) ||
-        p.secretaria.toLowerCase().includes(lowerCaseValue) ||
-        String(p.projetoId).includes(lowerCaseValue)
-    );
-    setFilteredProjetos(filtered);
+    const filtered = locais.filter((l) => {
+      const nome = l.nomeLocal || (l as any).nome || "";
+      const responsavel = l.nomeResponsavel || (l as any).responsavel || "";
+      const categoria = l.categoria || "";
+
+      return (
+        nome.toLowerCase().includes(lowerCaseValue) ||
+        responsavel.toLowerCase().includes(lowerCaseValue) ||
+        categoria.toLowerCase().includes(lowerCaseValue) ||
+        String(l.localId).includes(lowerCaseValue)
+      );
+    });
+    setFilteredLocais(filtered);
     setCurrentPage(1);
   };
 
-  const openEditModal = (projeto: Projeto) => {
-    setSelectedItem(projeto);
+  const openEditModal = (local: Local) => {
+    setSelectedItem(local);
     setIsEditModalVisible(true);
   };
 
@@ -113,7 +117,7 @@ const ProjetosAtivosPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (projetoId: number) => {
+  const handleDelete = async (localId: number) => {
     const token = localStorage.getItem("admin_token");
     if (!token) {
       message.error("Autenticação expirada.");
@@ -122,16 +126,16 @@ const ProjetosAtivosPage: React.FC = () => {
 
     setLoading(true);
     try {
-      await adminDeleteProjeto(projetoId, token);
-      message.success("Projeto excluído com sucesso!");
+      await adminDeleteLocal(localId, token);
+      message.success("Local excluído com sucesso!");
       fetchData();
     } catch (error: any) {
-      message.error(error.message || "Falha ao excluir o projeto.");
+      message.error(error.message || "Falha ao excluir o local.");
       setLoading(false);
     }
   };
 
-  // --- NOVA FUNÇÃO: EXPORTAR PROJETOS ---
+  // --- EXPORTAR LOCAIS ---
   const handleExport = async () => {
     const token = localStorage.getItem("admin_token");
     if (!token) {
@@ -141,15 +145,15 @@ const ProjetosAtivosPage: React.FC = () => {
 
     setExporting(true);
     try {
-      const blob = await adminExportProjetos(token);
+      const blob = await adminExportLocais(token);
 
       // Cria um link temporário para forçar o download
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `projetos_AquiTemODS${
+      a.download = `locais_ExploreSaqua_${
         new Date().toISOString().split("T")[0]
-      }.csv`; // Nome do arquivo com data
+      }.csv`; // Nome do arquivo atualizado
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -168,28 +172,27 @@ const ProjetosAtivosPage: React.FC = () => {
     setCurrentPage(1);
   };
 
-  // Agrupa os projetos por ODS (para as abas de categoria)
-  const groupedProjetos = filteredProjetos.reduce((acc, projeto) => {
-    const ods = projeto.ods || "Sem Categoria";
-    if (!acc[ods]) {
-      acc[ods] = [];
+  // Agrupa os locais por Categoria
+  const groupedLocais = filteredLocais.reduce((acc, local) => {
+    const categoria = local.categoria || "Sem Categoria";
+    if (!acc[categoria]) {
+      acc[categoria] = [];
     }
-    acc[ods].push(projeto);
+    acc[categoria].push(local);
     return acc;
-  }, {} as { [key: string]: Projeto[] });
+  }, {} as { [key: string]: Local[] });
 
-  // Ordena as categorias
-  const sortedCategories = Object.keys(groupedProjetos).sort((a, b) => {
-    const aNum = parseInt(a.split(" ")[1]);
-    const bNum = parseInt(b.split(" ")[1]);
-    if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+  // Ordena as categorias alfabeticamente
+  const sortedCategories = Object.keys(groupedLocais).sort((a, b) => {
+    if (a === "Sem Categoria") return 1;
+    if (b === "Sem Categoria") return -1;
     return a.localeCompare(b);
   });
 
   const tabPosition = screens.md ? "left" : "top";
 
-  const totalTodos = filteredProjetos.length;
-  const paginatedTodos = filteredProjetos.slice(
+  const totalTodos = filteredLocais.length;
+  const paginatedTodos = filteredLocais.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE
   );
@@ -221,17 +224,17 @@ const ProjetosAtivosPage: React.FC = () => {
             loading={exporting}
             className="bg-green-600 hover:!bg-green-700 border-green-600 hover:!border-green-700"
           >
-            Exportar Projetos Ativos (CSV)
+            Exportar Locais Ativos (CSV)
           </Button>
         </div>
       </div>
 
       <Title level={2} className="mb-6">
-        Gerenciar Projetos Ativos ({projetos.length})
+        Gerenciar Locais Ativos ({locais.length})
       </Title>
 
       <Search
-        placeholder="Buscar por ID, nome, prefeitura ou secretaria..."
+        placeholder="Buscar por ID, nome, categoria ou responsável..."
         onSearch={handleSearch}
         onChange={(e) => handleSearch(e.target.value)}
         enterButton
@@ -240,34 +243,34 @@ const ProjetosAtivosPage: React.FC = () => {
       />
 
       <Spin spinning={loading}>
-        {filteredProjetos.length === 0 && !loading ? (
-          <Empty description="Nenhum projeto ativo encontrado." />
+        {filteredLocais.length === 0 && !loading ? (
+          <Empty description="Nenhum local ativo encontrado." />
         ) : (
           <Tabs
             defaultActiveKey="todos"
             tabPosition={tabPosition}
             onChange={handleTabChange}
           >
-            <TabPane tab={`Todos os Projetos (${totalTodos})`} key="todos">
+            <TabPane tab={`Todos os Locais (${totalTodos})`} key="todos">
               <Row gutter={[16, 16]}>
-                {paginatedTodos.map((projeto) => (
-                  <Col xs={24} md={12} lg={8} key={projeto.projetoId}>
+                {paginatedTodos.map((local) => (
+                  <Col xs={24} md={12} lg={8} key={local.localId}>
                     <Card
                       hoverable
                       actions={[
                         <Button
                           type="text"
                           icon={<EditOutlined />}
-                          onClick={() => openEditModal(projeto)}
+                          onClick={() => openEditModal(local)}
                           className="hover:!bg-blue-500 hover:!text-white"
                         >
                           Editar
                         </Button>,
                         <Popconfirm
                           key="delete"
-                          title="Excluir Projeto"
-                          description="Tem certeza que deseja excluir este projeto? Esta ação não pode ser desfeita."
-                          onConfirm={() => handleDelete(projeto.projetoId)}
+                          title="Excluir Local"
+                          description="Tem certeza que deseja excluir este local? Esta ação não pode ser desfeita."
+                          onConfirm={() => handleDelete(local.localId)}
                           okText="Sim, Excluir"
                           cancelText="Não"
                           okButtonProps={{ danger: true }}
@@ -286,23 +289,23 @@ const ProjetosAtivosPage: React.FC = () => {
                       <Card.Meta
                         avatar={
                           <Avatar
-                            src={getFullImageUrl(projeto.logoUrl || "")}
+                            src={getFullImageUrl(local.logoUrl || "")}
                           />
                         }
-                        title={projeto.nomeProjeto}
+                        title={local.nomeLocal || (local as any).nome}
                         description={
                           <>
                             <Text>
-                              <strong>ID do Projeto:</strong>{" "}
-                              {projeto.projetoId}
+                              <strong>ID do Local:</strong>{" "}
+                              {local.localId}
                             </Text>
                             <br />
                             <Text>
-                              <strong>Prefeitura:</strong> {projeto.prefeitura}
+                              <strong>Categoria:</strong> {local.categoria || "N/A"}
                             </Text>
                             <br />
                             <Text>
-                              <strong>Secretaria:</strong> {projeto.secretaria}
+                              <strong>Responsável:</strong> {local.nomeResponsavel || (local as any).responsavel || "N/A"}
                             </Text>
                           </>
                         }
@@ -325,35 +328,35 @@ const ProjetosAtivosPage: React.FC = () => {
               )}
             </TabPane>
 
-            {sortedCategories.map((ods) => {
-              const allProjetosForOds = groupedProjetos[ods];
-              const totalCount = allProjetosForOds.length;
-              const projetosToShow = allProjetosForOds.slice(
+            {sortedCategories.map((categoria) => {
+              const allLocaisForCat = groupedLocais[categoria];
+              const totalCount = allLocaisForCat.length;
+              const locaisToShow = allLocaisForCat.slice(
                 (currentPage - 1) * PAGE_SIZE,
                 currentPage * PAGE_SIZE
               );
 
               return (
-                <TabPane tab={`${ods} (${allProjetosForOds.length})`} key={ods}>
+                <TabPane tab={`${categoria} (${allLocaisForCat.length})`} key={categoria}>
                   <Row gutter={[16, 16]}>
-                    {projetosToShow.map((projeto) => (
-                      <Col xs={24} md={12} lg={8} key={projeto.projetoId}>
+                    {locaisToShow.map((local) => (
+                      <Col xs={24} md={12} lg={8} key={local.localId}>
                         <Card
                           hoverable
                           actions={[
                             <Button
                               type="text"
                               icon={<EditOutlined />}
-                              onClick={() => openEditModal(projeto)}
+                              onClick={() => openEditModal(local)}
                               className="hover:!bg-blue-500 hover:!text-white"
                             >
                               Editar
                             </Button>,
                             <Popconfirm
                               key="delete"
-                              title="Excluir Projeto"
-                              description="Tem certeza que deseja excluir este projeto? Esta ação não pode ser desfeita."
-                              onConfirm={() => handleDelete(projeto.projetoId)}
+                              title="Excluir Local"
+                              description="Tem certeza que deseja excluir este local? Esta ação não pode ser desfeita."
+                              onConfirm={() => handleDelete(local.localId)}
                               okText="Sim, Excluir"
                               cancelText="Não"
                               okButtonProps={{ danger: true }}
@@ -372,25 +375,25 @@ const ProjetosAtivosPage: React.FC = () => {
                           <Card.Meta
                             avatar={
                               <Avatar
-                                src={getFullImageUrl(projeto.logoUrl || "")}
+                                src={getFullImageUrl(local.logoUrl || "")}
                               />
                             }
-                            title={projeto.nomeProjeto}
+                            title={local.nomeLocal || (local as any).nome}
                             description={
                               <>
                                 <Text>
-                                  <strong>ID do Projeto:</strong>{" "}
-                                  {projeto.projetoId}
+                                  <strong>ID do Local:</strong>{" "}
+                                  {local.localId}
                                 </Text>
                                 <br />
                                 <Text>
-                                  <strong>Prefeitura:</strong>{" "}
-                                  {projeto.prefeitura}
+                                  <strong>Categoria:</strong>{" "}
+                                  {local.categoria || "N/A"}
                                 </Text>
                                 <br />
                                 <Text>
-                                  <strong>Secretaria:</strong>{" "}
-                                  {projeto.secretaria}
+                                  <strong>Responsável:</strong>{" "}
+                                  {local.nomeResponsavel || (local as any).responsavel || "N/A"}
                                 </Text>
                               </>
                             }
@@ -419,8 +422,9 @@ const ProjetosAtivosPage: React.FC = () => {
         )}
       </Spin>
 
-      <AdminProjetoModal
-        projeto={selectedItem}
+      {/* MODAL DE EDIÇÃO ATUALIZADO */}
+      <AdminLocalModal
+        local={selectedItem}
         visible={isEditModalVisible}
         onClose={handleModalClose}
         mode="edit-only"
@@ -430,4 +434,4 @@ const ProjetosAtivosPage: React.FC = () => {
   );
 };
 
-export default ProjetosAtivosPage;
+export default LocaisAtivosPage;
