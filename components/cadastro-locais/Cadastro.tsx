@@ -11,6 +11,7 @@ import {
   Row,
   Col,
   Checkbox,
+  Divider,
 } from "antd";
 import {
   UploadOutlined,
@@ -20,6 +21,9 @@ import {
   PhoneOutlined,
   IdcardOutlined,
   InstagramOutlined,
+  FileProtectOutlined,
+  SafetyCertificateOutlined,
+  MailOutlined, // Novo ícone para Vigilância Sanitária
 } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
 import { toast } from "sonner";
@@ -28,14 +32,16 @@ import dynamic from "next/dynamic";
 import "react-quill/dist/quill.snow.css";
 
 // Importação do Componente de Mapa
-import LocationPicker from "@/components/map/LocationPicker";
+const LocationPicker = dynamic(() => import("@/components/map/LocationPicker"), { 
+  ssr: false,
+  loading: () => <div className="h-[350px] bg-gray-100 animate-pulse flex items-center justify-center rounded-lg border border-gray-200">Carregando mapa...</div>
+});
 
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 
 const COLORS = {
   primary: "#017db9",
   secondary: "#a8cf45",
-  tertiary: "#d04798",
 };
 
 const categoriasLocais = [
@@ -57,24 +63,8 @@ const categoriasLocais = [
   "Trilhas",
 ];
 
-// Labels atualizados para feedback de erro
-const campoLabels: { [key: string]: string } = {
-  nomeResponsavel: "Nome do Responsável",
-  cpfResponsavel: "CPF do Responsável",
-  nomeLocal: "Nome do Local",
-  categoria: "Categoria",
-  contatoLocal: "Contato/Telefone",
-  endereco: "Endereço",
-  latitude: "Latitude",
-  longitude: "Longitude",
-  descricao: "Descrição",
-  instagram: "Instagram",
-  confirmacao: "Confirmação",
-};
-
 const { Option } = Select;
 
-// Configuração simplificada do Editor de Texto
 const quillModules = {
   toolbar: [
     [{ header: [1, 2, false] }],
@@ -84,11 +74,29 @@ const quillModules = {
   ],
 };
 
+const formatCPF = (value: string) => {
+  return value
+    .replace(/\D/g, "") // Remove tudo que não é dígito
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{1,2})/, "$1-$2")
+    .replace(/(-\d{2})\d+?$/, "$1"); // Limita o tamanho
+};
+
+const formatPhone = (value: string) => {
+  return value
+    .replace(/\D/g, "")
+    .replace(/(\d{2})(\d)/, "($1) $2")
+    .replace(/(\d{5})(\d)/, "$1-$2")
+    .replace(/(-\d{4})\d+?$/, "$1");
+};
+
 interface CadastroProps {
   onSuccess: (title: string, subTitle: string) => void;
+  type: "owner" | "indication";
 }
 
-const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
+const Cadastro: React.FC<CadastroProps> = ({ onSuccess, type }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [searchingAddress, setSearchingAddress] = useState(false);
@@ -96,6 +104,8 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
   // Arquivos
   const [logoFileList, setLogoFileList] = useState<UploadFile[]>([]);
   const [portfolioFileList, setPortfolioFileList] = useState<UploadFile[]>([]);
+  const [alvaraFileList, setAlvaraFileList] = useState<UploadFile[]>([]);
+  const [vigilanciaFileList, setVigilanciaFileList] = useState<UploadFile[]>([]); // Novo estado para Vigilância
 
   // Controle de Texto
   const [quillTextLength, setQuillTextLength] = useState(0);
@@ -179,11 +189,22 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
     try {
       const formData = new FormData();
 
-      // Mapeamento direto para os campos do DB
+const cleanCPF = values.cpfResponsavel.replace(/\D/g, "");
+const cleanPhoneLocal = values.contatoLocal?.replace(/\D/g, "") || "";
+const cleanPhoneResp = values.contatoResponsavel?.replace(/\D/g, "") || "";
+
+formData.append("cpfResponsavel", cleanCPF);
+formData.append("contatoLocal", cleanPhoneLocal);
+formData.append("contatoResponsavel", cleanPhoneResp);
+formData.append("emailContato", values.emailContato);
+
       const camposTexto = [
         "nomeLocal",
         "categoria",
+        "emailResponsavel",
         "nomeResponsavel",
+        "contatoResponsavel",
+        "emailContato",
         "cpfResponsavel",
         "contatoLocal",
         "endereco",
@@ -199,7 +220,9 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
         }
       });
 
-      // Uploads
+      formData.append("tipoCadastro", type);
+
+      // Uploads padrão
       if (logoFileList.length > 0 && logoFileList[0].originFileObj) {
         formData.append("logo", logoFileList[0].originFileObj);
       }
@@ -209,14 +232,24 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
         }
       });
 
+
+      if (type === "owner") {
+        if (alvaraFileList.length > 0 && alvaraFileList[0].originFileObj) {
+          formData.append("alvara_funcionamento", alvaraFileList[0].originFileObj);
+        }
+        if (vigilanciaFileList.length > 0 && vigilanciaFileList[0].originFileObj) {
+          formData.append("vigilancia_sanitaria", vigilanciaFileList[0].originFileObj);
+        }
+      }
+
       await cadastrarLocal(formData);
 
       onSuccess(
-        "Local cadastrado com sucesso!",
-        "Seu cadastro foi enviado para análise.",
+        type === "owner" ? "Cadastro de Proprietário Enviado!" : "Indicação enviada com sucesso!",
+        "Sua solicitação será analisada pela nossa equipe administrativa.",
       );
     } catch (error: any) {
-      message.error(error.message || "Erro ao cadastrar. Verifique os dados.");
+      message.error(error.message || "Erro ao cadastrar.");
     } finally {
       setLoading(false);
     }
@@ -242,14 +275,13 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
       }}
       autoComplete="off"
     >
-      {/* SEÇÃO 1: RESPONSÁVEL */}
       <section className="mb-8 border-t pt-4">
-        {commonTitle("Responsável")}
+        {commonTitle(type === "owner" ? "Responsável pelo Estabelecimento" : "Quem está indicando?")}
         <Row gutter={24}>
           <Col xs={24} md={12}>
             <Form.Item
               name="nomeResponsavel"
-              label="Nome Completo do Responsável"
+              label="Nome Completo"
               rules={[{ required: true, message: "Obrigatório" }]}
             >
               <Input
@@ -266,20 +298,118 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
           <Col xs={24} md={12}>
             <Form.Item
               name="cpfResponsavel"
-              label="CPF do Responsável"
+              label="CPF"
               rules={[{ required: true, message: "Obrigatório" }]}
             >
               <Input
-                prefix={<IdcardOutlined className="text-gray-400" />}
-                placeholder="000.000.000-00"
-                maxLength={14}
+              prefix={<IdcardOutlined className="text-gray-400" />}
+              placeholder="000.000.000-00"
+              maxLength={14}
+              onChange={(e) => {
+             const maskedValue = formatCPF(e.target.value);
+             form.setFieldsValue({ cpfResponsavel: maskedValue });
+             }}
               />
             </Form.Item>
           </Col>
         </Row>
-      </section>
+        <Row gutter={24}>
+  {/* Campo de E-mail */}
+  <Col xs={24} md={12}>
+    <Form.Item
+  name="emailContato"
+  label="E-mail de Contato"
+  rules={[
+    { required: true, message: "Obrigatório" },
+    { type: "email", message: "Insira um formato de e-mail válido" },
+    {
+      validator: async (_, value) => {
+        if (!value || !value.includes("@")) return Promise.resolve();
+        const dominio = value.split("@")[1];
+        try {
+          // Usamos uma API gratuita apenas para checar se o domínio é real
+          const resp = await fetch(`https://open.kickbox.com/v1/disposable/${dominio}`);
+          if (resp.status === 404) {
+            return Promise.reject(new Error("Este provedor de e-mail não parece ser real."));
+          }
+          return Promise.resolve();
+        } catch (e) {
+          return Promise.resolve(); // Se a API falhar, não trava o usuário
+        }
+      }
+    }
+  ]}
+>
+      <Input
+        prefix={<MailOutlined className="text-gray-400" />}
+        placeholder="exemplo@dominio.com"
+      />
+    </Form.Item>
+  </Col>
 
-      {/* SEÇÃO 2: DADOS DO LOCAL */}
+  {/* Campo de Telefone do Responsável com Máscara */}
+  <Col xs={24} md={12}>
+    <Form.Item
+      name="contatoResponsavel"
+      label="Telefone"
+      rules={[{ required: true, message: "Obrigatório" }]}
+    >
+      <Input
+        prefix={<PhoneOutlined className="text-gray-400" />}
+        placeholder="(00) 00000-0000"
+        maxLength={15}
+        onChange={(e) => {
+          const maskedValue = formatPhone(e.target.value);
+          form.setFieldsValue({ contatoResponsavel: maskedValue });
+        }}
+      />
+    </Form.Item>
+  </Col>
+</Row>      
+    </section>
+
+      {/* SEÇÃO DOCUMENTAÇÃO OBRIGATÓRIA (SÓ DONO) */}
+      {type === "owner" && (
+        <section className="mb-8 border-t pt-4 bg-blue-50/40 p-5 rounded-2xl border border-blue-100">
+          {commonTitle("Documentação Obrigatória")}
+          <Row gutter={24}>
+            <Col xs={24} md={12}>
+              <Form.Item
+                name="alvara_funcionamento"
+                label="Alvará de Funcionamento "
+                rules={[{ required: true, message: "O CCMEI é necessário." }]}
+              >
+                <Upload
+                  customRequest={customUploadAction}
+                  fileList={alvaraFileList}
+                  onChange={({ fileList }) => setAlvaraFileList(fileList)}
+                  maxCount={1}
+                >
+                  <Button icon={<FileProtectOutlined />} className="w-full text-left">Anexar Alvará de Funcionamento (PDF/Imagem)</Button>
+                </Upload>
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item
+                name="vigilancia_sanitaria"
+                label="Alvará da Vigilância Sanitária"
+                rules={[{ required: true, message: "O Alvará Sanitário é necessário." }]}
+              >
+                <Upload
+                  customRequest={customUploadAction}
+                  fileList={vigilanciaFileList}
+                  onChange={({ fileList }) => setVigilanciaFileList(fileList)}
+                  maxCount={1}
+                >
+                  <Button icon={<SafetyCertificateOutlined />} className="w-full text-left">Anexar Alvará Sanitário</Button>
+                </Upload>
+              </Form.Item>
+            </Col>
+          </Row>
+        </section>
+      )}
+
+      {/* SEÇÃO DADOS DO LOCAL */}
       <section className="mb-8 border-t pt-4">
         {commonTitle("Dados do Local")}
         <Row gutter={24}>
@@ -303,13 +433,11 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
             <Form.Item
               name="categoria"
               label="Categoria Principal"
-              rules={[{ required: true, message: "Selecione uma categoria" }]}
+              rules={[{ required: true, message: "Selecione" }]}
             >
               <Select placeholder="Selecione...">
                 {categoriasLocais.map((cat) => (
-                  <Option key={cat} value={cat}>
-                    {cat}
-                  </Option>
+                  <Option key={cat} value={cat}>{cat}</Option>
                 ))}
               </Select>
             </Form.Item>
@@ -321,12 +449,17 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
             <Form.Item
               name="contatoLocal"
               label="Telefone / WhatsApp"
-              rules={[{ required: true, message: "Obrigatório para contato" }]}
+              rules={[{ required: true, message: "Obrigatório" }]}
             >
-              <Input
-                prefix={<PhoneOutlined className="text-gray-400" />}
-                placeholder="(22) 99999-9999"
-              />
+            <Input
+           prefix={<PhoneOutlined className="text-gray-400" />}
+           placeholder="(22) 99999-9999"
+           maxLength={15}
+           onChange={(e) => {
+           const maskedValue = formatPhone(e.target.value);
+           form.setFieldsValue({ contatoLocal: maskedValue });
+           }}
+            />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
@@ -350,31 +483,17 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
                 name="endereco"
                 label="Endereço Completo"
                 rules={[{ required: true, message: "Obrigatório" }]}
-                help="Digite o endereço e clique na lupa para posicionar no mapa."
+                help="Busque e ajuste o pino no mapa."
                 style={{ marginBottom: 0 }}
               >
                 <Input
-                  onPressEnter={(e) => {
-                    e.preventDefault();
-                    handleAddressSearch();
-                  }}
-                  onChange={(e) =>
-                    form.setFieldsValue({
-                      endereco: stripEmojis(e.target.value),
-                    })
-                  }
+                  onPressEnter={(e) => { e.preventDefault(); handleAddressSearch(); }}
+                  onChange={(e) => form.setFieldsValue({ endereco: stripEmojis(e.target.value) })}
                 />
               </Form.Item>
             </Col>
             <Col>
-              <Button
-                icon={<SearchOutlined />}
-                onClick={handleAddressSearch}
-                loading={searchingAddress}
-                className="mb-0 mt-8" // Ajuste visual
-              >
-                Buscar
-              </Button>
+              <Button icon={<SearchOutlined />} onClick={handleAddressSearch} loading={searchingAddress} className="mt-8">Buscar</Button>
             </Col>
           </Row>
 
@@ -385,14 +504,9 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
             />
           </div>
 
-          {/* Hidden Fields */}
           <div className="hidden">
-            <Form.Item name="latitude">
-              <Input />
-            </Form.Item>
-            <Form.Item name="longitude">
-              <Input />
-            </Form.Item>
+            <Form.Item name="latitude"><Input /></Form.Item>
+            <Form.Item name="longitude"><Input /></Form.Item>
           </div>
         </div>
 
@@ -409,10 +523,10 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
           />
         </Form.Item>
 
-        {/* UPLOADS */}
+        {/* UPLOADS DE IMAGENS */}
         <Row gutter={24}>
           <Col xs={24} md={12}>
-            <Form.Item label="Logo (Capa)" help="1 imagem (.jpg, .png)">
+            <Form.Item label="Logo (Capa)">
               <Upload
                 customRequest={customUploadAction}
                 fileList={logoFileList}
@@ -420,7 +534,6 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
                 listType="picture-card"
                 maxCount={1}
                 accept="image/*"
-                showUploadList={{ showPreviewIcon: false }}
               >
                 {logoFileList.length < 1 && (
                   <div>
@@ -432,7 +545,7 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
-            <Form.Item label="Galeria de Fotos" help="Até 4 imagens">
+            <Form.Item label="Galeria de Fotos">
               <Upload
                 customRequest={customUploadAction}
                 fileList={portfolioFileList}
@@ -441,7 +554,6 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
                 multiple
                 maxCount={4}
                 accept="image/*"
-                showUploadList={{ showPreviewIcon: false }}
               >
                 {portfolioFileList.length < 4 && (
                   <div>
@@ -457,14 +569,7 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
         <Form.Item
           name="confirmacao"
           valuePropName="checked"
-          rules={[
-            {
-              validator: (_, val) =>
-                val
-                  ? Promise.resolve()
-                  : Promise.reject("Confirme a veracidade."),
-            },
-          ]}
+          rules={[{ validator: (_, val) => val ? Promise.resolve() : Promise.reject("Confirme a veracidade.") }]}
         >
           <Checkbox>Declaro que as informações são verdadeiras.</Checkbox>
         </Form.Item>
@@ -479,7 +584,7 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
           size="large"
           className="bg-[#017db9] hover:bg-[#016fa0]"
         >
-          Cadastrar Local
+          {type === "owner" ? "Cadastrar meu Estabelecimento" : "Enviar Indicação"}
         </Button>
       </Form.Item>
     </Form>

@@ -17,7 +17,7 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-// Funcionalidades para o MEI (Atualizado: Sem nota fiscal)
+
 const meiFeatures = [
   {
     title: "Vitrine Digital",
@@ -45,7 +45,7 @@ const meiFeatures = [
   },
 ];
 
-// O que o Cliente encontra
+
 const clientFeatures = [
   {
     title: "Doces & Salgados",
@@ -87,7 +87,7 @@ export default function MeisSaquaPage() {
         >
           <h1 className="text-4xl md:text-6xl font-bold text-gray-800 mb-6">
             Portal{" "}
-            <span className="bg-gradient-to-r from-[#017DB9] to-[#a8cf45] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#017DB9] to-[#22c362] bg-clip-text text-transparent">
               MEI de Saqua
             </span>
           </h1>

@@ -4,13 +4,11 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   Button,
   Select,
-  Spin,
   Result,
   Form,
   ConfigProvider,
-  message,
 } from "antd";
-import { ArrowLeftOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, MoreOutlined, EnvironmentOutlined } from "@ant-design/icons";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -19,18 +17,19 @@ import Atualizacao from "@/components/cadastro-locais/Atualizacao";
 import Exclusao from "@/components/cadastro-locais/Exclusao";
 import "@/app/cadastro-locais/quill-styles.css";
 
-// --- DEFINIÇÃO DE CORES (Usadas no Layout Principal) ---
+// --- DEFINIÇÃO DE CORES ORIGINAIS PRESERVADAS ---
 const COLORS = {
-  primary: "#017db9", // Azul
-  secondary: "#a8cf45", // Verde
-  tertiary: "#d04798", // Rosa
+  primary: "#017db9", 
+  secondary: "#007a73", 
+  tertiary: "#a8cf45", // Verde de destaque para botões/hover
 };
 
 const { Option } = Select;
 
-type FlowStep = "initial" | "register" | "update" | "delete" | "submitted";
+// Atualizado para incluir as sub-etapas de cadastro
+type FlowStep = "initial" | "register_choice" | "register_owner" | "register_indication" | "update" | "delete" | "submitted";
 
-const CadastroProjetoPage: React.FC = () => {
+const CadastroLocaisPage: React.FC = () => {
   const [flowStep, setFlowStep] = useState<FlowStep>("initial");
   const [submittedMessage, setSubmittedMessage] = useState({
     title: "",
@@ -41,12 +40,12 @@ const CadastroProjetoPage: React.FC = () => {
   const router = useRouter();
   const toastShownRef = useRef(false);
 
-  // Verificação de Autenticação
+  // Verificação de Autenticação Original
   useEffect(() => {
     if (isLoading) return;
     if (!user) {
       if (!toastShownRef.current) {
-        toast.error("Você precisa estar logado para gerenciar projetos.");
+        toast.error("Você precisa estar logado para gerenciar locais.");
         toastShownRef.current = true;
       }
       router.push("/login");
@@ -61,18 +60,9 @@ const CadastroProjetoPage: React.FC = () => {
             Verificando autenticação
           </p>
           <div className="flex space-x-1.5">
-            <span
-              className="h-2.5 w-2.5 rounded-full animate-bounce [animation-delay:-0.3s]"
-              style={{ backgroundColor: COLORS.secondary }}
-            ></span>
-            <span
-              className="h-2.5 w-2.5 rounded-full animate-bounce [animation-delay:-0.15s]"
-              style={{ backgroundColor: COLORS.secondary }}
-            ></span>
-            <span
-              className="h-2.5 w-2.5 rounded-full animate-bounce"
-              style={{ backgroundColor: COLORS.secondary }}
-            ></span>
+            <span className="h-2.5 w-2.5 rounded-full animate-bounce [animation-delay:-0.3s]" style={{ backgroundColor: COLORS.secondary }}></span>
+            <span className="h-2.5 w-2.5 rounded-full animate-bounce [animation-delay:-0.15s]" style={{ backgroundColor: COLORS.secondary }}></span>
+            <span className="h-2.5 w-2.5 rounded-full animate-bounce" style={{ backgroundColor: COLORS.secondary }}></span>
           </div>
         </div>
       </div>
@@ -89,80 +79,94 @@ const CadastroProjetoPage: React.FC = () => {
     setFlowStep("submitted");
   };
 
-  // Renderização da Escolha Inicial
+  // --- FUNÇÃO: Tela de Escolha entre Dono e Indicador ---
+  const renderRegisterChoice = () => (
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <h2 className="text-3xl font-bold mb-8 text-center text-gray-800">
+        Como você deseja cadastrar este local?
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4">
+        {/* Card: Sou Dono */}
+        <div 
+          onClick={() => setFlowStep("register_owner")}
+          className="group p-8 border-2 border-dashed border-gray-200 rounded-[2rem] hover:border-solid hover:border-[#a8cf45] hover:bg-green-50/50 cursor-pointer transition-all duration-300 text-center"
+        >
+          <div className="text-5xl mb-4 group-hover:scale-110 transition-transform duration-300">
+            <MoreOutlined style={{ color: COLORS.secondary }} />
+          </div>
+          <h3 className="text-xl font-bold mb-2 text-gray-800">Sou Dono do Estabelecimento</h3>
+          <p className="text-gray-500 text-sm">
+            Escolha esta opção se você é o proprietário. Você poderá enviar documentos comprobatórios e terá acesso futuro para atualizar ou excluir o local.
+          </p>
+        </div>
+
+        {/* Card: Quero Indicar */}
+        <div 
+          onClick={() => setFlowStep("register_indication")}
+          className="group p-8 border-2 border-dashed border-gray-200 rounded-[2rem] hover:border-solid hover:border-[#017db9] hover:bg-blue-50/50 cursor-pointer transition-all duration-300 text-center"
+        >
+          <div className="text-5xl mb-4 group-hover:scale-110 transition-transform duration-300">
+            <EnvironmentOutlined style={{ color: COLORS.primary }} />
+          </div>
+          <h3 className="text-xl font-bold mb-2 text-gray-800">Quero indicar um Local</h3>
+          <p className="text-gray-500 text-sm">
+            Indique um lugar legal! Note que como indicador, você apenas sugere o local e não poderá editá-lo ou excluí-lo posteriormente.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderInitialChoice = () => (
     <>
-      <h1
-        className="text-4xl font-extrabold mb-6 inline-block pb-2"
-        style={{
-          borderBottom: `4px solid ${COLORS.tertiary}`,
-          color: COLORS.primary,
-        }}
-      >
-        PORTAL DE PROJETOS
+      <h1 className="text-4xl font-extrabold mb-6 inline-block pb-2" style={{ borderBottom: `4px solid ${COLORS.tertiary}`, color: COLORS.primary }}>
+        PORTAL DE LOCAIS
       </h1>
       <p className="text-gray-700 leading-relaxed text-lg mt-4 mb-8">
-        Bem-vindo ao <strong>Portal de Projetos</strong>! Este é o espaço
-        oficial para gerenciar iniciativas que transformam a nossa cidade. Aqui,
-        você pode cadastrar, atualizar ou remover projetos de forma centralizada
-        e transparente.
+        Bem-vindo ao <strong>Portal de Locais</strong>! Este é o espaço oficial para gerenciar locais de interesse da nossa cidade.
       </p>
       <section className="flex flex-col border-t pt-6">
-        <Form.Item
-          layout="vertical"
-          label={
-            <span className="text-lg font-semibold" style={{ color: "#333" }}>
-              O que você deseja fazer hoje?
-            </span>
-          }
-        >
+        <Form.Item layout="vertical" label={<span className="text-lg font-semibold" style={{ color: "#333" }}>O que você deseja fazer hoje?</span>}>
           <Select
             placeholder="Selecione uma ação"
-            onChange={(value) => {
-              setFlowStep(value as FlowStep);
-            }}
+            onChange={(value) => setFlowStep(value as FlowStep)}
             size="large"
             style={{ width: "100%" }}
           >
-            <Option value="register">Cadastrar novo projeto</Option>
-            <Option value="update">Atualizar projeto existente</Option>
-            <Option value="delete">Excluir projeto da plataforma</Option>
+            <Option value="register_choice">Cadastrar novo local</Option>
+            <Option value="update">Atualizar meu local (Proprietários)</Option>
+            <Option value="delete">Excluir meu local (Proprietários)</Option>
           </Select>
         </Form.Item>
       </section>
     </>
   );
 
-  // Renderização da Tela de Sucesso
-  const renderSuccess = () => (
-    <Result
-      status="success"
-      title={submittedMessage.title}
-      subTitle={submittedMessage.subTitle}
-      extra={[
-        <Button
-          type="primary"
-          key="console"
-          onClick={resetAll}
-          className="mb-6"
-        >
-          Voltar ao Início
-        </Button>,
-      ]}
-    />
-  );
-
-  // Gerenciador de Conteúdo
   const renderContent = () => {
     switch (flowStep) {
-      case "register":
-        return <Cadastro onSuccess={handleSuccess} />;
+      case "register_choice":
+        return renderRegisterChoice();
+      case "register_owner":
+        return <Cadastro onSuccess={handleSuccess} type="owner" />; 
+      case "register_indication":
+        return <Cadastro onSuccess={handleSuccess} type="indication" />; 
       case "update":
         return <Atualizacao onSuccess={handleSuccess} />;
       case "delete":
         return <Exclusao onSuccess={handleSuccess} />;
       case "submitted":
-        return renderSuccess();
+        return (
+          <Result
+            status="success"
+            title={submittedMessage.title}
+            subTitle={submittedMessage.subTitle}
+            extra={[
+              <Button type="primary" key="console" onClick={resetAll} className="mb-6 rounded-xl">
+                Voltar ao Início
+              </Button>,
+            ]}
+          />
+        );
       default:
         return renderInitialChoice();
     }
@@ -173,19 +177,13 @@ const CadastroProjetoPage: React.FC = () => {
       theme={{
         token: {
           colorPrimary: COLORS.primary,
-          colorLink: COLORS.primary,
           colorSuccess: COLORS.secondary,
-          borderRadius: 8,
+          borderRadius: 12,
         },
         components: {
           Button: {
             colorPrimary: COLORS.primary,
-            algorithm: true,
             colorPrimaryHover: COLORS.tertiary,
-          },
-          Input: {
-            activeBorderColor: COLORS.secondary,
-            hoverBorderColor: COLORS.primary,
           },
           Select: {
             colorPrimary: COLORS.secondary,
@@ -196,16 +194,16 @@ const CadastroProjetoPage: React.FC = () => {
       <div
         className="min-h-screen py-20 px-6 sm:px-12"
         style={{
-          background: `linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.tertiary} 100%)`,
+          background: `linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.secondary} 100%)`,
         }}
       >
-        <div className="max-w-5xl mx-auto bg-white rounded-3xl shadow-lg p-10 sm:p-16">
+        <div className="max-w-5xl mx-auto bg-white rounded-[2.5rem] shadow-2xl p-10 sm:p-16">
           {flowStep !== "initial" && flowStep !== "submitted" && (
             <Button
               type="text"
               icon={<ArrowLeftOutlined />}
               onClick={resetAll}
-              className="mb-6"
+              className="mb-6 hover:text-[#a8cf45] transition-colors"
             >
               Voltar ao início
             </Button>
@@ -217,4 +215,4 @@ const CadastroProjetoPage: React.FC = () => {
   );
 };
 
-export default CadastroProjetoPage;
+export default CadastroLocaisPage;

@@ -4,8 +4,8 @@ import React, { useState } from "react";
 import { Form, Input, Button, message, Card, Row, Col } from "antd";
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie"; // Importe os Cookies
 
-// URL da sua API backend
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const AdminLoginPage: React.FC = () => {
@@ -26,10 +26,19 @@ const AdminLoginPage: React.FC = () => {
       const data = await response.json();
 
       if (response.ok && data.token) {
-        // Armazena o token no localStorage para ser usado em outras páginas
+        // --- MUDANÇA AQUI ---
+        // Salvamos em Cookie para que o Middleware consiga ler
+        Cookies.set("token", data.token, { expires: 1 }); // Expira em 1 dia
+        
+        // Opcional: manter no localStorage para outras funções
         localStorage.setItem("admin_token", data.token);
+
         message.success("Login bem-sucedido!");
-        router.push("/admin/dashboard");
+
+        // Use window.location.href em vez de router.push para garantir 
+        // que o Middleware intercepte a nova requisição com o cookie fresco
+        window.location.href = "/admin/dashboard"; 
+        
       } else {
         message.error(data.message || "Usuário ou senha inválidos.");
       }
@@ -62,30 +71,15 @@ const AdminLoginPage: React.FC = () => {
             >
               <Form.Item
                 name="username"
-                rules={[
-                  {
-                    required: true,
-                    message: "Por favor, insira o nome de usuário!",
-                  },
-                ]}
+                rules={[{ required: true, message: "Por favor, insira o nome de usuário!" }]}
               >
-                <Input
-                  prefix={<UserOutlined />}
-                  placeholder="Usuário"
-                  size="large"
-                />
+                <Input prefix={<UserOutlined />} placeholder="Usuário" size="large" />
               </Form.Item>
               <Form.Item
                 name="password"
-                rules={[
-                  { required: true, message: "Por favor, insira a senha!" },
-                ]}
+                rules={[{ required: true, message: "Por favor, insira a senha!" }]}
               >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder="Senha"
-                  size="large"
-                />
+                <Input.Password prefix={<LockOutlined />} placeholder="Senha" size="large" />
               </Form.Item>
               <Form.Item>
                 <Button
