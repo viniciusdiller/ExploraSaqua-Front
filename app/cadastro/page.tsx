@@ -255,7 +255,7 @@ export default function Cadastro() {
                   // Texto/Borda Primária. Hover Background Terciária.
                   className="w-full rounded-2xl flex justify-center mx-auto px-10 
                              bg-white text-[#017db9] border border-[#017db9]
-                             hover:bg-[#d04798] hover:text-white hover:border-[#d04798]
+                             hover:bg-[#027DB9] hover:text-white hover:border-[#027DB9]
                              disabled:bg-gray-300 disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed
                              transition-all duration-300 font-medium shadow-sm hover:shadow-md"
                 >

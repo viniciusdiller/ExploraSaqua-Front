@@ -253,7 +253,7 @@ const AdminLocalModal: React.FC<AdminLocalModalProps> = ({
             <GerarCertificadoButton
               key="certificado"
               nomeProjeto={local.nome} // Assumindo 'nome' para local
-              nomeResponsavel={local.responsavel || ""}
+              nomeResponsavel={local.nomeResponsavel || ""}
               ods={local.categoria} // Usando categoria no lugar de ODS no certificado antigo
               dataCadastro={
                 local.createdAt?.toString() || new Date().toISOString()

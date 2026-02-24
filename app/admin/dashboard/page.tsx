@@ -47,14 +47,13 @@ const { useBreakpoint } = Grid;
 
 // --- CORES ---
 const COLORS = {
-  primary: "#017db9",
-  secondary: "#a8cf45",
-  tertiary: "#d04798",
+  primary: "#017DB9",
+  secondary: "#007a73",
+  tertiary: "#B4D55F",
 };
 
-// --- CORREÇÃO 1: ENUM ALINHADO COM A INTERFACE ---
+// --- ENUM ALINHADO COM A INTERFACE ---
 enum StatusLocal {
-  // O valor da string deve bater com o que vem do banco de dados/interface
   PENDENTE_APROVACAO = "pendente",
   PENDENTE_ATUALIZACAO = "pendente_atualizacao",
   PENDENTE_EXCLUSAO = "pendente_exclusao",
@@ -75,43 +74,37 @@ interface PendingData {
   exclusoes: Local[];
 }
 
+// --- NOVO FIELD CONFIG ---
 const fieldConfig: {
   [key: string]: { label: string; order: number; group: string };
 } = {
-  localId: { label: "ID", order: 1, group: "identificacao" },
-  prefeitura: {
-    label: "Prefeitura / Entidade",
-    order: 2,
-    group: "identificacao",
-  },
-  secretaria: { label: "Secretaria / Depto", order: 3, group: "identificacao" },
-  nome: { label: "Nome do Local", order: 10, group: "identificacao" },
-  responsavel: { label: "Responsável", order: 11, group: "identificacao" },
-  emailContato: { label: "Email", order: 20, group: "identificacao" },
-  oficioUrl: { label: "Ofício Atual", order: 43, group: "identificacao" },
-  oficio: { label: "Novo Ofício", order: 43, group: "identificacao" },
+  // --- Identificação do Responsável ---
+  nomeResponsavel: { label: "Nome do Responsável", order: 1, group: "identificacao" },
+  cpfResponsavel: { label: "CPF do Responsável", order: 2, group: "identificacao" },
+  emailResponsavel: { label: "E-mail do Responsável", order: 3, group: "identificacao" },
+  contatoResponsavel: { label: "Contato do Responsável", order: 4, group: "identificacao" },
 
-  // --- Grupo de Informações ---
-  categoria: { label: "Categoria", order: 4, group: "info" },
-  venceuPspe: { label: "Venceu Prêmio Destaque", order: 6, group: "info" },
-  endereco: { label: "Endereço", order: 22, group: "info" },
-  descricao: { label: "Descrição", order: 30, group: "info" },
-  descricaoDiferencial: { label: "Briefing", order: 31, group: "info" },
-  outrasAlteracoes: { label: "Outras Alterações", order: 32, group: "info" },
-  website: { label: "Website", order: 40, group: "info" },
-  instagram: { label: "Instagram", order: 41, group: "info" },
-  linkLocal: { label: "Link Oficial", order: 42, group: "info" },
-  logoUrl: { label: "Logo Atual", order: 43, group: "info" },
-  logo: { label: "Nova Logo", order: 44, group: "info" },
-  localImg: { label: "Portfólio Atual", order: 45, group: "info" },
-  imagens: { label: "Novas Imagens", order: 46, group: "info" },
-  escala: { label: "Nota de Impacto", order: 61, group: "info" },
+  // --- Informações do Local ---
+  localId: { label: "ID do Registro", order: 5, group: "identificacao" },
+  nomeLocal: { label: "Nome do Estabelecimento", order: 6, group: "info" },
+  categoria: { label: "Categoria", order: 7, group: "info" },
+  contatoLocal: { label: "Telefone/Contato Local", order: 8, group: "info" },
+  instagram: { label: "Instagram", order: 9, group: "info" },
+  endereco: { label: "Endereço Completo", order: 10, group: "info" },
+  descricao: { label: "Descrição Detalhada", order: 11, group: "info" },
 
-  // --- Grupo de Metadados ---
-  status: { label: "Status Atual", order: 5, group: "meta" },
-  motivo: { label: "Motivo da Exclusão", order: 1000, group: "meta" },
-  motivoExclusao: { label: "Motivo da Exclusão", order: 6, group: "meta" },
-  createdAt: { label: "Data de Criação", order: 100, group: "meta" },
+  // --- Documentação e Mídias ---
+  logoUrl: { label: "Logo Atual", order: 20, group: "info" },
+  logo: { label: "Nova Logo", order: 21, group: "info" },
+  alvaraFuncionamentoUrl: { label: "Alvará de Funcionamento", order: 22, group: "info" },
+  alvaraVigilanciaUrl: { label: "Alvará da Vigilância", order: 23, group: "info" },
+
+  // --- Dados Geográficos e Sistema ---
+  latitude: { label: "Latitude", order: 30, group: "meta" },
+  longitude: { label: "Longitude", order: 31, group: "meta" },
+  status: { label: "Status do Processo", order: 32, group: "meta" },
+  ativo: { label: "Publicado no Site", order: 33, group: "meta" },
+  createdAt: { label: "Data de Submissão", order: 100, group: "meta" },
   updatedAt: { label: "Última Atualização", order: 101, group: "meta" },
 };
 
@@ -235,7 +228,8 @@ const AdminDashboard: React.FC = () => {
       }
     }
 
-    if (key === "venceuPspe") {
+    // Tratamento para booleanos atualizados (ativo vs venceuPspe)
+    if (key === "venceuPspe" || key === "ativo") {
       const boolValue =
         String(value).toLowerCase() === "true" || value === true;
       return boolValue ? "Sim" : "Não";
@@ -272,8 +266,9 @@ const AdminDashboard: React.FC = () => {
       return <Image src={getFullImageUrl(value)} alt="Logo" width={150} />;
     }
 
+    // Adaptado para visualizar PDFs dos Alvarás também
     if (
-      (key === "oficioUrl" || key === "oficio") &&
+      (key === "oficioUrl" || key === "oficio" || key === "alvaraFuncionamentoUrl" || key === "alvaraVigilanciaUrl") &&
       typeof value === "string" &&
       value
     ) {
@@ -286,7 +281,7 @@ const AdminDashboard: React.FC = () => {
           </Button>
         );
       }
-      return <Image src={url} alt="Ofício" width={150} />;
+      return <Image src={url} alt="Documento" width={150} />;
     }
 
     if (typeof value === "object" && value !== null)
@@ -371,7 +366,6 @@ const AdminDashboard: React.FC = () => {
         return newData;
       });
 
-      // CORREÇÃO 2: Cast para string para evitar erro de overlap de tipos
       const status = selectedItem.status as string;
 
       if (status === StatusLocal.PENDENTE_APROVACAO)
@@ -445,7 +439,6 @@ const AdminDashboard: React.FC = () => {
     title: string,
     keysToFilter: string[] = []
   ) => {
-    // CORREÇÃO 3: Cast para string para evitar erro de overlap
     if (
       !selectedItem ||
       (selectedItem.status as string) !== status ||
@@ -454,10 +447,13 @@ const AdminDashboard: React.FC = () => {
       return null;
     }
 
+    // Mapa expandido para cobrir oficios e os novos Alvarás
     const keyMap: { [newKey: string]: { oldKey: string; labelKey: string } } = {
       logo: { oldKey: "logoUrl", labelKey: "logo" },
       imagens: { oldKey: "localImg", labelKey: "localImg" },
       oficio: { oldKey: "oficioUrl", labelKey: "oficio" },
+      alvaraFuncionamento: { oldKey: "alvaraFuncionamentoUrl", labelKey: "alvaraFuncionamentoUrl" },
+      alvaraVigilancia: { oldKey: "alvaraVigilanciaUrl", labelKey: "alvaraVigilanciaUrl" },
     };
 
     const diffDataAll = Object.entries(selectedItem.dados_atualizacao)
@@ -469,7 +465,7 @@ const AdminDashboard: React.FC = () => {
 
         // @ts-ignore
         const oldValue = selectedItem[oldKey];
-        const fieldLabel = fieldConfig[labelKey]?.label ?? `Novo ${key}`;
+        const fieldLabel = fieldConfig[labelKey]?.label ?? fieldConfig[key]?.label ?? `Novo ${key}`;
 
         let finalLabel = fieldLabel;
         if (labelKey === "localImg") finalLabel = "Portfólio";
@@ -653,7 +649,6 @@ const AdminDashboard: React.FC = () => {
           }
         >
           {listData.length > 0 ? (
-            /* CORREÇÃO 4: Adicionado Fragmento <>...</> para agrupar List e Pagination */
             <>
               <List
                 dataSource={pagedData}
@@ -672,8 +667,8 @@ const AdminDashboard: React.FC = () => {
                           icon={listIcons[title]}
                         />
                       }
-                      title={item.nome}
-                      description={`Prefeitura: ${item.prefeitura}`}
+                      title={item.nomeLocal || (item as any).nome || "Local sem nome"}
+                      description={`Responsável: ${item.nomeResponsavel || (item as any).responsavel || "Não informado"}`}
                     />
                   </List.Item>
                 )}
@@ -765,7 +760,7 @@ const AdminDashboard: React.FC = () => {
 
         {selectedItem && (
           <Modal
-            title={`Detalhes de ${selectedItem.nome}`}
+            title={`Detalhes de ${selectedItem.nomeLocal || (selectedItem as any).nome || "Local"}`}
             open={modalVisible}
             onCancel={() => setModalVisible(false)}
             width={1000}
@@ -780,7 +775,6 @@ const AdminDashboard: React.FC = () => {
                 Recusar
               </Button>,
 
-              /* Cast para string para evitar erro TS */
               (selectedItem.status as string) !==
                 StatusLocal.PENDENTE_EXCLUSAO && (
                 <Button
@@ -818,7 +812,6 @@ const AdminDashboard: React.FC = () => {
               ),
             ]}
           >
-            {/* ... Renderização dos Detalhes (Conteúdo do Modal) ... */}
             {(() => {
               const allEntries = Object.entries(selectedItem)
                 .filter(
@@ -853,7 +846,7 @@ const AdminDashboard: React.FC = () => {
                         className="mt-4"
                         style={{ color: COLORS.primary }}
                       >
-                        Identificação do Local
+                        Identificação do Responsável / Registro
                       </Title>
                       <Descriptions bordered column={1} size="small">
                         {identificacaoEntries.map(([key, value]) => (
@@ -880,10 +873,10 @@ const AdminDashboard: React.FC = () => {
                         {renderValue("logoUrl", selectedItem.logoUrl)}
                       </Descriptions.Item>
                     )}
-                    {selectedItem.localImg &&
-                      selectedItem.localImg.length > 0 && (
-                        <Descriptions.Item label={fieldConfig.localImg.label}>
-                          {renderValue("localImg", selectedItem.localImg)}
+                    {(selectedItem as any).localImg &&
+                      (selectedItem as any).localImg.length > 0 && (
+                        <Descriptions.Item label="Portfólio / Imagens">
+                          {renderValue("localImg", (selectedItem as any).localImg)}
                         </Descriptions.Item>
                       )}
                     {infoEntries.map(([key, value]) => (
@@ -902,7 +895,7 @@ const AdminDashboard: React.FC = () => {
                         className="mt-6"
                         style={{ color: COLORS.primary }}
                       >
-                        Metadados
+                        Metadados e Sistema
                       </Title>
                       <Descriptions bordered column={1} size="small">
                         {metaEntries.map(([key, value]) => (

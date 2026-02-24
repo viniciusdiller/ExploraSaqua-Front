@@ -19,6 +19,7 @@ export interface DadosAtualizacaoLocal {
 }
 
 export interface Local {
+  nomeResponsavel: any;
   // Identificadores e Sistema
   localId: number; // Padronizado para localId (antes era id ou projetoId)
   slug: string;

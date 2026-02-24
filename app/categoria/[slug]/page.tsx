@@ -26,9 +26,9 @@ const PROJETOS_PER_PAGE = 8;
 
 // --- CORES ---
 const COLORS = {
-  primary: "#017db9",
-  secondary: "#a8cf45",
-  tertiary: "#d04798",
+  primary: "#027DB7",
+  secondary: "#027A74",
+  tertiary: "#096B9A",
 };
 
 interface CategoryData {
@@ -333,7 +333,7 @@ export default function CategoriaPage() {
             {/* Carrossel */}
             <div>
               <div className="mb-4 flex items-center gap-2">
-                <Compass className="text-[#d04798]" size={20} />
+                <Compass className="text-[#096B9A]" size={20} />
                 <div>
                   <h2 className="text-lg font-bold text-gray-800">
                     Continue Explorando

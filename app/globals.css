@@ -28,8 +28,8 @@
     --secondary: 77 60% 54%;
     --secondary-foreground: 222.2 47.4% 11.2%;
 
-    /* TERCIÁRIA: Rosa (#d04798) - Destaques/Etiquetas */
-    --tertiary: 325 60% 55%;
+    /* TERCIÁRIA: Azul Escuro (#0B6D9C) - Destaques/Etiquetas */
+    --tertiary: 199.4 86.8% 32.7%;
     --tertiary-foreground: 0 0% 100%;
 
     /* --- CORES DE SISTEMA --- */
@@ -67,7 +67,8 @@
     --secondary: 77 60% 54%;
     --secondary-foreground: 222.2 47.4% 11.2%;
 
-    --tertiary: 325 60% 55%;
+    /* TERCIÁRIA: Azul Escuro (#0B6D9C) */
+    --tertiary: 199.4 86.8% 32.7%;
     --tertiary-foreground: 210 40% 98%;
 
     --muted: 217.2 32.6% 17.5%;
