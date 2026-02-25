@@ -19,6 +19,7 @@ export interface DadosAtualizacaoLocal {
 }
 
 export interface Local {
+  alvaraFuncionamentoUrl: string | null | undefined;
   nomeResponsavel: any;
   // Identificadores e Sistema
   localId: number; // Padronizado para localId (antes era id ou projetoId)
@@ -28,7 +29,7 @@ export interface Local {
   criadoPor: string;
 
   // Status e Administração
-  status: "aprovado" | "pendente" | "pendente_atualizacao" | "rejeitado";
+status: "aprovado" | "pendente" | "pendente_atualizacao" | "rejeitado" | "pendente_exclusao";  
   aprovado: boolean;
   dados_atualizacao?: DadosAtualizacaoLocal | null; // Para aprovação de edits
   oficioUrl?: string | null; // Mantido para burocracia/admin
@@ -41,7 +42,8 @@ export interface Local {
 
   // Mídia
   logoUrl?: string | null;
-  localImg?: Imagens[]; // Array de objetos de imagem
+  localImg?: Imagens[];
+  // Array de objetos de imagem
 
   // Localização e Responsabilidade
   bairro?: string;

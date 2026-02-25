@@ -391,7 +391,7 @@ function LocalPageContent() {
               </div>
             </Link>
             <h1 className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-md font-semibold text-gray-800 truncate px-4 max-w-[30%] sm:max-w-[40%] text-center pointer-events-none">
-              {local.nome}
+              {local.nomeLocal}
             </h1>
             <button
               onClick={handleCopyLink}
@@ -432,7 +432,7 @@ function LocalPageContent() {
                       className="text-3xl font-bold text-gray-900 mb-2 border-l-4 pl-3"
                       style={{ borderColor: COLORS.tertiary }}
                     >
-                      {local.nome}
+                      {local.nomeLocal}
                     </h2>
                   </div>
                   <div className="flex items-center justify-center md:justify-start gap-2">
@@ -496,7 +496,7 @@ function LocalPageContent() {
                         `${API_URL}/${normalizeImagePath(local.logoUrl)}`) ||
                       "/logos/Logo_Explore.png"
                     }
-                    alt={`Logo de ${local.nome}`}
+                    alt={`Logo de ${local.nomeLocal}`}
                     width={500}
                     height={500}
                     className="w-full h-full object-contain"

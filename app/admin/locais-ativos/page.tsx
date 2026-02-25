@@ -31,7 +31,7 @@ import {
   adminDeleteLocal,
   adminExportLocais,
 } from "@/lib/api";
-import AdminLocalModal from "@/components/AdminLocalModal";
+import AdminLocalModal from "@/components/admin/AdminLocalModal";
 import { Local } from "@/types/Interface-Local";
 
 const { Title, Text } = Typography;
