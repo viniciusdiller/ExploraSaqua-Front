@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import ModernCarousel from "@/components/ModernCarousel";
 import { getLocaisByCategoria } from "@/lib/api"; // <-- Importação Real (Comentada)
 import { Local, getCategoryColor } from "@/types/Interface-Local"; // Importando getCategoryColor
+import { getFullImageUrl } from "@/utils/AdminUtils";
 import { categories } from "@/app/page";
 
 const PROJETOS_PER_PAGE = 8;
@@ -58,10 +59,36 @@ export default function CategoriaPage() {
   // Obtém o gradiente baseado no slug da categoria
   const bgGradient = getCategoryColor(slug);
 
-  const getImageUrl = (url?: string | null) => {
+  const getImageUrl = (input?: any) => {
+    // Aceita string ou objeto (ex: { url }) vindo do backend
+    if (!input) return "/logos/Logo_Explore.png";
+    let url = "";
+    if (typeof input === "string") url = input;
+    else if (typeof input === "object") url = input.url || input.path || input.src || "";
+
     if (!url) return "/logos/Logo_Explore.png";
-    if (!url.startsWith("http")) return url;
-    return url;
+    return String(url);
+  };
+
+  // Retorna a imagem a ser usada no card: primeiro item de locaisImg/localImg/produtosImg/imagens ou logoUrl
+  const getCardImage = (local: any) => {
+    const fallback = "/logos/Logo_Explore.png";
+    // Prioriza logo externo na listagem
+    const logo = getImageUrl(local?.logoUrl);
+    const logoFull = getFullImageUrl(logo);
+    if (logoFull && logoFull !== fallback) return logoFull;
+
+    // Se não houver logo, usa o primeiro item do array de imagens do local
+    const arr = local?.locaisImg || local?.localImg || local?.produtosImg || local?.imagens;
+    if (Array.isArray(arr) && arr.length > 0) {
+      const first = arr[0];
+      let url = "";
+      if (typeof first === "string") url = first;
+      else if (typeof first === "object") url = first.url || first.path || first.src || first.image || first.file || (first.attributes && first.attributes.url) || "";
+      if (url) return getFullImageUrl(String(url)) || fallback;
+    }
+
+    return fallback;
   };
 
   useEffect(() => {
@@ -147,7 +174,7 @@ export default function CategoriaPage() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="mt-2 text-white/90 font-medium text-lg max-w-2xl mx-auto"
           >
-            {category?.description || "Explore o melhor de Saquarema"}
+            {""}
           </motion.p>
         </div>
 
@@ -242,12 +269,19 @@ export default function CategoriaPage() {
                       >
                         {/* Imagem */}
                         <div className="relative h-48 w-full overflow-hidden bg-gray-100">
-                          <Image
-                            src={getImageUrl(local.logoUrl)}
-                            alt={local.nome}
-                            fill
-                            className="object-cover transition-transform duration-700 group-hover:scale-110"
-                          />
+                          {(() => {
+                            const src = getCardImage(local);
+                            return (
+                              <Image
+                                src={src}
+                                alt={local.nome}
+                                fill
+                                className="object-cover transition-transform duration-700 group-hover:scale-110"
+                                sizes="(max-width: 768px) 100vw, 33vw"
+                                onError={(e) => { /* next/image não expõe erro facilmente; fallback já aplicado */ }}
+                              />
+                            );
+                          })()}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60" />
                           <div className="absolute bottom-3 left-3 flex items-center text-white/90 text-xs font-medium bg-black/30 backdrop-blur-md px-2 py-1 rounded-md border border-white/20">
                             <MapPin size={12} className="mr-1" />

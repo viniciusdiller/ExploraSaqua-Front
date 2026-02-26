@@ -18,25 +18,12 @@ export const LocalContactLocation: React.FC<LocalContactLocationProps> = ({ colo
 
       <Row gutter={16}>
         <Col span={12}>
-          <Form.Item name="emailContato" label="Email de Contato" rules={[{ required: true, type: "email" }]}>
+          <Form.Item name="emailContato" label="Email de Contato" rules={[{ required: true, type: "email" }]}> 
             <Input />
           </Form.Item>
         </Col>
         <Col span={12}>
-          <Form.Item name="linkLocal" label="Link Oficial" rules={[{ required: false, type: "url" }]}>
-            <Input placeholder="http://..." />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="website" label="Site da Prefeitura/Entidade" rules={[{ type: "url" }]}>
-            <Input placeholder="http://..." />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="instagram" label="Instagram" rules={[{ type: "url" }]}>
+          <Form.Item name="instagram" label="Instagram" rules={[{ type: "url" }]}> 
             <Input placeholder="http://instagram.com/..." />
           </Form.Item>
         </Col>

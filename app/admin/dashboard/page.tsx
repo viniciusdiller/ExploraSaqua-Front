@@ -10,6 +10,7 @@ import AdminHeader from "@/components/admin/dashboard/AdminHeader";
 import PendingListCard from "@/components/admin/dashboard/PendingListCard";
 import LocalDetailsModal from "@/components/admin/dashboard/LocalDetailsModal";
 import AdminLocalModal from "@/components/admin/AdminLocalModal";
+import IndicationDetailsModal from "@/components/admin/dashboard/IndicationDetailsModal";
 
 const { useBreakpoint } = Grid;
 const { TextArea } = Input;
@@ -29,6 +30,8 @@ const AdminDashboard: React.FC = () => {
   
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Local | null>(null);
+  const [indicationModalVisible, setIndicationModalVisible] = useState(false);
+  const [selectedIndication, setSelectedIndication] = useState<Local | null>(null);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
   
@@ -101,6 +104,7 @@ const AdminDashboard: React.FC = () => {
 
   const handlePageChange = (listKey: keyof PendingData) => (page: number) => setCurrentPages(prev => ({ ...prev, [listKey]: page }));
   const showModal = (item: Local) => { setSelectedItem(item); setModalVisible(true); };
+  const showIndicationModal = (item: Local) => { setSelectedIndication(item); setIndicationModalVisible(true); };
 
   return (
     <ConfigProvider theme={{ token: { colorPrimary: COLORS.primary, colorLink: COLORS.primary, borderRadius: 8 } }}>
@@ -125,7 +129,13 @@ const AdminDashboard: React.FC = () => {
               data={data.exclusoes} currentPage={currentPages.exclusoes} pageSize={DASHBOARD_PAGE_SIZE}
               onPageChange={handlePageChange("exclusoes")} onShowDetails={showModal}
             />
-          </Row>
+            {/* Nova box de Indicações (não-dono) - usa mesmo PendingListCard para exibir, mas com handler distinto */}
+            <PendingListCard
+              title="Indicações" icon={<UserAddOutlined style={{ color: "#fa8c16" }} />}
+              data={[]} currentPage={1} pageSize={DASHBOARD_PAGE_SIZE}
+              onPageChange={() => {}} onShowDetails={showIndicationModal}
+            />
+           </Row>
         </Spin>
 
         <LocalDetailsModal
@@ -133,6 +143,16 @@ const AdminDashboard: React.FC = () => {
           primaryColor={COLORS.primary} onClose={() => setModalVisible(false)}
           onRejectClick={() => setIsRejectModalVisible(true)} onEditClick={() => setIsEditModalVisible(true)}
           onApproveDirect={() => handleAction("approve")}
+        />
+
+        <IndicationDetailsModal
+          visible={indicationModalVisible}
+          selectedItem={selectedIndication}
+          isActionLoading={isActionLoading}
+          primaryColor={COLORS.primary}
+          onClose={() => setIndicationModalVisible(false)}
+          onRejectClick={() => { /* comportamento específico de recusar indicação */ }}
+          onApproveDirect={() => { /* comportamento específico de aprovar indicação */ }}
         />
 
         {isEditModalVisible && (

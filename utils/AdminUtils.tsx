@@ -22,6 +22,7 @@ export const fieldConfig: Record<string, { label: string; order: number; group: 
   logoUrl: { label: "Logo Atual", order: 20, group: "info" },
   logo: { label: "Nova Logo", order: 21, group: "info" },
   localImg: { label: "Portfólio / Imagens", order: 22, group: "info" },
+  locaisImg: { label: "Portfólio / Imagens", order: 22, group: "info" },
   
   alvaraFuncionamentoUrl: { label: "Alvará de Funcionamento", order: 23, group: "info" },
   alvaraVigilanciaUrl: { label: "Alvará da Vigilância", order: 24, group: "info" },
@@ -76,8 +77,19 @@ export const renderValue = (key: string, value: any): React.ReactNode => {
   }
 
   // Imagens e Documentos
-  if (["localImg", "imagens", "produtosImg"].includes(key) && Array.isArray(value)) {
-    const imagesUrls = value.map(item => getFullImageUrl(typeof item === "string" ? item : item.url)).filter(Boolean);
+  if (["localImg", "imagens", "locaisImg"].includes(key) && Array.isArray(value)) {
+    const extractUrl = (item: any) => {
+      if (!item) return "";
+      if (typeof item === "string") return item;
+      if (typeof item === "object") {
+        return (
+          item.url || item.path || item.src || item.image || item.file ||
+          (item.attributes && (item.attributes.url || item.attributes.path)) || ""
+        );
+      }
+      return "";
+    };
+    const imagesUrls = value.map(item => getFullImageUrl(extractUrl(item))).filter(Boolean);
     return (
       <Image.PreviewGroup>
         <Row gutter={[8, 8]}>

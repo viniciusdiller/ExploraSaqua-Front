@@ -187,16 +187,44 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess, type }) => {
   const handleRegisterSubmit = async (values: any) => {
     setLoading(true);
     try {
+      // Se latitude/longitude não foram preenchidos pelo usuário (ou pelo mapa), tentamos geocodificar pelo endereço
+      let latitude = values.latitude;
+      let longitude = values.longitude;
+      const endereco = values.endereco;
+
+      if ((latitude === undefined || latitude === null || latitude === "" || longitude === undefined || longitude === null || longitude === "") && endereco) {
+        try {
+          const query = endereco.toLowerCase().includes("saquarema") ? endereco : `${endereco}, Saquarema, RJ, Brasil`;
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=1`,
+          );
+          const data = await response.json();
+
+          if (data && data.length > 0) {
+            latitude = parseFloat(data[0].lat);
+            longitude = parseFloat(data[0].lon);
+            // Atualiza o formulário para que o usuário veja os valores (e para consistência)
+            form.setFieldsValue({ latitude, longitude });
+            toast.success("Coordenadas preenchidas automaticamente a partir do endereço.");
+          } else {
+            message.warning("Não foi possível obter coordenadas a partir do endereço informado. Ajuste o pino no mapa.");
+          }
+        } catch (error) {
+          console.error("Erro ao tentar geocodificar o endereço:", error);
+          message.warning("Erro ao buscar coordenadas. Você pode ajustar a posição no mapa antes de enviar.");
+        }
+      }
+
       const formData = new FormData();
 
-const cleanCPF = values.cpfResponsavel.replace(/\D/g, "");
-const cleanPhoneLocal = values.contatoLocal?.replace(/\D/g, "") || "";
-const cleanPhoneResp = values.contatoResponsavel?.replace(/\D/g, "") || "";
+      const cleanCPF = values.cpfResponsavel.replace(/\D/g, "");
+      const cleanPhoneLocal = values.contatoLocal?.replace(/\D/g, "") || "";
+      const cleanPhoneResp = values.contatoResponsavel?.replace(/\D/g, "") || "";
 
-formData.append("cpfResponsavel", cleanCPF);
-formData.append("contatoLocal", cleanPhoneLocal);
-formData.append("contatoResponsavel", cleanPhoneResp);
-formData.append("emailContato", values.emailContato);
+      formData.append("cpfResponsavel", cleanCPF);
+      formData.append("contatoLocal", cleanPhoneLocal);
+      formData.append("contatoResponsavel", cleanPhoneResp);
+      formData.append("emailContato", values.emailContato);
 
       const camposTexto = [
         "nomeLocal",
@@ -215,8 +243,11 @@ formData.append("emailContato", values.emailContato);
       ];
 
       camposTexto.forEach((key) => {
-        if (values[key] !== undefined && values[key] !== null) {
-          formData.append(key, String(values[key]));
+        let val: any = values[key as keyof typeof values];
+        if (key === "latitude") val = latitude;
+        if (key === "longitude") val = longitude;
+        if (val !== undefined && val !== null && val !== "") {
+          formData.append(key, String(val));
         }
       });
 

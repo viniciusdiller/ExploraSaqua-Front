@@ -1,5 +1,5 @@
 import React from "react";
-import { Form, Input, Select, Rate, Typography, Spin } from "antd";
+import { Form, Input, Typography, Spin } from "antd";
 import dynamic from "next/dynamic";
 import "react-quill/dist/quill.snow.css";
 
@@ -12,7 +12,6 @@ const ReactQuill = dynamic(() => import("react-quill"), {
 
 const { Title } = Typography;
 const { TextArea } = Input;
-const { Option } = Select;
 
 const quillModules = {
   toolbar: [
@@ -37,29 +36,21 @@ export const LocalDetails: React.FC<LocalDetailsProps> = ({ colors }) => {
         Detalhes
       </Title>
 
-      <Form.Item name="descricaoDiferencial" label="Briefing (Resumo)" rules={[{ required: true }]}>
-        <TextArea rows={2} maxLength={150} showCount />
-      </Form.Item>
-
-      <Form.Item name="descricao" label="Descrição Completa" rules={[{ required: true }]} className="quill-editor-container">
+      <Form.Item
+        name="descricao"
+        label="Descrição Completa"
+        rules={[{ required: true, message: "A descrição completa é obrigatória." }]}
+        className="quill-editor-container"
+      >
         <ReactQuill
           theme="snow"
           modules={quillModules}
           placeholder="Descreva o local em detalhes..."
-          style={{ minHeight: "10px" }}
+          style={{ minHeight: 120 }}
         />
-      </Form.Item>
-
-      <Form.Item name="venceuPspe" label="Venceu o Prêmio PSPE?" rules={[{ required: true, message: "Selecione uma opção" }]}>
-        <Select placeholder="Selecione uma opção">
-          <Option value={true}>Sim</Option>
-          <Option value={false}>Não</Option>
-        </Select>
-      </Form.Item>
-
-      <Form.Item name="escala" label="Nota de Impacto (0-10)" help="Nota de impacto fornecida pelo usuário no cadastro.">
-        <Rate count={10} disabled />
       </Form.Item>
     </>
   );
 };
+
+export default LocalDetails;

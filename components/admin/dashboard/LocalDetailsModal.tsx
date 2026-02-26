@@ -40,12 +40,18 @@ const LocalDetailsModal: React.FC<LocalDetailsModalProps> = ({
       oficio: { oldKey: "oficioUrl", labelKey: "oficio" },
       alvaraFuncionamento: { oldKey: "alvaraFuncionamentoUrl", labelKey: "alvaraFuncionamentoUrl" },
       alvaraVigilancia: { oldKey: "alvaraVigilanciaUrl", labelKey: "alvaraVigilanciaUrl" },
+      // Suporte para variações enviadas pelo backend (ex: 'locaisImg')
+      locaisImg: { oldKey: "localImg", labelKey: "localImg" },
     };
+    // índice com chaves em lowercase para corresponder variações de caixa
+    const keyMapLower: Record<string, { oldKey: string; labelKey: string }> = Object.fromEntries(
+      Object.entries(keyMap).map(([k, v]) => [k.toLowerCase(), v])
+    );
 
     const diffDataAll = Object.entries(selectedItem.dados_atualizacao)
       .filter(([key]) => !keysToFilter.includes(key))
       .map(([key, newValue]) => {
-        const mapping = keyMap[key];
+        const mapping = keyMap[key] || keyMapLower[(key as string).toLowerCase()];
         const oldKey = mapping ? mapping.oldKey : key;
         const labelKey = mapping ? mapping.labelKey : key;
         const oldValue = (selectedItem as any)[oldKey];
@@ -75,12 +81,33 @@ const LocalDetailsModal: React.FC<LocalDetailsModalProps> = ({
     );
   };
 
-  // Separação das entradas pelos seus grupos (definidos lá no AdminUtils.tsx)
-  const allEntries = Object.entries(selectedItem).filter(([key]) => !["dados_atualizacao", "logoUrl", "localImg", "status"].includes(key) && fieldConfig[key]).sort(([keyA], [keyB]) => (fieldConfig[keyA]?.order ?? 999) - (fieldConfig[keyB]?.order ?? 999));
+  // Exclui campos de portfólio para evitar renderização duplicada (portfólio já é renderizado separadamente)
+  const allEntries = Object.entries(selectedItem)
+    .filter(([key]) => !["dados_atualizacao", "logoUrl", "localImg", "locaisImg", "imagens", "produtosImg", "status"].includes(key) && fieldConfig[key])
+    .sort(([keyA], [keyB]) => (fieldConfig[keyA]?.order ?? 999) - (fieldConfig[keyB]?.order ?? 999));
   
   const identificacaoEntries = allEntries.filter(([key]) => fieldConfig[key]?.group === "identificacao");
   const infoEntries = allEntries.filter(([key]) => fieldConfig[key]?.group === "info");
   const metaEntries = allEntries.filter(([key]) => fieldConfig[key]?.group === "meta"); // <-- Novo grupo de Metadados!
+
+  // Determina o portfólio considerando possíveis variações de chave enviadas pelo backend
+  const getPortfolioFromItem = (item: any) => {
+    if (!item || typeof item !== 'object') return [];
+    const candidates = ["locaisimg", "produtosimg", "localimg", "localimages", "localimages", "imagens", "images", "localimages"];
+    // procura chaves exatas (prioridade explícita)
+    if (Array.isArray(item.locaisImg) && item.locaisImg.length > 0) return item.locaisImg;
+    if (Array.isArray(item.localImg) && item.localImg.length > 0) return item.localImg;
+    if (Array.isArray(item.imagens) && item.imagens.length > 0) return item.imagens;
+    // procura por variações de nome (case-insensitive)
+    for (const k of Object.keys(item)) {
+      if (typeof k !== 'string') continue;
+      const lk = k.toLowerCase();
+      if (candidates.includes(lk) && Array.isArray(item[k]) && item[k].length > 0) return item[k];
+    }
+    return [];
+  };
+
+  const portfolio = getPortfolioFromItem(selectedItem);
 
   return (
     <Modal
@@ -115,15 +142,9 @@ const LocalDetailsModal: React.FC<LocalDetailsModalProps> = ({
         )}
 
         {/* Renderiza o Portfólio/Imagens se existirem */}
-        {((selectedItem as any).produtosImg?.length > 0 || 
-          (selectedItem as any).localImg?.length > 0 || 
-          (selectedItem as any).imagens?.length > 0) && (
+        {(portfolio.length > 0) && (
             <Descriptions.Item label="Portfólio / Imagens">
-              {renderValue("produtosImg", 
-                (selectedItem as any).produtosImg || 
-                (selectedItem as any).localImg || 
-                (selectedItem as any).imagens
-              )}
+              {renderValue("locaisImg", portfolio)}
             </Descriptions.Item>
         )}
 
@@ -146,8 +167,8 @@ const LocalDetailsModal: React.FC<LocalDetailsModalProps> = ({
         </>
       )}
 
-      {renderDiffTable(StatusLocal.PENDENTE_EXCLUSAO, "error", "Solicitação de Exclusão", ["localId", "confirmacao"])}
-      {renderDiffTable(StatusLocal.PENDENTE_ATUALIZACAO, "info", "Dados para Atualizar", ["motivoExclusao"])}
+      {renderDiffTable(StatusLocal.PENDENTE_EXCLUSAO, "error", "Solicitação de Exclusão", ["localId", "confirmacao"]) }
+      {renderDiffTable(StatusLocal.PENDENTE_ATUALIZACAO, "info", "Dados para Atualizar", ["motivoExclusao"]) }
     </Modal>
   );
 };

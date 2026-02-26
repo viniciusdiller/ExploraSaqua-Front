@@ -1,18 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Loader2,
-  Globe,
-  Instagram,
-  SearchX,
-  CalendarDays,
-  Share2,
-  Link as LinkIcon,
-  MapPin,
-  Navigation,
-} from "lucide-react";
+import { ArrowLeft, Loader2, Globe, Instagram, SearchX, CalendarDays, Share2, Link as LinkIcon, MapPin, Navigation, Check } from "lucide-react";
 import GoogleMapEmbed from "@/components/map/GoogleMapEmbed";
 import React, { useState, useEffect, useRef, Suspense, useMemo } from "react";
 import { TiltImage } from "@/components/ui/TiltImage";
@@ -173,6 +162,7 @@ function LocalPageContent() {
   const [local, setLocal] = useState<Local | null>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [visited, setVisited] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [reviewToDelete, setReviewToDelete] = useState<number | null>(null);
@@ -317,6 +307,22 @@ function LocalPageContent() {
     setModalState({ open: true, parentId: null });
   };
 
+  const handleMarkVisited = async () => {
+    if (!user) {
+      toast.error("Faça login para registrar sua visita.");
+      return;
+    }
+    try {
+      // Placeholder: aqui você pode chamar o endpoint para registrar a visita
+      // Ex: await markVisitApi(local.localId, user.token);
+      setVisited(true);
+      toast.success("Registrado como 'Já visitei'. Pontos serão contabilizados futuramente.");
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error?.message || "Falha ao registrar visita.");
+    }
+  };
+
   const handleReplyClick = (parentId: number) => {
     if (!user) {
       toast.error("Faça login para responder.");
@@ -333,13 +339,39 @@ function LocalPageContent() {
 
   const rating = local.media || 0;
 
-  // Ajuste para localImg (array de objetos {id, url})
-  const portfolioImages = (local.localImg || []).map(
-    (image: any, index: number) => ({
-      id: `${local.localId}-${index}`,
-      img: `${API_URL}/${normalizeImagePath(image.url)}`,
-    }),
-  );
+  // Extrai portfólio a partir de várias chaves possíveis (locaisImg, localImg, produtosImg, imagens)
+  const getPortfolioFromLocal = (l: any): { id: string; img: string }[] => {
+    const arr = l?.locaisImg || l?.localImg || l?.produtosImg || l?.imagens || [];
+    if (!Array.isArray(arr)) return [];
+    const mapped = arr.map((item: any, index: number) => {
+      let url = "";
+      if (!item) return null;
+      if (typeof item === "string") url = item;
+      else if (typeof item === "object") {
+        url =
+          item.url ||
+          item.path ||
+          item.src ||
+          item.image ||
+          item.file ||
+          (item.attributes && (item.attributes.url || item.attributes.path)) ||
+          "";
+      }
+      if (!url) return null;
+      // Normaliza caminho local de uploads para a URL completa da API
+      if (!/^https?:\/\//i.test(url)) {
+        url = `${API_URL}/${normalizeImagePath(String(url))}`;
+      }
+      return { id: `${l.localId || l.id || 'local'}-${index}`, img: String(url) };
+    });
+
+    // Filtra nulls com guarda de tipo para garantir retorno tipado corretamente
+    return mapped.filter(
+      (v): v is { id: string; img: string } => v !== null && typeof v === "object"
+    );
+  };
+
+  const portfolioImages = getPortfolioFromLocal(local || {});
 
   const hasLocation = local?.latitude && local?.longitude;
 
@@ -447,26 +479,45 @@ function LocalPageContent() {
                       <div className="hidden sm:flex items-center text-sm text-gray-500 border-l-2 border-gray-300 pl-4">
                         <CalendarDays className="h-4 w-4 mr-2" />
                         <span>
-                          Membro desde{" "}
-                          {formatarDataParaMesAno(local.createdAt.toString())}
+                          Membro desde {formatarDataParaMesAno(local.createdAt.toString())}
                         </span>
                       </div>
                     )}
                   </div>
-                  {local.createdAt && (
-                    <div className="flex items-center text-sm text-gray-500 border-l-2 border-gray-300 pl-4 mt-4 sm:hidden justify-center">
-                      <CalendarDays className="h-4 w-4 mr-2" />
-                      <span>
-                        Membro desde{" "}
-                        {formatarDataParaMesAno(local.createdAt.toString())}
-                      </span>
-                    </div>
-                  )}
+                  {/* Botão 'Já visitei' adicionado na mesma box do nome do local (estilizado) */}
+                  <div className="mt-4 flex items-center gap-3 justify-center md:justify-start">
+                    <Button
+                      onClick={handleMarkVisited}
+                      className={`flex items-center gap-2 rounded-full px-4 py-2 font-semibold shadow-lg transition-transform transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                        visited
+                          ? "cursor-default"
+                          : "hover:shadow-2xl"
+                      }`}
+                      style={{
+                        background: visited
+                          ? "linear-gradient(90deg,#ecfdf5,#ecfdf5)"
+                          : "linear-gradient(90deg,#017DB9,#015f8d)",
+                        color: visited ? "#065f46" : "white",
+                        border: visited ? "1px solid #10b981" : "none",
+                      }}
+                      disabled={visited}
+                    >
+                      {visited ? (
+                        <>
+                          <Check className="w-4 h-4 text-green-600" />
+                          <span className="text-sm">Já registrado</span>
+                        </>
+                      ) : (
+                        <>
+                          <MapPin className="w-4 h-4 text-white/90" />
+                          <span className="text-sm">Já visitei</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
 
-                <div className="text-gray-700 leading-relaxed md:pl-2">
-                  <FormattedDescription text={local.descricao} />
-                </div>
+                {/* Descrição movida para a seção 'Sobre o local' — não renderizar aqui */}
 
                 <div className="hidden quinhentos:flex flex-col md:flex-row md:items-center md:justify-between gap-6 mt-6">
                   <div className="flex items-center gap-6">
@@ -674,16 +725,18 @@ function LocalPageContent() {
               >
                 Avaliações
               </h3>
-              <Button
-                onClick={handleNewReviewClick}
-                className="rounded-full px-6 font-semibold shadow-md transition-all hover:scale-105 mb-4"
-                style={{
-                  background: `linear-gradient(to bottom right, ${COLORS.primary}, ${COLORS.secondary})`,
-                  color: "white",
-                }}
-              >
-                Deixe sua avaliação
-              </Button>
+              <div className="flex flex-wrap gap-3 mb-4">
+                <Button
+                  onClick={handleNewReviewClick}
+                  className="rounded-full px-6 font-semibold shadow-md transition-all hover:scale-105"
+                  style={{
+                    background: `linear-gradient(to bottom right, ${COLORS.primary}, ${COLORS.secondary})`,
+                    color: "white",
+                  }}
+                >
+                  Deixe sua avaliação
+                </Button>
+              </div>
 
               <div className="space-y-4">
                 {reviews.length > 0 ? (

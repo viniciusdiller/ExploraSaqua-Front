@@ -21,8 +21,8 @@ export interface DadosAtualizacaoLocal {
 export interface Local {
   alvaraFuncionamentoUrl: string | null | undefined;
   nomeResponsavel: any;
-  // Identificadores e Sistema
-  localId: number; // Padronizado para localId (antes era id ou projetoId)
+  localImages?: { id: number; url: string }[];
+  localId: number; 
   slug: string;
   createdAt: string | Date;
   updatedAt: string | Date;

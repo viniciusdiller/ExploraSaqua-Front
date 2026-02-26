@@ -6,9 +6,8 @@ import { adminUpdateLocal } from "@/lib/api";
 import { Local } from "@/types/Interface-Local"; 
 import GerarCertificadoButton from "../GerarCertificadoButton";
 import "@/app/cadastro-locais/quill-styles.css";
-import { LocalAlerts } from "./AdminLocalModalSections/localAlerts";
+import { LocalAlerts } from "./AdminLocalModalSections/LocalAlerts";
 import { LocalMainInfo } from "./AdminLocalModalSections/LocalMainInfo";
-import { LocalContactLocation } from "./AdminLocalModalSections/LocalContactLocation";
 import { LocalDetails } from "./AdminLocalModalSections/LocalDetails";
 import { LocalImages } from "./AdminLocalModalSections/LocalImages";
 
@@ -58,7 +57,8 @@ const AdminLocalModal: React.FC<AdminLocalModalProps> = ({
   useEffect(() => {
     if (local) {
       let dataToEdit: any = { ...local };
-      const portfolioOriginal = (local as any).produtosImg || local.localImg || (local as any).imagens || [];
+      // Suporte a variações de chave que o backend pode retornar (locaisImg, localImg, imagens)
+      const portfolioOriginal = (local as any).locaisImg || local.localImg || (local as any).imagens || [];
 
       setCurrentLogo(local.logoUrl || null);
       setCurrentPortfolio(portfolioOriginal); 
@@ -73,8 +73,11 @@ const AdminLocalModal: React.FC<AdminLocalModalProps> = ({
           setCurrentLogo(local.dados_atualizacao.logo);
         }
 
+        // Também considera possíveis chaves alternativas em dados_atualizacao (imagens, locaisImg)
         if (local.dados_atualizacao.imagens && local.dados_atualizacao.imagens.length > 0) {
           setCurrentPortfolio(local.dados_atualizacao.imagens);
+        } else if (local.dados_atualizacao.locaisImg && local.dados_atualizacao.locaisImg.length > 0) {
+          setCurrentPortfolio(local.dados_atualizacao.locaisImg);
         }
         delete dataToEdit.outrasAlteracoes;
       } else {
@@ -102,27 +105,6 @@ const AdminLocalModal: React.FC<AdminLocalModalProps> = ({
       setLogoToDelete(false);
     }
   }, [local, visible, editForm]);
-
-  const handleAddressBlur = async () => {
-    const endereco = editForm.getFieldValue("endereco");
-    if (!endereco) return;
-
-    try {
-      message.loading({ content: "Buscando coordenadas pelo endereço...", key: "geocode" });
-      const query = `${endereco}, Saquarema, RJ, Brasil`;
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
-      const data = await response.json();
-
-      if (data && data.length > 0) {
-        editForm.setFieldsValue({ latitude: parseFloat(data[0].lat), longitude: parseFloat(data[0].lon) });
-        message.success({ content: "Coordenadas preenchidas com sucesso!", key: "geocode" });
-      } else {
-        message.warning({ content: "Não foi possível encontrar as coordenadas exatas deste endereço.", key: "geocode" });
-      }
-    } catch (error) {
-      message.error({ content: "Erro ao buscar coordenadas.", key: "geocode" });
-    }
-  };
 
   const getFullImageUrl = (path: string): string => {
     if (!path) return "";
@@ -211,12 +193,10 @@ const AdminLocalModal: React.FC<AdminLocalModalProps> = ({
               local={local} 
               getFullImageUrl={getFullImageUrl} 
               colors={COLORS} 
-            />
+              form={editForm}
+             />
             
-            <LocalContactLocation 
-              colors={COLORS} 
-              handleAddressBlur={handleAddressBlur} 
-            />
+            {/* Contato e Localização removidos deste modal (estão gerenciados em outro lugar) */}
             
             <LocalDetails colors={COLORS} />
             
