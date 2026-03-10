@@ -15,15 +15,15 @@ import TextArea from "antd/es/input/TextArea";
 interface SpringModalProps {
   isOpen: boolean;
   onClose: () => void;
-  projetoId: number;
+  localId: number;
   parentId: number | null; // <-- NOVO: Para saber se é uma resposta
-  onReviewSubmit: () => void;
+  onReviewSubmit?: (created?: any) => void;
 }
 
 const AvaliacaoModal = ({
   isOpen,
   onClose,
-  projetoId,
+  localId,
   parentId,
   onReviewSubmit,
 }: SpringModalProps) => {
@@ -76,16 +76,17 @@ const AvaliacaoModal = ({
     const reviewData = {
       nota: parentId ? null : rating, // Nota é null se for resposta
       comentario: comment,
-      projetoId: projetoId, // Enviado no nível raiz
+      localId: localId, // Compatibilidade: backend pode esperar `localId`
       parent_id: parentId, // Enviado no nível raiz
     };
 
     try {
-      await submitReview(reviewData, user?.token ?? "");
+      const created = await submitReview(reviewData, user?.token ?? "");
       toast.success(parentId ? "Resposta enviada!" : "Avaliação enviada!");
 
       if (onReviewSubmit) {
-        onReviewSubmit(); // Isso vai fechar o modal e recarregar os dados na página
+        // Passa a review criada para permitir atualização otimista
+        onReviewSubmit(created);
       }
     } catch (error: any) {
       console.error("Erro ao enviar:", error);
@@ -115,7 +116,7 @@ const AvaliacaoModal = ({
             animate={{ scale: 1, rotate: "0deg" }}
             exit={{ scale: 0, rotate: "0deg" }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-gradient-to-br from-[#D7386E] to-[#3C6AB2] text-white p-6 w-full max-w-lg shadow-xl cursor-default relative overflow-hidden rounded-2xl"
+            className="bg-gradient-to-br from-[#027db9] to-[#027a74] text-white p-6 w-full max-w-lg shadow-xl cursor-default relative overflow-hidden rounded-2xl"
           >
             {/* ... (ícone de estrela de fundo) ... */}
             <div className="relative z-10">

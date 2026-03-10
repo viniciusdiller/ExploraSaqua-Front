@@ -8,8 +8,9 @@ import { StarRating } from "@/app/categoria/[slug]/[nome]/page";
 
 // Tipos
 type User = {
-  usuarioId: number;
-  nomeCompleto: string;
+  usuarioId?: number;
+  nomeCompleto?: string;
+  nome?: string; // compatibilidade com formatos antigos
 };
 
 type Review = {
@@ -44,13 +45,18 @@ export const ReviewComment = ({
   const hasReplies = replyCount > 0;
   // --- FIM DA CORREÇÃO 1 ---
 
+  // Nome a ser exibido: prioriza 'nomeCompleto', cai para 'nome' ou 'Usuário'
+  const displayName = review.usuario?.nomeCompleto ?? review.usuario?.nome ?? "Usuário";
+  // Compatibilidade para comparação de IDs (pode vir como usuarioId ou id)
+  const reviewUserId = (review.usuario as any)?.usuarioId ?? (review.usuario as any)?.id ?? 0;
+
   return (
     <div className="flex gap-4 py-2 items-start">
       {/* Avatar */}
       <div className="w-12 h-12 bg-gray-200 rounded-full flex-shrink-0 my-top ml-4">
         <Image
           src="/avatars/default-avatar.png"
-          alt={`Avatar de ${review.usuario.nomeCompleto}`}
+          alt={`Avatar de ${displayName}`}
           width={48}
           height={48}
           className="rounded-full w-full h-full object-cover"
@@ -66,17 +72,16 @@ export const ReviewComment = ({
               allowReply ? " text-base" : "text-sm text-gray-500"
             }`}
           >
-            {review.usuario.nomeCompleto}
-            {currentUser &&
-              currentUser.usuarioId === review.usuario.usuarioId && (
-                <button
-                  onClick={() => onDeleteClick(review.avaliacoesId)}
-                  className="ml-3 text-sm text-red-500 hover:text-red-700"
-                  aria-label="Excluir seu comentário"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
+            {displayName}
+            {currentUser && currentUser.usuarioId === reviewUserId && (
+              <button
+                onClick={() => onDeleteClick(review.avaliacoesId)}
+                className="ml-3 text-sm text-red-500 hover:text-red-700"
+                aria-label="Excluir seu comentário"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </p>
         </div>
 

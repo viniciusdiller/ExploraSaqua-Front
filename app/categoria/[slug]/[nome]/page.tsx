@@ -12,6 +12,7 @@ import {
   deleteReview,
   formatarDataParaMesAno,
   registerShareClick,
+  getReviewsByLocal,
 } from "@/lib/api";
 import {
   Pagination,
@@ -64,6 +65,37 @@ const normalizeImagePath = (filePath: string) => {
   return normalized;
 };
 
+// Tenta endpoints alternativos para reviews (quando o endpoint público padrão não existir)
+const tryAlternativeReviewEndpoints = async (id: string) => {
+  if (!API_URL) return null;
+  const candidates = [
+    `/api/avaliacoes/local/${id}`,
+    `/api/avaliacoes/${id}`,
+    `/api/avaliacoes?localId=${id}`,
+    `/api/avaliacoes/locais/${id}`,
+  ];
+
+  for (const path of candidates) {
+    try {
+      const resp = await fetch(`${API_URL}${path}`);
+      if (!resp.ok) {
+        console.debug(`Tentativa ${path} respondeu ${resp.status}`);
+        continue;
+      }
+      const data = await resp.json();
+      // Normaliza formatos possíveis
+      if (Array.isArray(data)) return data;
+      if (data && Array.isArray(data.data)) return data.data;
+      if (data && Array.isArray(data.reviews)) return data.reviews;
+      if (data && Array.isArray(data.avaliacoes)) return data.avaliacoes;
+      if (data && Array.isArray((data as any).items)) return (data as any).items;
+    } catch (e) {
+      console.debug('Erro ao tentar endpoint alternativo', path, e);
+    }
+  }
+  return null;
+};
+
 // --- COMPONENTES VISUAIS ---
 
 const CustomStarIcon = ({
@@ -71,7 +103,9 @@ const CustomStarIcon = ({
 }: {
   fillPercentage?: string;
 }) => {
-  const uniqueId = `grad-${Math.random()}`;
+  // id seguro para uso em SVG (sem pontos)
+  const uniqueId = `grad-${Math.random().toString(36).slice(2)}`;
+  const pct = fillPercentage || "0%";
   return (
     <svg
       width="20"
@@ -85,35 +119,33 @@ const CustomStarIcon = ({
       className="text-yellow-400"
     >
       <defs>
-        <linearGradient id={uniqueId}>
-          <stop offset="0%" stopColor="currentColor" />
-          <stop offset={fillPercentage} stopColor="currentColor" />
-          <stop
-            offset={fillPercentage}
-            stopColor="transparent"
-            stopOpacity="1"
-          />
+        <linearGradient id={uniqueId} x1="0%" x2="100%">
+          <stop offset="0%" stopColor="#fbbf24" />
+          <stop offset={pct} stopColor="#fbbf24" />
+          <stop offset={pct} stopColor="transparent" stopOpacity="1" />
         </linearGradient>
       </defs>
       <polygon
         points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
         fill={`url(#${uniqueId})`}
-        stroke="currentColor"
+        stroke="#f59e0b"
       />
     </svg>
   );
 };
 
-export const StarRating = ({ rating }: { rating: number }) => {
+export const StarRating = ({ rating }: { rating: number | string | null | undefined }) => {
   const totalStars = 5;
+  // Garantir que rating seja número e esteja no intervalo [0, totalStars]
+  const numeric = Number(rating) || 0;
+  const value = Math.max(0, Math.min(totalStars, numeric));
+
   return (
     <div className="flex items-center">
-      {[...Array(totalStars)].map((_, index) => {
-        const starValue = index + 1;
-        let fillPercentage = "0%";
-        if (starValue <= rating) fillPercentage = "100%";
-        else if (starValue - 1 < rating && starValue > rating)
-          fillPercentage = `${(rating - index) * 100}%`;
+      {Array.from({ length: totalStars }).map((_, index) => {
+        // Calcula fração preenchida para a estrela atual (0 a 1)
+        const fillFraction = Math.max(0, Math.min(1, value - index));
+        const fillPercentage = `${Math.round(fillFraction * 100)}%`;
         return <CustomStarIcon key={index} fillPercentage={fillPercentage} />;
       })}
     </div>
@@ -203,7 +235,75 @@ function LocalPageContent() {
 
       if (localEncontrado && (localEncontrado.localId || localEncontrado.id)) {
         setLocal(localEncontrado);
-        setReviews(localEncontrado.avaliacoes || []);
+
+        // Primeiro, normaliza avaliações embutidas caso existam (fallback)
+        const rawAvaliacoesEmbedded = Array.isArray(localEncontrado.avaliacoes)
+          ? localEncontrado.avaliacoes
+          : [];
+
+        const normalizeReview = (r: any): any => {
+          if (!r) return null;
+          const usuario =
+            r.usuario ||
+            r.user ||
+            (r.usuarioId || r.userId
+              ? { usuarioId: r.usuarioId ?? r.userId, nomeCompleto: r.nome ?? r.nomeCompleto ?? "Usuário" }
+              : null) || { usuarioId: 0, nomeCompleto: "Usuário" };
+
+          const replies = r.respostas || r.replies || r.children || [];
+
+          return {
+            avaliacoesId: r.avaliacoesId ?? r.id ?? r._id ?? r.reviewId ?? 0,
+            comentario: r.comentario ?? r.texto ?? r.content ?? "",
+            nota: r.nota ?? r.rating ?? null,
+            usuario,
+            respostas: Array.isArray(replies) ? replies.map(normalizeReview).filter(Boolean) : [],
+          };
+        };
+
+        // Usa as avaliações embutidas como valor inicial
+        let avals = rawAvaliacoesEmbedded.map(normalizeReview).filter(Boolean).slice().reverse();
+
+        // Tenta buscar avaliações autoritativas do endpoint específico de reviews
+        try {
+          const idToUse = String(localEncontrado.localId ?? "");
+          if (!idToUse) throw new Error('localId ausente');
+          console.debug('Buscando avaliações via getReviewsByLocal, id=', idToUse);
+          const reviewsResp = await getReviewsByLocal(idToUse);
+          console.debug('Resposta getReviewsByLocal:', reviewsResp);
+          let reviewsList: any[] = [];
+
+          if (Array.isArray(reviewsResp)) reviewsList = reviewsResp;
+          else if (reviewsResp && Array.isArray(reviewsResp.data)) reviewsList = reviewsResp.data;
+          else if (reviewsResp && Array.isArray(reviewsResp.reviews)) reviewsList = reviewsResp.reviews;
+
+          // Se não obteve nada, tenta endpoints alternativos
+          if (!reviewsList || reviewsList.length === 0) {
+            const alt = await tryAlternativeReviewEndpoints(idToUse);
+            if (Array.isArray(alt) && alt.length > 0) {
+              reviewsList = alt;
+            }
+          }
+
+          if (reviewsList.length > 0) {
+            avals = reviewsList.map(normalizeReview).filter(Boolean).slice().reverse();
+          }
+        } catch (err) {
+          // Se falhar, tenta endpoints alternativos diretos
+          try {
+            const idToUse = String(localEncontrado.localId ?? "");
+            const alt = await tryAlternativeReviewEndpoints(idToUse);
+            if (Array.isArray(alt) && alt.length > 0) {
+              avals = alt.map(normalizeReview).filter(Boolean).slice().reverse();
+            } else {
+              console.warn("Não foi possível buscar avaliações via getReviewsByLocal nem por endpoints alternativos:", err);
+            }
+          } catch (e) {
+            console.warn("Fallback alternativo também falhou:", e);
+          }
+        }
+
+        setReviews(avals);
       } else {
         setLocal(null);
         setReviews([]);
@@ -332,12 +432,87 @@ function LocalPageContent() {
   };
 
   const closeModal = () => setModalState({ open: false, parentId: null });
-  const handleReviewSubmit = () => {
-    fetchLocalData();
+  // Aceita review criada para atualização otimista
+  const handleReviewSubmit = async (createdReview?: any) => {
+    setCurrentPage(1);
+    if (createdReview) {
+      // Pode vir no formato { data: review } ou { review: ... } ou diretamente
+      const actual = createdReview.data ?? createdReview.review ?? createdReview;
+
+      const normalizeReview = (r: any): any | null => {
+        if (!r) return null;
+        const usuario =
+          r.usuario ||
+          r.user ||
+          (r.usuarioId || r.userId
+            ? { usuarioId: r.usuarioId ?? r.userId, nomeCompleto: r.nome ?? r.nomeCompleto ?? "Usuário" }
+            : { usuarioId: 0, nomeCompleto: r.nome ?? r.nomeCompleto ?? "Usuário" });
+
+        const replies = r.respostas || r.replies || r.children || [];
+
+        return {
+          avaliacoesId: r.avaliacoesId ?? r.id ?? r._id ?? r.reviewId ?? Math.floor(Math.random() * 1000000),
+          comentario: r.comentario ?? r.texto ?? r.content ?? "",
+          nota: r.nota ?? r.rating ?? null,
+          usuario,
+          respostas: Array.isArray(replies) ? replies.map(normalizeReview).filter(Boolean) : [],
+        };
+      };
+
+      const nr = normalizeReview(actual);
+      if (nr) {
+        // Inserção otimista
+        setReviews((prev) => [nr, ...prev]);
+
+        // Tenta sincronizar com o backend para garantir persistência após reload
+        try {
+          const idToUse = String(local?.localId ?? "");
+          if (idToUse) {
+            console.debug('Sincronizando avaliações após criação, id=', idToUse);
+            const reviewsResp = await getReviewsByLocal(idToUse);
+            console.debug('Resposta sync getReviewsByLocal:', reviewsResp);
+            let reviewsList: any[] = [];
+
+            if (Array.isArray(reviewsResp)) reviewsList = reviewsResp;
+            else if (reviewsResp && Array.isArray(reviewsResp.data)) reviewsList = reviewsResp.data;
+            else if (reviewsResp && Array.isArray(reviewsResp.reviews)) reviewsList = reviewsResp.reviews;
+
+            if (reviewsList.length > 0) {
+              const normalized = reviewsList.map(normalizeReview).filter(Boolean).slice().reverse();
+              setReviews(normalized);
+            }
+          }
+        } catch (err) {
+          console.warn("Falha ao sincronizar avaliações após criação:", err);
+          // manter a inserção otimista caso falhe
+        }
+      }
+      closeModal();
+      return;
+    }
+
+    await fetchLocalData();
     closeModal();
   };
 
-  const rating = local.media || 0;
+  // Calcula rating: usa local.media quando disponível; caso contrário calcula a média das avaliações (fallback)
+  const computeAverageFromReviews = (arr: any[]) => {
+    if (!Array.isArray(arr) || arr.length === 0) return 0;
+    const nums = arr
+      .map((r) => Number(r?.nota ?? r?.rating ?? 0))
+      .filter((n) => !Number.isNaN(n) && n > 0);
+    if (nums.length === 0) return 0;
+    const sum = nums.reduce((a, b) => a + b, 0);
+    return sum / nums.length;
+  };
+
+  const rating = (() => {
+    const mediaRaw = local?.media ?? null;
+    const mediaNum = mediaRaw !== null ? Number(mediaRaw) : NaN;
+    if (!Number.isNaN(mediaNum) && mediaNum > 0) return Math.max(0, Math.min(5, mediaNum));
+    const avg = computeAverageFromReviews(reviews);
+    return Math.max(0, Math.min(5, avg));
+  })();
 
   // Extrai portfólio a partir de várias chaves possíveis (locaisImg, localImg, produtosImg, imagens)
   const getPortfolioFromLocal = (l: any): { id: string; img: string }[] => {
@@ -835,7 +1010,7 @@ function LocalPageContent() {
           isOpen={modalState.open}
           onClose={closeModal}
           parentId={modalState.parentId}
-          projetoId={local.localId} // ID atualizado
+          localId={local.localId} // ID atualizado
           onReviewSubmit={handleReviewSubmit}
         />
       )}
