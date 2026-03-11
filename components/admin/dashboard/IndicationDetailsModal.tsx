@@ -3,6 +3,10 @@ import { Modal, Button, Descriptions, Typography } from "antd";
 import { CheckOutlined, CloseOutlined } from "@ant-design/icons";
 import { Local } from "@/types/Interface-Local";
 import { fieldConfig, renderValue } from "@/utils/AdminUtils";
+import dynamic from "next/dynamic";
+import "react-quill/dist/quill.snow.css";
+
+const LocationPicker = dynamic(() => import("@/components/map/LocationPicker"), { ssr: false });
 
 const { Title } = Typography;
 
@@ -39,9 +43,19 @@ const IndicationDetailsModal: React.FC<IndicationDetailsModalProps> = ({
       <Descriptions bordered column={1} size="small">
         {infoKeys.map((key) => (
           selectedItem && (selectedItem as any)[key] !== undefined ? (
-            <Descriptions.Item key={key} label={fieldConfig[key]?.label ?? key}>{renderValue(key, (selectedItem as any)[key])}</Descriptions.Item>
+            <Descriptions.Item key={key} label={fieldConfig[key]?.label ?? key}>
+              <div style={{ marginTop: 6 }}>{renderValue(key, (selectedItem as any)[key])}</div>
+            </Descriptions.Item>
           ) : null
         ))}
+
+        {(selectedItem as any).latitude && (selectedItem as any).longitude && (
+          <Descriptions.Item key="map" label="Localização sugerida">
+            <div style={{ marginTop: 6, height: 160, width: "100%", borderRadius: 8, overflow: "hidden" }}>
+              <LocationPicker position={{ lat: Number((selectedItem as any).latitude), lng: Number((selectedItem as any).longitude) }} onLocationSelect={() => {}} />
+            </div>
+          </Descriptions.Item>
+        )}
       </Descriptions>
 
       <Title level={4} className="mt-6" style={{ color: primaryColor }}>Dados do Indicador</Title>
@@ -50,6 +64,7 @@ const IndicationDetailsModal: React.FC<IndicationDetailsModalProps> = ({
         <Descriptions.Item label="Contato do Indicador">{(selectedItem as any).indicadorContato || (selectedItem as any).contatoResponsavel || "Não informado"}</Descriptions.Item>
         <Descriptions.Item label="E-mail do Indicador">{(selectedItem as any).indicadorEmail || (selectedItem as any).emailResponsavel || "Não informado"}</Descriptions.Item>
       </Descriptions>
+
     </Modal>
   );
 };

@@ -10,7 +10,7 @@ import { StarRating } from "@/app/categoria/[slug]/[nome]/page";
 type User = {
   usuarioId?: number;
   nomeCompleto?: string;
-  nome?: string; // compatibilidade com formatos antigos
+  nome?: string; 
 };
 
 type Review = {
@@ -18,7 +18,7 @@ type Review = {
   comentario: string;
   nota: number | null;
   usuario: User;
-  respostas?: Review[]; // O '?' causa o erro, pois pode ser undefined
+  respostas?: Review[]; 
 };
 
 type ReviewCommentProps = {

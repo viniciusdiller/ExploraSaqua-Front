@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import Cadastro from "@/components/cadastro-locais/Cadastro";
 import Atualizacao from "@/components/cadastro-locais/Atualizacao";
 import Exclusao from "@/components/cadastro-locais/Exclusao";
+import CadastroIndicacao from "@/components/cadastro-locais/CadastroIndicacao";
 import "@/app/cadastro-locais/quill-styles.css";
 
 // --- DEFINIÇÃO DE CORES ORIGINAIS PRESERVADAS ---
@@ -147,9 +148,9 @@ const CadastroLocaisPage: React.FC = () => {
       case "register_choice":
         return renderRegisterChoice();
       case "register_owner":
-        return <Cadastro onSuccess={handleSuccess} type="owner" />; 
+        return <Cadastro onSuccess={handleSuccess} />; 
       case "register_indication":
-        return <Cadastro onSuccess={handleSuccess} type="indication" />; 
+        return <CadastroIndicacao mode="page" onSuccess={handleSuccess} />; 
       case "update":
         return <Atualizacao onSuccess={handleSuccess} />;
       case "delete":
@@ -209,10 +210,10 @@ const CadastroLocaisPage: React.FC = () => {
             </Button>
           )}
           {renderContent()}
-        </div>
-      </div>
-    </ConfigProvider>
-  );
-};
-
-export default CadastroLocaisPage;
+         </div>
+       </div>
+     </ConfigProvider>
+   );
+ };
+ 
+ export default CadastroLocaisPage;

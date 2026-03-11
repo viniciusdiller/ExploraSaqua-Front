@@ -36,8 +36,10 @@ const iconDefault = L.icon({
 interface LocationPickerProps {
   // Onde o mapa deve focar (ex: resultado da busca por texto)
   position: { lat: number; lng: number } | null;
-  // Função chamada quando o mapa define uma nova posição (clique ou GPS)
+  // Função chamada quando o mapa define uma posição (clique ou GPS)
   onLocationSelect: (lat: number, lng: number, address?: string) => void;
+  // Altura opcional (ex: '240px' ou '100%') para respeitar a div pai
+  height?: string;
 }
 
 // Sub-componente: Controla o movimento do mapa quando a prop 'position' muda
@@ -94,6 +96,7 @@ const ClickHandler = ({ onLocationSelect }: { onLocationSelect: any }) => {
 const LocationPicker: React.FC<LocationPickerProps> = ({
   position,
   onLocationSelect,
+  height,
 }) => {
   const [loadingLoc, setLoadingLoc] = useState(false);
 
@@ -137,7 +140,8 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   };
 
   return (
-    <div className="relative h-[400px] w-full rounded-lg overflow-hidden border border-gray-300 shadow-sm group">
+    // usa style height para respeitar o container pai; se não informado, 100%
+    <div className="relative w-full rounded-lg overflow-hidden border border-gray-300 shadow-sm group" style={{ height: height || "100%" }}>
       <MapContainer
         center={[centerToUse.lat, centerToUse.lng]}
         zoom={13}

@@ -11,7 +11,6 @@ import {
   Row,
   Col,
   Checkbox,
-  Divider,
 } from "antd";
 import {
   UploadOutlined,
@@ -23,7 +22,7 @@ import {
   InstagramOutlined,
   FileProtectOutlined,
   SafetyCertificateOutlined,
-  MailOutlined, // Novo ícone para Vigilância Sanitária
+  MailOutlined,
 } from "@ant-design/icons";
 import type { UploadFile } from "antd/es/upload/interface";
 import { toast } from "sonner";
@@ -93,10 +92,9 @@ const formatPhone = (value: string) => {
 
 interface CadastroProps {
   onSuccess: (title: string, subTitle: string) => void;
-  type: "owner" | "indication";
 }
 
-const Cadastro: React.FC<CadastroProps> = ({ onSuccess, type }) => {
+const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [searchingAddress, setSearchingAddress] = useState(false);
@@ -251,9 +249,10 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess, type }) => {
         }
       });
 
-      formData.append("tipoCadastro", type);
+      // sempre envia como cadastro de owner (proprietário)
+      formData.append("tipoCadastro", "owner");
 
-      // Uploads padrão
+      // Uploads apenas para proprietários
       if (logoFileList.length > 0 && logoFileList[0].originFileObj) {
         formData.append("logo", logoFileList[0].originFileObj);
       }
@@ -263,20 +262,17 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess, type }) => {
         }
       });
 
-
-      if (type === "owner") {
-        if (alvaraFileList.length > 0 && alvaraFileList[0].originFileObj) {
-          formData.append("alvara_funcionamento", alvaraFileList[0].originFileObj);
-        }
-        if (vigilanciaFileList.length > 0 && vigilanciaFileList[0].originFileObj) {
-          formData.append("vigilancia_sanitaria", vigilanciaFileList[0].originFileObj);
-        }
+      if (alvaraFileList.length > 0 && alvaraFileList[0].originFileObj) {
+        formData.append("alvara_funcionamento", alvaraFileList[0].originFileObj);
+      }
+      if (vigilanciaFileList.length > 0 && vigilanciaFileList[0].originFileObj) {
+        formData.append("vigilancia_sanitaria", vigilanciaFileList[0].originFileObj);
       }
 
       await cadastrarLocal(formData);
 
       onSuccess(
-        type === "owner" ? "Cadastro de Proprietário Enviado!" : "Indicação enviada com sucesso!",
+        "Cadastro de Proprietário Enviado!",
         "Sua solicitação será analisada pela nossa equipe administrativa.",
       );
     } catch (error: any) {
@@ -307,7 +303,7 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess, type }) => {
       autoComplete="off"
     >
       <section className="mb-8 border-t pt-4">
-        {commonTitle(type === "owner" ? "Responsável pelo Estabelecimento" : "Quem está indicando?")}
+        {commonTitle("Responsável pelo Estabelecimento")}
         <Row gutter={24}>
           <Col xs={24} md={12}>
             <Form.Item
@@ -400,8 +396,7 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess, type }) => {
     </section>
 
       {/* SEÇÃO DOCUMENTAÇÃO OBRIGATÓRIA (SÓ DONO) */}
-      {type === "owner" && (
-        <section className="mb-8 border-t pt-4 bg-blue-50/40 p-5 rounded-2xl border border-blue-100">
+      <section className="mb-8 border-t pt-4 bg-blue-50/40 p-5 rounded-2xl border border-blue-100">
           {commonTitle("Documentação Obrigatória")}
           <Row gutter={24}>
             <Col xs={24} md={12}>
@@ -438,7 +433,6 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess, type }) => {
             </Col>
           </Row>
         </section>
-      )}
 
       {/* SEÇÃO DADOS DO LOCAL */}
       <section className="mb-8 border-t pt-4">
@@ -528,7 +522,7 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess, type }) => {
             </Col>
           </Row>
 
-          <div className="mt-4 h-[350px]">
+          <div className="mt-4 h-[240px]">
             <LocationPicker
               position={mapPosition}
               onLocationSelect={handleMapLocationSelect}
@@ -551,61 +545,15 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess, type }) => {
             theme="snow"
             modules={quillModules}
             placeholder="Horários, diferenciais, história..."
+            value={form.getFieldValue("descricao") || ""}
+            onChange={(val: string) => {
+              form.setFieldsValue({ descricao: val });
+              setQuillTextLength(getQuillTextLength(val));
+            }}
           />
         </Form.Item>
 
-        {/* UPLOADS DE IMAGENS */}
-        <Row gutter={24}>
-          <Col xs={24} md={12}>
-            <Form.Item label="Logo (Capa)">
-              <Upload
-                customRequest={customUploadAction}
-                fileList={logoFileList}
-                onChange={({ fileList }) => setLogoFileList(fileList)}
-                listType="picture-card"
-                maxCount={1}
-                accept="image/*"
-              >
-                {logoFileList.length < 1 && (
-                  <div>
-                    <UploadOutlined />
-                    <div style={{ marginTop: 8 }}>Logo</div>
-                  </div>
-                )}
-              </Upload>
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={12}>
-            <Form.Item label="Galeria de Fotos">
-              <Upload
-                customRequest={customUploadAction}
-                fileList={portfolioFileList}
-                onChange={({ fileList }) => setPortfolioFileList(fileList)}
-                listType="picture-card"
-                multiple
-                maxCount={4}
-                accept="image/*"
-              >
-                {portfolioFileList.length < 4 && (
-                  <div>
-                    <UploadOutlined />
-                    <div style={{ marginTop: 8 }}>Fotos</div>
-                  </div>
-                )}
-              </Upload>
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Form.Item
-          name="confirmacao"
-          valuePropName="checked"
-          rules={[{ validator: (_, val) => val ? Promise.resolve() : Promise.reject("Confirme a veracidade.") }]}
-        >
-          <Checkbox>Declaro que as informações são verdadeiras.</Checkbox>
-        </Form.Item>
-      </section>
-
+      {/* Botão de envio posicionado logo abaixo da descrição para ficar visível */}
       <Form.Item>
         <Button
           type="primary"
@@ -613,12 +561,64 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess, type }) => {
           block
           loading={loading}
           size="large"
-          className="bg-[#017db9] hover:bg-[#016fa0]"
+          className="bg-[#017db9] hover:bg-[#016fa0] mb-6"
         >
-          {type === "owner" ? "Cadastrar meu Estabelecimento" : "Enviar Indicação"}
+          Cadastrar meu Estabelecimento
         </Button>
       </Form.Item>
-    </Form>
+
+      {/* UPLOADS DE IMAGENS */}
+      <Row gutter={24}>
+        <Col xs={24} md={12}>
+          <Form.Item label="Logo (Capa)">
+            <Upload
+              customRequest={customUploadAction}
+              fileList={logoFileList}
+              onChange={({ fileList }) => setLogoFileList(fileList)}
+              listType="picture-card"
+              maxCount={1}
+              accept="image/*"
+            >
+              {logoFileList.length < 1 && (
+                <div>
+                  <UploadOutlined />
+                  <div style={{ marginTop: 8 }}>Logo</div>
+                </div>
+              )}
+            </Upload>
+          </Form.Item>
+        </Col>
+        <Col xs={24} md={12}>
+          <Form.Item label="Galeria de Fotos">
+            <Upload
+              customRequest={customUploadAction}
+              fileList={portfolioFileList}
+              onChange={({ fileList }) => setPortfolioFileList(fileList)}
+              listType="picture-card"
+              multiple
+              maxCount={4}
+              accept="image/*"
+            >
+              {portfolioFileList.length < 4 && (
+                <div>
+                  <UploadOutlined />
+                  <div style={{ marginTop: 8 }}>Fotos</div>
+                </div>
+              )}
+            </Upload>
+          </Form.Item>
+        </Col>
+      </Row>
+
+      <Form.Item
+        name="confirmacao"
+        valuePropName="checked"
+        rules={[{ validator: (_, val) => val ? Promise.resolve() : Promise.reject("Confirme a veracidade.") }]}
+      >
+        <Checkbox>Declaro que as informações são verdadeiras.</Checkbox>
+      </Form.Item>
+    </section>
+  </Form>
   );
 };
 

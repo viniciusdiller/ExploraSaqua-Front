@@ -20,13 +20,13 @@ const DASHBOARD_PAGE_SIZE = 5;
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 interface PendingData {
-  cadastros: Local[]; atualizacoes: Local[]; exclusoes: Local[];
+  cadastros: Local[]; atualizacoes: Local[]; exclusoes: Local[]; indicacoes: Local[];
 }
 
 const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<PendingData>({ cadastros: [], atualizacoes: [], exclusoes: [] });
-  const [currentPages, setCurrentPages] = useState({ cadastros: 1, atualizacoes: 1, exclusoes: 1 });
+  const [data, setData] = useState<PendingData>({ cadastros: [], atualizacoes: [], exclusoes: [], indicacoes: [] });
+  const [currentPages, setCurrentPages] = useState({ cadastros: 1, atualizacoes: 1, exclusoes: 1, indicacoes: 1 });
   
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Local | null>(null);
@@ -47,8 +47,25 @@ const AdminDashboard: React.FC = () => {
     const token = localStorage.getItem("admin_token");
     if (!token) { message.error("Acesso negado."); return router.push("/admin/login"); }
     try {
-      setData(await getPendingAdminRequests(token));
-      setCurrentPages({ cadastros: 1, atualizacoes: 1, exclusoes: 1 });
+      const newData: any = await getPendingAdminRequests(token);
+      // compatibilidade: algumas APIs podem devolver 'indicacoes' dentro de outro campo
+      const incomingCadastros: any[] = newData.cadastros || [];
+      const incomingIndicacoes: any[] = newData.indicacoes || newData.indicadores || [];
+
+      // Separar indicações que porventura estejam dentro de 'cadastros'
+      const cadastrosFiltered = incomingCadastros.filter((it) => (it.tipoCadastro || it.tipo || it.type) !== "indication");
+      const indicacoesFromCadastros = incomingCadastros.filter((it) => (it.tipoCadastro || it.tipo || it.type) === "indication");
+
+      // Mesclar indicacoes vindas de campos diferentes sem duplicar (usando localId como chave)
+      const mergedIndicacoesMap: Record<string, any> = {};
+      [...incomingIndicacoes, ...indicacoesFromCadastros].forEach((it) => {
+        const key = String(it.localId || it.id || it._id || Math.random());
+        mergedIndicacoesMap[key] = it;
+      });
+      const mergedIndicacoes = Object.values(mergedIndicacoesMap);
+
+      setData({ cadastros: cadastrosFiltered, atualizacoes: newData.atualizacoes || [], exclusoes: newData.exclusoes || [], indicacoes: mergedIndicacoes });
+       setCurrentPages({ cadastros: 1, atualizacoes: 1, exclusoes: 1, indicacoes: 1 });
     } catch (error: any) {
       message.error(error.message || "Falha ao buscar dados.");
     } finally { setLoading(false); }
@@ -132,8 +149,8 @@ const AdminDashboard: React.FC = () => {
             {/* Nova box de Indicações (não-dono) - usa mesmo PendingListCard para exibir, mas com handler distinto */}
             <PendingListCard
               title="Indicações" icon={<UserAddOutlined style={{ color: "#fa8c16" }} />}
-              data={[]} currentPage={1} pageSize={DASHBOARD_PAGE_SIZE}
-              onPageChange={() => {}} onShowDetails={showIndicationModal}
+              data={data.indicacoes} currentPage={currentPages.indicacoes} pageSize={DASHBOARD_PAGE_SIZE}
+              onPageChange={handlePageChange("indicacoes")} onShowDetails={showIndicationModal}
             />
            </Row>
         </Spin>
