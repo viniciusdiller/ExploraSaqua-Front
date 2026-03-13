@@ -91,8 +91,8 @@ export default function RootLayout({
           locale={ptBR}
           theme={{
             token: {
-              colorPrimary: "#D7386E",
-
+              // cor principal global alterada conforme solicitado
+              colorPrimary: "#0b6d9c",
               colorLink: "#3C6AB2",
             },
           }}

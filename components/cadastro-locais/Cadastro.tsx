@@ -554,18 +554,6 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
         </Form.Item>
 
       {/* Botão de envio posicionado logo abaixo da descrição para ficar visível */}
-      <Form.Item>
-        <Button
-          type="primary"
-          htmlType="submit"
-          block
-          loading={loading}
-          size="large"
-          className="bg-[#017db9] hover:bg-[#016fa0] mb-6"
-        >
-          Cadastrar meu Estabelecimento
-        </Button>
-      </Form.Item>
 
       {/* UPLOADS DE IMAGENS */}
       <Row gutter={24}>
@@ -610,12 +598,26 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
         </Col>
       </Row>
 
+
       <Form.Item
         name="confirmacao"
         valuePropName="checked"
         rules={[{ validator: (_, val) => val ? Promise.resolve() : Promise.reject("Confirme a veracidade.") }]}
       >
         <Checkbox>Declaro que as informações são verdadeiras.</Checkbox>
+      </Form.Item>
+      
+      <Form.Item>
+        <Button
+          type="primary"
+          htmlType="submit"
+          block
+          loading={loading}
+          size="large"
+          className="bg-[#017db9] hover:bg-[#016fa0] mb-6"
+        >
+          Cadastrar meu Estabelecimento
+        </Button>
       </Form.Item>
     </section>
   </Form>

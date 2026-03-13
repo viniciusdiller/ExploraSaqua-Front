@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { Row, Spin, message, Grid, ConfigProvider, Modal, Input, Typography } from "antd";
-import { UserAddOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Row, Spin, message, Grid, ConfigProvider, Modal, Input, Typography, Button } from "antd";
+import { UserAddOutlined, EditOutlined, DeleteOutlined, MenuOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
-import { getPendingAdminRequests } from "@/lib/api";
+import Link from "next/link";
+import { getPendingAdminRequests, adminToggleLocalAtivo, adminDeleteLocal } from "@/lib/api";
 import { Local } from "@/types/Interface-Local";
 import AdminHeader from "@/components/admin/dashboard/AdminHeader";
 import PendingListCard from "@/components/admin/dashboard/PendingListCard";
@@ -79,12 +80,26 @@ const AdminDashboard: React.FC = () => {
     const token = localStorage.getItem("admin_token");
 
     try {
-      const fetchOptions: RequestInit = { method: "POST", headers: { Authorization: `Bearer ${token}` } };
       if (action === "reject") {
-        fetchOptions.headers = { ...fetchOptions.headers, "Content-Type": "application/json" };
-        fetchOptions.body = JSON.stringify({ motivoRejeicao: motivoRejeicao || "" });
+        // Rejeição: remover permanentemente do banco de dados
+        if (!token) throw new Error("Autenticação expirada.");
+        await adminDeleteLocal(selectedItem.localId, token);
+        message.success("Local excluído permanentemente.");
+
+        setData(prev => {
+          const newData = { ...prev };
+          (Object.keys(newData) as Array<keyof PendingData>).forEach(key => {
+            newData[key] = newData[key].filter(item => item.localId !== selectedItem.localId);
+          });
+          return newData;
+        });
+
+        setModalVisible(false); setIsRejectModalVisible(false); setSelectedItem(null); setRejectionReason("");
+        return;
       }
 
+      // Aprovado: comportamento existente
+      const fetchOptions: RequestInit = { method: "POST", headers: { Authorization: `Bearer ${token}` } };
       const response = await fetch(`${API_URL}/api/admin/${action}/${selectedItem.localId}`, fetchOptions);
       if (!response.ok) throw new Error((await response.json()).message || "Erro do servidor");
 
@@ -122,6 +137,20 @@ const AdminDashboard: React.FC = () => {
   const handlePageChange = (listKey: keyof PendingData) => (page: number) => setCurrentPages(prev => ({ ...prev, [listKey]: page }));
   const showModal = (item: Local) => { setSelectedItem(item); setModalVisible(true); };
   const showIndicationModal = (item: Local) => { setSelectedIndication(item); setIndicationModalVisible(true); };
+
+  // small menu state and outside-click handler
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (ev: MouseEvent) => {
+      if (!menuRef.current) return;
+      if (!(ev.target instanceof Node)) return;
+      if (!menuRef.current.contains(ev.target)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <ConfigProvider theme={{ token: { colorPrimary: COLORS.primary, colorLink: COLORS.primary, borderRadius: 8 } }}>

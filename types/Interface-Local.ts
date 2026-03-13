@@ -29,10 +29,13 @@ export interface Local {
   criadoPor: string;
 
   // Status e Administração
-status: "aprovado" | "pendente" | "pendente_atualizacao" | "rejeitado" | "pendente_exclusao";  
+  // Valores possíveis (conforme sua entity)
+  status: "pendente_aprovacao" | "ativo" | "inativo" | "pendente_atualizacao" | "pendente_exclusao" | "rejeitado";
   aprovado: boolean;
   dados_atualizacao?: DadosAtualizacaoLocal | null; // Para aprovação de edits
   oficioUrl?: string | null; // Mantido para burocracia/admin
+  // Flag de ativação (soft-delete)
+  active?: boolean;
 
   // Dados Principais
   nome: string;

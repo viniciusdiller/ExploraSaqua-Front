@@ -190,14 +190,54 @@ export const getPendingAdminRequests = (token: string) =>
   });
 
 export const getAllActiveLocal = async (token: string): Promise<any> => {
-  const response = await fetch(`${API_URL}/api/admin/locais-ativos`, {
+  // adiciona timestamp e força no-store para evitar caches intermediários e garantir que os dados venham do backend
+  const url = `${API_URL}/api/admin/locais-ativos?_=${Date.now()}`;
+  const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
+    cache: 'no-store',
   });
   if (!response.ok) {
     throw new Error("Falha ao buscar locais ativos");
   }
+  return response.json();
+};
+
+// Busca locais inativos usando a rota dedicada do backend
+export const getAllInactiveLocal = async (token: string): Promise<any> => {
+  const url = `${API_URL}/api/admin/locais-inativos?_=${Date.now()}`;
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error("Falha ao buscar locais inativos");
+  }
+
+  return response.json();
+};
+
+// Busca locais pelo campo `status` no backend (ex: 'ativo' ou 'inativo')
+export const getLocaisAdminByStatus = async (
+  status: 'ativo' | 'inativo',
+  token: string
+): Promise<any> => {
+  const url = `${API_URL}/api/admin/locais?status=${encodeURIComponent(status)}&_=${Date.now()}`;
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Falha ao buscar locais com status ${status}`);
+  }
+
   return response.json();
 };
 
@@ -270,13 +310,23 @@ export const adminExportLocais = async (token: string) => {
   return response.blob();
 };
 
-export const getDashboardStats = (token: string): Promise<any> =>
-  fetchApi("/api/admin/dashboard-stats", {
-    method: "GET",
+// Alterna o status ativo/inativo de um local (toggle)
+export const adminToggleLocalAtivo = async (id: number, token: string) => {
+  const response = await fetch(`${API_URL}/api/admin/local/${id}/ativo`, {
+    method: "PATCH",
     headers: {
+      "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
   });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Falha ao alternar status do local");
+  }
+
+  return response.json();
+};
 
 // ==========================================
 // UTILITÁRIOS E ANALYTICS
@@ -319,5 +369,17 @@ export function formatarDataParaMesAno(dateString: string): string {
 }
 
 export function getAdminStats(token: string) {
-  throw new Error("Function not implemented.");
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  return fetch(`${API_URL}/api/admin/indicadores`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }).then(async (res) => {
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || "Falha ao buscar indicadores");
+    }
+    return res.json();
+  });
 }
