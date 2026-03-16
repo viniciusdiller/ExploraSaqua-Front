@@ -159,6 +159,15 @@ const AdminDashboard: React.FC = () => {
           
           <AdminHeader isMobile={isMobile} primaryColor={COLORS.primary} />
 
+          {/* Botão rápido para Gerenciar Usuários */}
+          <div className="flex justify-end mb-6">
+            <Link href="/admin/users" passHref>
+              <Button type="primary" icon={<UserAddOutlined />} className="bg-[#0b6d9c] hover:!bg-[#09546f] border-[#0b6d9c] text-white">
+                Gerenciar Usuários
+              </Button>
+            </Link>
+          </div>
+
           <Row gutter={[16, 16]}>
             <PendingListCard
               title="Novos Cadastros" icon={<UserAddOutlined style={{ color: "#52c41a" }} />}

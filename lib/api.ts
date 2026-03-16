@@ -329,6 +329,58 @@ export const adminToggleLocalAtivo = async (id: number, token: string) => {
 };
 
 // ==========================================
+// ADMIN - USUÁRIOS (compatível com outro projeto)
+// ==========================================
+
+export const getAllUsers = (token: string, enable?: 0 | 1) => {
+  const qs = enable !== undefined ? `?enable=${encodeURIComponent(String(enable))}&_=${Date.now()}` : `?_=${Date.now()}`;
+  return fetchApi(`/api/admin/users${qs}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};
+
+export const adminUpdateUser = (id: number, data: any, token: string) =>
+  fetchApi(`/api/admin/users/${id}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+export const adminDeleteUser = (id: number, token: string) =>
+  fetchApi(`/api/admin/users/${id}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+export const adminChangeUserPassword = (
+  id: number,
+  newPassword: string,
+  token: string,
+) =>
+  fetchApi(`/api/admin/users/${id}/password`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ newPassword }),
+  });
+
+export const adminResendConfirmation = (id: number, token: string) =>
+  fetchApi(`/api/admin/users/${id}/resend-confirmation`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+// ==========================================
 // UTILITÁRIOS E ANALYTICS
 // ==========================================
 
