@@ -372,7 +372,7 @@ export const adminChangeUserPassword = (
     body: JSON.stringify({ newPassword }),
   });
 
-export const adminResendConfirmation = (id: number, token: string) =>
+export const adminResendConfirmation = (id: number | string, token: string) =>
   fetchApi(`/api/admin/users/${id}/resend-confirmation`, {
     method: "POST",
     headers: {

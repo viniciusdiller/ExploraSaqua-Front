@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,11 +14,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import Image from "next/image";
-import { loginUser } from "@/lib/api";
+import { loginUser, adminResendConfirmation } from "@/lib/api";
 import { AnimatePresence } from "framer-motion";
 import { Notification, NotificationType } from "@/components/ui/notification";
 import { useAuth } from "@/context/AuthContext";
-import { ArrowLeft, Loader2, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Loader2, Eye, EyeOff, RefreshCw } from "lucide-react";
 
 export default function LoginPage() {
   const [emailOrUsername, setEmailOrUsername] = useState("");
@@ -27,6 +27,27 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
+
+  // --- Estados para reenviar email de confirmação ---
+  const [showResendOption, setShowResendOption] = useState(false);
+  const [adminTokenInput, setAdminTokenInput] = useState("");
+  const [resendUserId, setResendUserId] = useState("");
+  const [isResending, setIsResending] = useState(false);
+
+  // Prefill do token admin caso já exista um usuário salvo no localStorage (ex: admin logado previamente)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.token) {
+          setAdminTokenInput(parsed.token);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   const addNotification = (text: string, type: "success" | "error") => {
     const newNotif: NotificationType = {
@@ -60,11 +81,24 @@ export default function LoginPage() {
     } catch (err: any) {
       const errorMessage = err?.response?.data?.message || err.message;
 
-      if (errorMessage.includes("Conta não ativada")) {
+      // Detecção mais tolerante de mensagens que indicam conta não ativada / não verificada
+      const errText = String(errorMessage || "");
+      // Regex mais abrangente para diferentes variações de mensagens indicando conta não ativada/confirmada
+      const accountNotActivated = /(conta|email).*(nao|não|ainda)?.*(ativ|verif|confirm)|não.*confirmad|nao.*confirmad|confirmad(o|a)|unconfirmed|not.*activated/i.test(
+        errText
+      );
+
+      if (accountNotActivated) {
         addNotification(
-          "Sua conta ainda não foi verificada. Por favor, confirme seu e-mail antes de entrar.",
+          "Sua conta ainda não foi verificada. Por favor, verifique seu e-mail.",
           "error",
         );
+        // Mostra opção de reenviar email de confirmação
+        setShowResendOption(true);
+        // tenta preencher automaticamente o campo de ID com o que o usuário digitou (se for numérico)
+        if (emailOrUsername && /^[0-9]+$/.test(emailOrUsername)) {
+          setResendUserId(emailOrUsername);
+        }
       } else {
         addNotification(
           "Email/usuário ou senha inválidos. Tente novamente.",
@@ -75,6 +109,48 @@ export default function LoginPage() {
       console.error(err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Função para chamar a API de reenvio de confirmação (tenta automático)
+  const handleResendConfirmation = async () => {
+    // identifica o usuário a partir do campo Email/Username do formulário ou do campo explícito (se preenchido)
+    const identifier = resendUserId || emailOrUsername;
+
+    if (!identifier) {
+      addNotification("Não foi possível identificar o usuário. Tente informar email/usuário no campo acima.", "error");
+      return;
+    }
+
+    // tenta obter token admin primeiro do localStorage (usuário admin já logado), senão do campo manual
+    let token = adminTokenInput;
+    try {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.token) token = parsed.token;
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    if (!token) {
+      addNotification("Token de admin não encontrado. Faça login como admin ou cole o token manualmente.", "error");
+      return;
+    }
+
+    setIsResending(true);
+    try {
+      // passa o identificador como string (backend aceitará id ou username se suportado)
+      await adminResendConfirmation(identifier, token);
+      addNotification("Email de confirmação reenviado com sucesso.", "success");
+      setShowResendOption(false);
+      setResendUserId("");
+    } catch (error: any) {
+      addNotification(error?.message || "Falha ao reenviar confirmação.", "error");
+      console.error(error);
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -204,6 +280,36 @@ export default function LoginPage() {
               </CardFooter>
             </form>
           </Card>
+
+          {/* Se a conta não foi ativada, mostra botão único para reenviar o e-mail de confirmação */}
+          {showResendOption && (
+            <div className="mt-4 p-4 bg-white border rounded-lg shadow-sm">
+              <p className="text-sm text-gray-700 mb-3">
+                Sua conta ainda não foi verificada. Clique em "Reenviar confirmação" para receber novamente o e‑mail de ativação.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleResendConfirmation}
+                  disabled={isResending}
+                  aria-label="Reenviar e-mail de confirmação"
+                  className={`ml-auto flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 rounded-full text-white font-medium shadow-lg transform transition-all duration-200 ${isResending ? "opacity-80 cursor-wait" : "hover:scale-105 hover:shadow-2xl"} bg-gradient-to-r from-[#0ea5d8] to-[#017DB9] focus:outline-none focus:ring-4 focus:ring-[#017DB9]/30 disabled:opacity-50`}
+                >
+                  {isResending ? (
+                    <>
+                      <Loader2 className="animate-spin w-4 h-4" />
+                      <span>Enviando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      <span>Reenviar confirmação</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="mt-4 text-center text-sm">
             <Link
