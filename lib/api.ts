@@ -28,8 +28,17 @@ async function fetchApi(path: string, options: RequestInit = {}) {
     headers,
   });
 
+  // Ler o body como texto e tentar parsear JSON de forma segura
   const text = await response.text();
-  const data = text ? JSON.parse(text) : {};
+  let data: any = {};
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      // Se não for JSON válido, manter o texto cru para usos futuros
+      data = text;
+    }
+  }
 
   if (!response.ok) {
     if (response.status === 401) {
@@ -42,8 +51,10 @@ async function fetchApi(path: string, options: RequestInit = {}) {
     }
 
     const errorMessage =
-      typeof data === "object" && data.message
-        ? data.message
+      typeof data === "object" && data && (data.message || data.error)
+        ? data.message || data.error
+        : typeof data === "string"
+        ? data
         : `API error: ${response.statusText}`;
     throw new Error(errorMessage);
   }
@@ -434,4 +445,64 @@ export function getAdminStats(token: string) {
     }
     return res.json();
   });
+}
+
+// Marca visita de um usuário a um local
+export const markVisit = (userId: number, localId: number, token: string) =>
+  fetchApi(`/api/users/${userId}/visits`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ localId }),
+  });
+
+// Busca o progresso do usuário (porcentagem de locais visitados)
+export const getUserProgress = (userId: number, token: string) =>
+  fetchApi(`/api/users/${userId}/progress`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+export async function hasUserVisited(userId: number, localId: number, token?: string) {
+  if (!userId || !localId) return false;
+  const url = `${process.env.NEXT_PUBLIC_API_URL || ""}/api/users/${userId}/visits/${localId}`;
+  try {
+    const resp = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    // 404 significa que não existe registro dessa visita
+    if (resp.status === 404) return false;
+
+    // Se não OK, considerar falso (defensivo)
+    if (!resp.ok) return false;
+
+    // Tentar parse seguro
+    const text = await resp.text();
+    if (!text) return false;
+    try {
+      const data = JSON.parse(text);
+      if (typeof data === "object" && data !== null) {
+        if (typeof data.visited !== "undefined") return Boolean(data.visited);
+        if (typeof data.alreadyVisited !== "undefined") return Boolean(data.alreadyVisited);
+        // se backend retornar sucesso sem campo, considerar true
+        return true;
+      }
+    } catch (e) {
+      // resposta não-JSON, mas status OK => considerar true
+      return true;
+    }
+
+    return false;
+  } catch (e) {
+    console.warn("Erro em hasUserVisited:", e);
+    return false;
+  }
 }

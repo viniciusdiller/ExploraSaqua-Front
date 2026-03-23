@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import FaleConoscoButton from "@/components/FaleConoscoButton";
+import { useAuth } from "@/context/AuthContext";
+import { getUserProgress } from "@/lib/api";
 import { MapPin, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +41,7 @@ const getDistanceFromLatLonInM = (
 const deg2rad = (deg: number) => deg * (Math.PI / 180);
 
 export default function EspacoExplorePage() {
+  const { user } = useAuth();
   const [unlockedLocais, setUnlockedLocais] = useState<string[]>([]);
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{
@@ -46,6 +49,8 @@ export default function EspacoExplorePage() {
     message: string;
     type: "success" | "error";
   } | null>(null);
+  const [backendProgress, setBackendProgress] = useState<number | null>(null);
+  const [isFetchingBackendProgress, setIsFetchingBackendProgress] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("explora_saqua_badges");
@@ -53,6 +58,29 @@ export default function EspacoExplorePage() {
       setUnlockedLocais(JSON.parse(saved));
     }
   }, []);
+
+  // Buscar progresso do usuário no backend quando estiver logado
+  useEffect(() => {
+    const fetchProgress = async () => {
+      if (!user || !user.token) return;
+      const userId = Number(user.usuarioId ?? 0);
+      if (!userId) return;
+      try {
+        setIsFetchingBackendProgress(true);
+        const resp = await getUserProgress(userId, user.token);
+        if (resp && typeof resp.progressPercentage !== "undefined") {
+          const pct = Number(resp.progressPercentage);
+          if (!Number.isNaN(pct)) setBackendProgress(pct);
+        }
+      } catch (err) {
+        console.warn("Erro ao buscar progresso do usuário (backend):", err);
+      } finally {
+        setIsFetchingBackendProgress(false);
+      }
+    };
+
+    fetchProgress();
+  }, [user]);
 
   // Agora tipamos usando a interface LocalDesafio que criamos
   const handleCheckIn = (local: LocalDesafio) => {
@@ -114,9 +142,11 @@ export default function EspacoExplorePage() {
     );
   };
 
-  const progress = Math.round(
+  const localProgress = Math.round(
     (unlockedLocais.length / LOCAIS_DESAFIO.length) * 100,
   );
+  // Se o backend fornecer progresso, mostrar ele; caso contrário usar o localProgress
+  const progress = backendProgress !== null ? Math.round(backendProgress) : localProgress;
   const isCompleted = unlockedLocais.length === LOCAIS_DESAFIO.length;
 
   return (

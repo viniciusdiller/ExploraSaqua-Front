@@ -13,6 +13,9 @@ import {
   formatarDataParaMesAno,
   registerShareClick,
   getReviewsByLocal,
+  markVisit,
+  getUserProgress,
+  hasUserVisited,
 } from "@/lib/api";
 import {
   Pagination,
@@ -196,7 +199,36 @@ function LocalPageContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [visited, setVisited] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isMarkingVisit, setIsMarkingVisit] = useState(false);
+  const [progressPercentage, setProgressPercentage] = useState<number | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  // Chave usada para guardar locais visitados no localStorage (fallback quando backend não informa se o usuário já visitou)
+  const VISITED_STORAGE_KEY = "visitedLocals";
+
+  const getVisitedLocalsFromStorage = (): number[] => {
+    try {
+      if (typeof window === "undefined") return [];
+      const raw = localStorage.getItem(VISITED_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      console.warn('Erro lendo visitedLocals do localStorage', e);
+      return [];
+    }
+  };
+
+  const addVisitedLocalToStorage = (id: number) => {
+    try {
+      if (typeof window === "undefined") return;
+      const arr = getVisitedLocalsFromStorage();
+      if (!arr.includes(id)) {
+        arr.push(id);
+        localStorage.setItem(VISITED_STORAGE_KEY, JSON.stringify(arr));
+      }
+    } catch (e) {
+      console.warn('Erro ao salvar visitedLocals no localStorage', e);
+    }
+  };
+
   const [reviewToDelete, setReviewToDelete] = useState<number | null>(null);
   const [descricaoExpandida, setDescricaoExpandida] = useState(false);
   const [modalState, setModalState] = useState<{
@@ -235,6 +267,46 @@ function LocalPageContent() {
 
       if (localEncontrado && (localEncontrado.localId || localEncontrado.id)) {
         setLocal(localEncontrado);
+
+        // Inicializa o estado 'visited' a partir de campos locais e do backend quando o usuário estiver logado.
+        try {
+          let initialVisited = false;
+
+          // Flags possíveis no objeto retornado pelo endpoint de local
+          if (
+            localEncontrado.visited ||
+            localEncontrado.userVisited ||
+            localEncontrado.jaVisitei ||
+            localEncontrado.alreadyVisited ||
+            (typeof localEncontrado.visitas === 'number' && localEncontrado.visitas > 0)
+          ) {
+            initialVisited = true;
+          }
+
+          // Se usuário logado, preferir confirmação do backend para garantir consistência
+          if (!initialVisited && user?.token && user?.usuarioId) {
+            try {
+              const didVisit = await hasUserVisited(Number(user.usuarioId), Number(localEncontrado.localId ?? localEncontrado.id ?? 0), user.token);
+              if (didVisit) initialVisited = true;
+            } catch (e) {
+              console.warn('Erro ao checar visita no backend:', e);
+            }
+          }
+
+          // fallback localStorage quando backend não disponível ou usuário não logado
+          if (!initialVisited && typeof window !== "undefined") {
+            const stored = getVisitedLocalsFromStorage();
+            const idToCheck = Number(localEncontrado.localId ?? localEncontrado.id ?? 0);
+            if (idToCheck && stored.includes(idToCheck)) {
+              initialVisited = true;
+            }
+          }
+
+          setVisited(initialVisited);
+        } catch (e) {
+          console.warn('Erro ao inicializar estado visited:', e);
+          setVisited(false);
+        }
 
         // Primeiro, normaliza avaliações embutidas caso existam (fallback)
         const rawAvaliacoesEmbedded = Array.isArray(localEncontrado.avaliacoes)
@@ -412,14 +484,52 @@ function LocalPageContent() {
       toast.error("Faça login para registrar sua visita.");
       return;
     }
+    if (!local) {
+      toast.error("Local inválido.");
+      return;
+    }
+
+    const userId = Number(user.usuarioId ?? 0);
+    const localId = Number(local.localId ?? 0);
+
+    if (!userId || !localId || !user.token) {
+      toast.error("Dados do usuário/local ausentes.");
+      return;
+    }
+
     try {
-      // Placeholder: aqui você pode chamar o endpoint para registrar a visita
-      // Ex: await markVisitApi(local.localId, user.token);
+      setIsMarkingVisit(true);
+      const resp = await markVisit(userId, localId, user.token);
+
+      // sucesso ao registrar visita
+      toast.success(resp?.message || "Visita registrada com sucesso.");
       setVisited(true);
-      toast.success("Registrado como 'Já visitei'. Pontos serão contabilizados futuramente.");
+      // atualiza objeto local para refletir que o usuário já visitou esse local
+      setLocal((prev) => (prev ? { ...prev, visited: true } : prev));
+      // persiste a informação no localStorage para manter o botão desabilitado em navegações
+      try {
+        addVisitedLocalToStorage(Number(localId));
+      } catch (e) {
+        console.warn('Não foi possível salvar visitedLocals:', e);
+      }
+
+      // Agora buscar o progresso atualizado
+      try {
+        const progressResp = await getUserProgress(userId, user.token);
+        if (progressResp && typeof progressResp.progressPercentage !== "undefined") {
+          const pct = Number(progressResp.progressPercentage);
+          if (!Number.isNaN(pct)) {
+            setProgressPercentage(pct);
+          }
+        }
+      } catch (err) {
+        console.warn("Falha ao buscar progresso do usuário:", err);
+      }
     } catch (error: any) {
       console.error(error);
       toast.error(error?.message || "Falha ao registrar visita.");
+    } finally {
+      setIsMarkingVisit(false);
     }
   };
 
@@ -675,9 +785,14 @@ function LocalPageContent() {
                         color: visited ? "#065f46" : "white",
                         border: visited ? "1px solid #10b981" : "none",
                       }}
-                      disabled={visited}
+                      disabled={visited || isMarkingVisit}
                     >
-                      {visited ? (
+                      {isMarkingVisit ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin text-white/90" />
+                          <span className="text-sm">Registrando...</span>
+                        </>
+                      ) : visited ? (
                         <>
                           <Check className="w-4 h-4 text-green-600" />
                           <span className="text-sm">Já registrado</span>
@@ -689,6 +804,11 @@ function LocalPageContent() {
                         </>
                       )}
                     </Button>
+                    {progressPercentage !== null && (
+                      <span className="text-sm text-gray-600 ml-2">
+                        Seu progresso: {progressPercentage.toFixed(2)}%
+                      </span>
+                    )}
                   </div>
                 </div>
 

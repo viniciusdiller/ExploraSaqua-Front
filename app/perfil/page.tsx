@@ -41,6 +41,7 @@ import {
   updateUserProfile,
   changeUserPassword,
   deleteUserAccount,
+  getUserProgress,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { contemPalavrao } from "@/lib/profanityFilter";
@@ -62,6 +63,9 @@ export default function PerfilPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  const [progressPercentage, setProgressPercentage] = useState<number | null>(null);
+  const [isFetchingProgress, setIsFetchingProgress] = useState(false);
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const valueComEmoji = e.target.value;
@@ -88,6 +92,28 @@ export default function PerfilPage() {
       setUsername(user.username || "");
       setEmail(user.email || "");
     }
+  }, [user]);
+
+  useEffect(() => {
+    const fetchProgress = async () => {
+      if (!user || !user.token) return;
+      const userId = Number(user.usuarioId ?? 0);
+      if (!userId) return;
+      try {
+        setIsFetchingProgress(true);
+        const resp = await getUserProgress(userId, user.token);
+        if (resp && typeof resp.progressPercentage !== "undefined") {
+          const pct = Number(resp.progressPercentage);
+          if (!Number.isNaN(pct)) setProgressPercentage(pct);
+        }
+      } catch (err) {
+        console.warn("Erro ao buscar progresso do usuário (perfil):", err);
+      } finally {
+        setIsFetchingProgress(false);
+      }
+    };
+
+    fetchProgress();
   }, [user]);
 
   if (isLoading) {
@@ -240,6 +266,29 @@ export default function PerfilPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div>
+                  <Label>Progresso</Label>
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-gray-600">Locais visitados</div>
+                      <div className="text-lg font-bold">
+                        {isFetchingProgress ? (
+                          <Loader2 className="inline-block h-4 w-4 animate-spin" />
+                        ) : progressPercentage !== null ? (
+                          `${progressPercentage.toFixed(2)}%`
+                        ) : (
+                          "—"
+                        )}
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-200 h-3 rounded-full overflow-hidden mt-2">
+                      <div
+                        className="bg-gradient-to-r from-[#017DB9] to-[#007a73] h-full transition-all"
+                        style={{ width: `${progressPercentage ? Math.round(progressPercentage) : 0}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
                 <div>
                   <Label htmlFor="currentUsername">Nome de Usuário</Label>
                   <Input
