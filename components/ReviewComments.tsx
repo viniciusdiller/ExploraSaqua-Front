@@ -1,10 +1,12 @@
 // components/ReviewComment.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import FormattedDescription from "@/components/FormattedDescription";
 // Assumindo que StarRating está sendo exportado de 'page.tsx'
 import { StarRating } from "@/app/categoria/[slug]/[nome]/page";
+import { useAuth } from "@/context/AuthContext";
+import { getUserProgress } from "@/lib/api";
 
 // Tipos
 type User = {
@@ -37,6 +39,57 @@ export const ReviewComment = ({
   allowReply,
 }: ReviewCommentProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Cache simples em memória para evitar múltiplas chamadas para o mesmo usuário
+  // (vigorará durante a sessão da página)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const staticAny: any = null;
+  // @ts-ignore
+  const userTagCache: Map<number, string | null> = (globalThis as any).__userTagCache ||= new Map();
+
+  const { user: authUser } = useAuth();
+  const [tag, setTag] = useState<string | null>(null);
+
+  useEffect(() => {
+    const uid = (review.usuario as any)?.usuarioId ?? (review.usuario as any)?.id;
+    if (!uid) return;
+
+    // Se já tivermos a tag em cache, usar imediatamente
+    if (userTagCache.has(uid)) {
+      setTag(userTagCache.get(uid) ?? null);
+      return;
+    }
+
+    // Se não houver token, salvar null em cache e não tentar buscar
+    if (!authUser || !authUser.token) {
+      userTagCache.set(uid, null);
+      setTag(null);
+      return;
+    }
+
+    let mounted = true;
+    getUserProgress(Number(uid), authUser.token)
+      .then((resp) => {
+        if (!mounted) return;
+        if (resp && typeof resp.tag !== "undefined") {
+          const t = String(resp.tag);
+          userTagCache.set(uid, t);
+          setTag(t);
+        } else {
+          userTagCache.set(uid, null);
+          setTag(null);
+        }
+      })
+      .catch((err) => {
+        console.warn("Erro ao buscar tag do usuário para comentário:", err);
+        userTagCache.set(uid, null);
+        if (mounted) setTag(null);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [review.usuario, authUser]);
 
   // --- CORREÇÃO 1 ---
   // Use optional chaining (?.), e 'nullish coalescing' (??) para
@@ -73,6 +126,12 @@ export const ReviewComment = ({
             }`}
           >
             {displayName}
+            {/* Exibe a tag do usuário ao lado do nome, se disponível */}
+            {tag && (
+              <span className="ml-2 text-xs text-[#007a73] font-semibold px-2 py-0.5 bg-[#e6f7f6] rounded-full">
+                {tag}
+              </span>
+            )}
             {currentUser && currentUser.usuarioId === reviewUserId && (
               <button
                 onClick={() => onDeleteClick(review.avaliacoesId)}

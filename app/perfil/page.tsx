@@ -66,6 +66,9 @@ export default function PerfilPage() {
 
   const [progressPercentage, setProgressPercentage] = useState<number | null>(null);
   const [isFetchingProgress, setIsFetchingProgress] = useState(false);
+  const [userTag, setUserTag] = useState<string | null>(null);
+  const [visitedCount, setVisitedCount] = useState<number | null>(null);
+  const [totalLocations, setTotalLocations] = useState<number | null>(null);
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const valueComEmoji = e.target.value;
@@ -102,9 +105,30 @@ export default function PerfilPage() {
       try {
         setIsFetchingProgress(true);
         const resp = await getUserProgress(userId, user.token);
-        if (resp && typeof resp.progressPercentage !== "undefined") {
-          const pct = Number(resp.progressPercentage);
-          if (!Number.isNaN(pct)) setProgressPercentage(pct);
+        // Preencher campos retornados pelo backend (percentual, tag e contagens)
+        if (resp) {
+          if (typeof resp.progressPercentage !== "undefined") {
+            const pct = Number(resp.progressPercentage);
+            if (!Number.isNaN(pct)) setProgressPercentage(pct);
+          }
+          if (typeof resp.tag !== "undefined") {
+            setUserTag(String(resp.tag));
+          }
+          if (typeof resp.visitedCount !== "undefined") {
+            const v = Number(resp.visitedCount);
+            if (!Number.isNaN(v)) setVisitedCount(v);
+          }
+          if (typeof resp.totalLocations !== "undefined") {
+            const t = Number(resp.totalLocations);
+            if (!Number.isNaN(t)) setTotalLocations(t);
+          }
+          // Se backend não fornecer porcentagem, calcular a partir das contagens
+          if (typeof resp.progressPercentage === "undefined") {
+            if (typeof resp.visitedCount !== "undefined" && typeof resp.totalLocations !== "undefined" && resp.totalLocations > 0) {
+              const calc = (Number(resp.visitedCount) / Number(resp.totalLocations)) * 100;
+              if (!Number.isNaN(calc)) setProgressPercentage(calc);
+            }
+          }
         }
       } catch (err) {
         console.warn("Erro ao buscar progresso do usuário (perfil):", err);
@@ -244,6 +268,11 @@ export default function PerfilPage() {
                   className="w-24 h-24 rounded-full mx-auto mb-4 border-2 border-[#d04798] object-cover"
                 />
                 <CardTitle>{user.nomeCompleto}</CardTitle>
+                {userTag && (
+                  <div className="mt-1 text-sm text-gray-600 font-medium px-3 py-1 bg-[#e6f7f6] rounded-full">
+                    {userTag}
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
                 <Button
@@ -275,7 +304,8 @@ export default function PerfilPage() {
                         {isFetchingProgress ? (
                           <Loader2 className="inline-block h-4 w-4 animate-spin" />
                         ) : progressPercentage !== null ? (
-                          `${progressPercentage.toFixed(2)}%`
+                          `${progressPercentage.toFixed(2)}%` +
+                          (visitedCount !== null && totalLocations !== null ? ` (${visitedCount}/${totalLocations})` : "")
                         ) : (
                           "—"
                         )}

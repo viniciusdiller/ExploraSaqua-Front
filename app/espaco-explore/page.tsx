@@ -51,6 +51,9 @@ export default function EspacoExplorePage() {
   } | null>(null);
   const [backendProgress, setBackendProgress] = useState<number | null>(null);
   const [isFetchingBackendProgress, setIsFetchingBackendProgress] = useState(false);
+  const [userTag, setUserTag] = useState<string | null>(null);
+  const [visitedCount, setVisitedCount] = useState<number | null>(null);
+  const [totalLocations, setTotalLocations] = useState<number | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem("explora_saqua_badges");
@@ -68,9 +71,29 @@ export default function EspacoExplorePage() {
       try {
         setIsFetchingBackendProgress(true);
         const resp = await getUserProgress(userId, user.token);
-        if (resp && typeof resp.progressPercentage !== "undefined") {
-          const pct = Number(resp.progressPercentage);
-          if (!Number.isNaN(pct)) setBackendProgress(pct);
+        if (resp) {
+          if (typeof resp.progressPercentage !== "undefined") {
+            const pct = Number(resp.progressPercentage);
+            if (!Number.isNaN(pct)) setBackendProgress(pct);
+          }
+          if (typeof resp.tag !== "undefined") {
+            setUserTag(String(resp.tag));
+          }
+          if (typeof resp.visitedCount !== "undefined") {
+            const v = Number(resp.visitedCount);
+            if (!Number.isNaN(v)) setVisitedCount(v);
+          }
+          if (typeof resp.totalLocations !== "undefined") {
+            const t = Number(resp.totalLocations);
+            if (!Number.isNaN(t)) setTotalLocations(t);
+          }
+          // fallback para calcular progresso se backend não fornecer porcentagem
+          if (typeof resp.progressPercentage === "undefined") {
+            if (typeof resp.visitedCount !== "undefined" && typeof resp.totalLocations !== "undefined" && resp.totalLocations > 0) {
+              const calc = (Number(resp.visitedCount) / Number(resp.totalLocations)) * 100;
+              if (!Number.isNaN(calc)) setBackendProgress(calc);
+            }
+          }
         }
       } catch (err) {
         console.warn("Erro ao buscar progresso do usuário (backend):", err);
@@ -168,6 +191,18 @@ export default function EspacoExplorePage() {
                 </span>
               </h1>
 
+              {/* Tag do usuário (se disponível) */}
+              {userTag && (
+                <div className="inline-flex items-center gap-2 mb-4">
+                  <div className="text-sm font-semibold px-3 py-1 bg-[#e6f7f6] text-[#007a73] rounded-full">
+                    {userTag}
+                  </div>
+                  {visitedCount !== null && totalLocations !== null && (
+                    <div className="text-sm text-gray-600">{visitedCount}/{totalLocations} locais</div>
+                  )}
+                </div>
+              )}
+
               <p className="text-gray-700 leading-relaxed text-lg">
                 O <strong>Espaço Explore</strong> é uma experiência interativa
                 projetada para conectar você aos principais tesouros históricos,
@@ -196,13 +231,27 @@ export default function EspacoExplorePage() {
           </h2>
 
           <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-gray-700 text-lg font-medium">
-                Locais Visitados
-              </span>
-              <span className="text-2xl font-bold bg-gradient-to-r from-[#017DB9] to-[#007a73] bg-clip-text text-transparent">
-                {progress}%
-              </span>
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <span className="text-gray-700 text-lg font-medium">Locais Visitados</span>
+                {/* mostrar tag e contagem abaixo do título em telas pequenas */}
+                <div className="mt-2 flex items-center gap-3">
+                  {userTag && (
+                    <span className="text-sm font-semibold text-[#007a73] px-3 py-1 bg-[#e6f7f6] rounded-full">
+                      {userTag}
+                    </span>
+                  )}
+                  {visitedCount !== null && totalLocations !== null && (
+                    <span className="text-sm text-gray-600">{visitedCount}/{totalLocations} locais</span>
+                  )}
+                </div>
+              </div>
+              
+              <div className="text-right">
+                <span className="text-2xl font-bold bg-gradient-to-r from-[#017DB9] to-[#007a73] bg-clip-text text-transparent">
+                  {progress}%
+                </span>
+              </div>
             </div>
             <div className="w-full bg-gray-200 h-3 rounded-full overflow-hidden">
               <div
@@ -314,20 +363,15 @@ export default function EspacoExplorePage() {
                             <div className="flex flex-col gap-3">
                               <div className="flex flex-col sm:flex-row gap-3">
                                 {/* Botão Traçar Rota */}
-                                <Button
-                                  asChild
-                                  variant="outline"
-                                  className="w-full sm:w-1/2 flex items-center justify-center gap-2 border-blue-200 text-[#017DB9] hover:bg-blue-50 py-6 rounded-xl"
+                                <a
+                                  href={`https://www.google.com/maps/dir/?api=1&destination=${local.lat},${local.lng}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="w-full sm:w-1/2 flex items-center justify-center gap-2 border border-blue-200 text-[#017DB9] hover:bg-blue-50 py-6 rounded-xl"
                                 >
-                                  <a
-                                    href={`https://www.google.com/maps/dir/?api=1&destination=${local.lat},${local.lng}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                  >
-                                    <Navigation size={18} />
-                                    Traçar Rota
-                                  </a>
-                                </Button>
+                                  <Navigation size={18} />
+                                  Traçar Rota
+                                </a>
 
                                 {/* Botão Validar Localização */}
                                 <button
