@@ -20,10 +20,19 @@ const COLORS = {
 };
 
 const categorias = [
-  "Compras", "Emergências", "Escolas", "Espaços Culturais", "Eventos Locais",
-  "Feiras e Produtores Rurais", "Hospedagens", "Lazer e Esporte", "Mulheres e Crianças",
-  "Pontos Turísticos", "Praias e Lagoas", "Restaurantes e Lanchonetes", "Supermercados",
-  "Telefones Úteis", "Transporte Público", "Trilhas",
+  "Comércio & Lojas",
+  "Educação & Capacitação",
+  "Emergências",
+  "Esportes",
+  "Eventos & Agenda",
+  "Hospedagem",
+  "Indústria",
+  "Mei de Saquá",
+  "Saúde & Bem-estar",
+  "Serviços Públicos",
+  "Supermercado & Feiras",
+  "Turismo & Lazer",
+  "Utilidades & Informações Gerais",
 ];
 
 interface AdminLocalModalProps {

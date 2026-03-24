@@ -12,22 +12,19 @@ const { Option } = Select;
 const LocationPicker = dynamic(() => import("@/components/map/LocationPicker"), { ssr: false, loading: () => <div className="h-[200px] bg-gray-100 animate-pulse rounded-lg"/>});
 
 const categoriasLocais = [
-  "Compras",
+  "Comércio & Lojas",
+  "Educação & Capacitação",
   "Emergências",
-  "Escolas",
-  "Espaços Culturais",
-  "Eventos Locais",
-  "Feiras e Produtores Rurais",
-  "Hospedagens",
-  "Lazer e Esporte",
-  "Mulheres e Crianças",
-  "Pontos Turísticos",
-  "Praias e Lagoas",
-  "Restaurantes e Lanchonetes",
-  "Supermercados",
-  "Telefones Úteis",
-  "Transporte Público",
-  "Trilhas",
+  "Esportes",
+  "Eventos & Agenda",
+  "Hospedagem",
+  "Indústria",
+  "Mei de Saquá",
+  "Saúde & Bem-estar",
+  "Serviços Públicos",
+  "Supermercado & Feiras",
+  "Turismo & Lazer",
+  "Utilidades & Informações Gerais",
 ];
 
 const formatCPF = (value: string) =>
