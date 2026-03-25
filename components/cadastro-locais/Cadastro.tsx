@@ -27,6 +27,7 @@ import {
 import type { UploadFile } from "antd/es/upload/interface";
 import { toast } from "sonner";
 import { cadastrarLocal } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 import dynamic from "next/dynamic";
 import "react-quill/dist/quill.snow.css";
 
@@ -92,6 +93,7 @@ interface CadastroProps {
 }
 
 const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
+  const { user } = useAuth();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [searchingAddress, setSearchingAddress] = useState(false);
@@ -180,6 +182,11 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
 
   // --- SUBMIT ---
   const handleRegisterSubmit = async (values: any) => {
+    if (!user?.token) {
+      message.error("Sessão inválida. Faça login novamente.");
+      return;
+    }
+
     setLoading(true);
     try {
       // Se latitude/longitude não foram preenchidos pelo usuário (ou pelo mapa), tentamos geocodificar pelo endereço
@@ -266,7 +273,7 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
         formData.append("vigilancia_sanitaria", vigilanciaFileList[0].originFileObj);
       }
 
-      await cadastrarLocal(formData);
+      await cadastrarLocal(formData, user.token);
 
       onSuccess(
         "Cadastro de Proprietário Enviado!",

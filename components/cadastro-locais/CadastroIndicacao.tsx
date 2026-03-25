@@ -6,6 +6,7 @@ import { UserOutlined, IdcardOutlined, PhoneOutlined, MailOutlined, EnvironmentO
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { cadastrarLocal } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 const { Option } = Select;
 
@@ -55,6 +56,7 @@ interface Props {
 }
 
 export default function CadastroIndicacao({ visible, onClose, onSuccess, mode = "modal" }: Props) {
+  const { user } = useAuth();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [mapPosition, setMapPosition] = useState<{ lat: number; lng: number } | null>(null);
@@ -91,6 +93,11 @@ export default function CadastroIndicacao({ visible, onClose, onSuccess, mode = 
   };
 
   const handleFinish = async (values: any) => {
+    if (!user?.token) {
+      message.error("Sessão inválida. Faça login novamente.");
+      return;
+    }
+
     setLoading(true);
     try {
       const formData = new FormData();
@@ -126,7 +133,7 @@ export default function CadastroIndicacao({ visible, onClose, onSuccess, mode = 
 
       formData.append("tipoCadastro", "indication");
 
-      await cadastrarLocal(formData);
+      await cadastrarLocal(formData, user.token);
 
       form.resetFields();
       onSuccess?.("Indicação enviada!", "Agradecemos, nossa equipe irá avaliar a indicação.");

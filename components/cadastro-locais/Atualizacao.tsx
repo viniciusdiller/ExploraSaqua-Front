@@ -26,6 +26,7 @@ import {
 import type { UploadFile } from "antd/es/upload/interface";
 import { toast } from "sonner";
 import { solicitarAtualizacaoLocal } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 import dynamic from "next/dynamic";
 import "react-quill/dist/quill.snow.css";
 
@@ -74,6 +75,7 @@ interface AtualizacaoProps {
 }
 
 const Atualizacao: React.FC<AtualizacaoProps> = ({ onSuccess }) => {
+  const { user } = useAuth();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [searchingAddress, setSearchingAddress] = useState(false);
@@ -131,6 +133,11 @@ const Atualizacao: React.FC<AtualizacaoProps> = ({ onSuccess }) => {
   };
 
   const handleUpdateSubmit = async (values: any) => {
+    if (!user?.token) {
+      message.error("Sessão inválida. Faça login novamente.");
+      return;
+    }
+
     setLoading(true);
     try {
       const { projetoId, ...updateData } = values;
@@ -152,7 +159,7 @@ const Atualizacao: React.FC<AtualizacaoProps> = ({ onSuccess }) => {
         if (file.originFileObj) formData.append("imagens", file.originFileObj);
       });
 
-      await solicitarAtualizacaoLocal(projetoId, formData);
+      await solicitarAtualizacaoLocal(projetoId, formData, user.token);
       onSuccess("Atualização enviada!", "A sua solicitação (incluindo novos documentos, se houver) será analisada pela moderação.");
     } catch (error: any) {
       message.error(error.message || "Erro ao solicitar atualização.");

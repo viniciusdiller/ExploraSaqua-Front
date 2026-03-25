@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Form, Input, Button, message, Row, Col, Checkbox, Divider } from "antd";
 import { solicitarExclusaoLocal } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 import { MailOutlined, PhoneOutlined, IdcardOutlined, ShopOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 
 const { TextArea } = Input;
@@ -26,6 +27,7 @@ const formatPhone = (value: string) => {
 };
 
 const Exclusao: React.FC<ExclusaoProps> = ({ onSuccess }) => {
+  const { user } = useAuth();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
 
@@ -53,6 +55,11 @@ const Exclusao: React.FC<ExclusaoProps> = ({ onSuccess }) => {
   );
 
   const handleDeleteSubmit = async (values: any) => {
+    if (!user?.token) {
+      message.error("Sessão inválida. Faça login novamente.");
+      return;
+    }
+
     setLoading(true);
     try {
       const {
@@ -76,7 +83,7 @@ const Exclusao: React.FC<ExclusaoProps> = ({ onSuccess }) => {
         nomeResponsavel
       };
 
-      await solicitarExclusaoLocal(projetoId, dadosParaEnviar);
+      await solicitarExclusaoLocal(projetoId, dadosParaEnviar, user.token);
 
       onSuccess(
         "Solicitação de exclusão recebida!",

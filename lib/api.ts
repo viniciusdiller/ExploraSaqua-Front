@@ -155,21 +155,34 @@ export const getLocalById = (id: string) => fetchApi(`/api/locais/${id}`);
 export const getLocalByNome = (nome: string) =>
   fetchApi(`/api/locais/nome/${encodeURIComponent(nome)}`);
 
-export const cadastrarLocal = (data: FormData) =>
+export const cadastrarLocal = (data: FormData, token?: string) =>
   fetchApi("/api/locais", {
     method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: data,
   });
 
-export const solicitarAtualizacaoLocal = (id: string, data: FormData) =>
+export const solicitarAtualizacaoLocal = (
+  id: string,
+  data: FormData,
+  token?: string
+) =>
   fetchApi(`/api/locais/solicitar-atualizacao/${id}`, {
     method: "PUT",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: data,
   });
 
-export const solicitarExclusaoLocal = (id: string, data: any) =>
+export const solicitarExclusaoLocal = (id: string, data: any, token?: string) =>
   fetchApi(`/api/locais/solicitar-exclusao/${id}`, {
     method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify(data),
   });
 
