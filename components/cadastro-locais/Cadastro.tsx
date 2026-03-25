@@ -44,19 +44,19 @@ const COLORS = {
 };
 
 const categoriasLocais = [
-  "Comércio & Lojas",
-  "Educação & Capacitação",
-  "Emergências",
-  "Esportes",
-  "Eventos & Agenda",
-  "Hospedagem",
-  "Indústria",
-  "Mei de Saquá",
-  "Saúde & Bem-estar",
-  "Serviços Públicos",
-  "Supermercado & Feiras",
-  "Turismo & Lazer",
-  "Utilidades & Informações Gerais",
+  { label: "Comércio & Lojas", value: "comercio-e-lojas" },
+  { label: "Educação & Capacitação", value: "educacao-e-capacitacao" },
+  { label: "Emergências", value: "emergencias" },
+  { label: "Esportes", value: "esportes" },
+  { label: "Eventos & Agenda", value: "eventos-e-agenda" },
+  { label: "Hospedagem", value: "hospedagem" },
+  { label: "Indústria", value: "industria" },
+  { label: "Mei de Saquá", value: "mei-de-saqua" },
+  { label: "Saúde & Bem-estar", value: "saude-e-bem-estar" },
+  { label: "Serviços Públicos", value: "servicos-publicos" },
+  { label: "Supermercado & Feiras", value: "supermercado-e-feiras" },
+  { label: "Turismo & Lazer", value: "turismo-e-lazer" },
+  { label: "Utilidades & Informações Gerais", value: "utilidades-e-informacoes-gerais" },
 ];
 
 const { Option } = Select;
@@ -459,7 +459,7 @@ const Cadastro: React.FC<CadastroProps> = ({ onSuccess }) => {
             >
               <Select placeholder="Selecione...">
                 {categoriasLocais.map((cat) => (
-                  <Option key={cat} value={cat}>{cat}</Option>
+                  <Option key={cat.value} value={cat.value}>{cat.label}</Option>
                 ))}
               </Select>
             </Form.Item>

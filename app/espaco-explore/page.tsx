@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from "react";
 import FaleConoscoButton from "@/components/FaleConoscoButton";
 import { useAuth } from "@/context/AuthContext";
-import { getUserProgress } from "@/lib/api";
+import { getUserProgress, getAllLocaisAtivos, markVisit } from "@/lib/api";
+import { Local } from "@/types/Interface-Local";
+import { getFullImageUrl } from "@/utils/AdminUtils";
 import { MapPin, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,9 +16,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
-// IMPORTANDO OS DADOS E A TIPAGEM
-import { LOCAIS_DESAFIO, LocalDesafio } from "@/lib/locais-explore";
 
 // Função para calcular distância usando a Fórmula de Haversine (retorna em metros)
 const getDistanceFromLatLonInM = (
@@ -40,6 +39,32 @@ const getDistanceFromLatLonInM = (
 
 const deg2rad = (deg: number) => deg * (Math.PI / 180);
 
+const extractLocaisArray = (payload: any): Local[] => {
+  if (Array.isArray(payload)) return payload as Local[];
+  if (Array.isArray(payload?.data)) return payload.data as Local[];
+  if (Array.isArray(payload?.locais)) return payload.locais as Local[];
+  if (Array.isArray(payload?.items)) return payload.items as Local[];
+  return [];
+};
+
+const toNumberCoord = (value: unknown): number | null => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string") {
+    const normalized = value.trim().replace(",", ".");
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const formatCategoryLabel = (categoria?: string) => {
+  if (!categoria) return "Sem categoria";
+  return categoria
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
 export default function EspacoExplorePage() {
   const { user } = useAuth();
   const [unlockedLocais, setUnlockedLocais] = useState<string[]>([]);
@@ -55,11 +80,89 @@ export default function EspacoExplorePage() {
   const [visitedCount, setVisitedCount] = useState<number | null>(null);
   const [totalLocations, setTotalLocations] = useState<number | null>(null);
 
+  // GPS do usuário
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationLoading, setLocationLoading] = useState(true);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  // Locais cadastrados no site
+  const [locais, setLocais] = useState<Local[]>([]);
+  const [locaisLoading, setLocaisLoading] = useState(true);
+
   useEffect(() => {
     const saved = localStorage.getItem("explora_saqua_badges");
     if (saved) {
-      setUnlockedLocais(JSON.parse(saved));
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        setUnlockedLocais(Array.from(new Set(parsed.map(String))));
+      }
     }
+  }, []);
+
+  const unlockedLocaisUnicos = Array.from(new Set(unlockedLocais));
+  const unlockedCount = unlockedLocaisUnicos.length;
+  const totalLocais = totalLocations ?? locais.length;
+  const visitedCountBase = Math.max(visitedCount ?? 0, unlockedCount);
+  const visitedCountDisplay = totalLocais > 0
+    ? Math.min(visitedCountBase, totalLocais)
+    : visitedCountBase;
+
+  // Buscar locais ativos cadastrados no site
+  useEffect(() => {
+    const fetchLocais = async () => {
+      try {
+        const payload = await getAllLocaisAtivos();
+        const data = extractLocaisArray(payload);
+
+        const ativosComCoordenadas = data
+          .map((l) => {
+            const latitude = toNumberCoord((l as any).latitude ?? (l as any).lat);
+            const longitude = toNumberCoord((l as any).longitude ?? (l as any).lng);
+            return {
+              ...l,
+              latitude,
+              longitude,
+            } as Local;
+          })
+          .filter((l) => {
+            const isAtivo =
+              l.status === "ativo" ||
+              l.active === true ||
+              l.aprovado === true;
+            return isAtivo && l.latitude != null && l.longitude != null;
+          });
+
+        setLocais(ativosComCoordenadas);
+      } catch (err) {
+        console.warn("Erro ao buscar locais:", err);
+      } finally {
+        setLocaisLoading(false);
+      }
+    };
+    fetchLocais();
+  }, []);
+
+  // Solicitar localização do usuário ao carregar a página
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationError("Geolocalização não suportada neste dispositivo.");
+      setLocationLoading(false);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        setLocationLoading(false);
+      },
+      () => {
+        setLocationError("Permita o acesso à localização para ver os locais mais próximos de você.");
+        setLocationLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
   }, []);
 
   // Buscar progresso do usuário no backend quando estiver logado
@@ -105,14 +208,14 @@ export default function EspacoExplorePage() {
     fetchProgress();
   }, [user]);
 
-  // Agora tipamos usando a interface LocalDesafio que criamos
-  const handleCheckIn = (local: LocalDesafio) => {
-    setLoadingId(local.id);
+  const handleCheckIn = (local: Local) => {
+    const localKey = String(local.localId);
+    setLoadingId(localKey);
     setFeedback(null);
 
     if (!navigator.geolocation) {
       setFeedback({
-        id: local.id,
+        id: localKey,
         message: "Geolocalização não suportada.",
         type: "error",
       });
@@ -121,41 +224,96 @@ export default function EspacoExplorePage() {
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const userLat = position.coords.latitude;
         const userLng = position.coords.longitude;
         const distanceMeters = getDistanceFromLatLonInM(
           userLat,
           userLng,
-          local.lat,
-          local.lng,
+          local.latitude!,
+          local.longitude!,
         );
 
         if (distanceMeters <= 300) {
-          // Raio de 300 metros
-          const newUnlocked = [...unlockedLocais, local.id];
-          setUnlockedLocais(newUnlocked);
-          localStorage.setItem(
-            "explora_saqua_badges",
-            JSON.stringify(newUnlocked),
-          );
+          const alreadyUnlocked = unlockedLocaisUnicos.includes(localKey);
+
+          if (!alreadyUnlocked) {
+            // Usa a mesma rota de validacao da aba de categoria quando o usuario estiver logado.
+            if (user?.token && user?.usuarioId) {
+              const userId = Number(user.usuarioId ?? 0);
+              const localId = Number(local.localId ?? 0);
+              if (userId && localId) {
+                try {
+                  await markVisit(userId, localId, user.token);
+
+                  // Atualiza progresso diretamente do backend para manter consistencia.
+                  try {
+                    const progressResp = await getUserProgress(userId, user.token);
+                    if (progressResp) {
+                      if (typeof progressResp.progressPercentage !== "undefined") {
+                        const pct = Number(progressResp.progressPercentage);
+                        if (!Number.isNaN(pct)) setBackendProgress(pct);
+                      }
+                      if (typeof progressResp.visitedCount !== "undefined") {
+                        const v = Number(progressResp.visitedCount);
+                        if (!Number.isNaN(v)) setVisitedCount(v);
+                      }
+                      if (typeof progressResp.totalLocations !== "undefined") {
+                        const t = Number(progressResp.totalLocations);
+                        if (!Number.isNaN(t)) setTotalLocations(t);
+                      }
+                    }
+                  } catch (err) {
+                    console.warn("Falha ao atualizar progresso apos validacao:", err);
+                  }
+                } catch (err: any) {
+                  setFeedback({
+                    id: localKey,
+                    message: err?.message || "Falha ao validar visita no servidor.",
+                    type: "error",
+                  });
+                  setLoadingId(null);
+                  return;
+                }
+              }
+            }
+
+            const newUnlocked = [...unlockedLocaisUnicos, localKey];
+            setUnlockedLocais(newUnlocked);
+            localStorage.setItem(
+              "explora_saqua_badges",
+              JSON.stringify(newUnlocked),
+            );
+
+            const baseTotal = totalLocais > 0 ? totalLocais : locais.length;
+            if (baseTotal > 0) {
+              const nextVisited = Math.min(visitedCountDisplay + 1, baseTotal);
+              setVisitedCount(nextVisited);
+              setBackendProgress(Math.round((nextVisited / baseTotal) * 100));
+            } else {
+              setVisitedCount(visitedCountDisplay + 1);
+            }
+          }
+
           setFeedback({
-            id: local.id,
-            message: "Check-in confirmado com sucesso!",
+            id: localKey,
+            message: alreadyUnlocked
+              ? "Este local ja foi validado anteriormente."
+              : "Check-in confirmado com sucesso!",
             type: "success",
           });
         } else {
           setFeedback({
-            id: local.id,
+            id: localKey,
             message: `Você está a ${Math.round(distanceMeters)}m. Aproxime-se do local!`,
             type: "error",
           });
         }
         setLoadingId(null);
       },
-      (error) => {
+      () => {
         setFeedback({
-          id: local.id,
+          id: localKey,
           message: "Ative o GPS do seu dispositivo.",
           type: "error",
         });
@@ -165,12 +323,32 @@ export default function EspacoExplorePage() {
     );
   };
 
-  const localProgress = Math.round(
-    (unlockedLocais.length / LOCAIS_DESAFIO.length) * 100,
+  const localProgress = locais.length > 0
+    ? Math.round((unlockedCount / locais.length) * 100)
+    : 0;
+  const progressFromVisited = totalLocais > 0
+    ? Math.round((visitedCountDisplay / totalLocais) * 100)
+    : localProgress;
+  const progress = Math.max(
+    backendProgress !== null ? Math.round(backendProgress) : 0,
+    localProgress,
+    progressFromVisited,
   );
-  // Se o backend fornecer progresso, mostrar ele; caso contrário usar o localProgress
-  const progress = backendProgress !== null ? Math.round(backendProgress) : localProgress;
-  const isCompleted = unlockedLocais.length === LOCAIS_DESAFIO.length;
+  const isCompleted = locais.length > 0 && unlockedCount === locais.length;
+
+  // Ordenar locais por distância quando o GPS estiver disponível
+  const locaisOrdenados = userLocation
+    ? [...locais].sort((a, b) => {
+        const distA = getDistanceFromLatLonInM(userLocation.lat, userLocation.lng, a.latitude!, a.longitude!);
+        const distB = getDistanceFromLatLonInM(userLocation.lat, userLocation.lng, b.latitude!, b.longitude!);
+        return distA - distB;
+      })
+    : locais;
+
+  const formatarDistancia = (metros: number): string => {
+    if (metros < 1000) return `${Math.round(metros)} m`;
+    return `${(metros / 1000).toFixed(1)} km`;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#017DB9] to-[#007a73] py-20 px-6 sm:px-12">
@@ -190,18 +368,6 @@ export default function EspacoExplorePage() {
                   Espaço Explore
                 </span>
               </h1>
-
-              {/* Tag do usuário (se disponível) */}
-              {userTag && (
-                <div className="inline-flex items-center gap-2 mb-4">
-                  <div className="text-sm font-semibold px-3 py-1 bg-[#e6f7f6] text-[#007a73] rounded-full">
-                    {userTag}
-                  </div>
-                  {visitedCount !== null && totalLocations !== null && (
-                    <div className="text-sm text-gray-600">{visitedCount}/{totalLocations} locais</div>
-                  )}
-                </div>
-              )}
 
               <p className="text-gray-700 leading-relaxed text-lg">
                 O <strong>Espaço Explore</strong> é uma experiência interativa
@@ -241,8 +407,8 @@ export default function EspacoExplorePage() {
                       {userTag}
                     </span>
                   )}
-                  {visitedCount !== null && totalLocations !== null && (
-                    <span className="text-sm text-gray-600">{visitedCount}/{totalLocations} locais</span>
+                  {totalLocais > 0 && (
+                    <span className="text-sm text-gray-600">{visitedCountDisplay}/{totalLocais} locais</span>
                   )}
                 </div>
               </div>
@@ -278,139 +444,204 @@ export default function EspacoExplorePage() {
 
         {/* --- LISTA DE DESAFIOS --- */}
         <section className="mb-8 border-t pt-8">
-          <h2 className="text-3xl font-semibold text-left mb-10">
-            <span className="bg-gradient-to-r from-[#017DB9] to-[#007a73] bg-clip-text text-transparent">
-              Desafios Disponíveis
-            </span>
-          </h2>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-10">
+            <h2 className="text-3xl font-semibold text-left">
+              <span className="bg-gradient-to-r from-[#017DB9] to-[#007a73] bg-clip-text text-transparent">
+                Desafios Disponíveis
+              </span>
+            </h2>
+
+            {/* Status do GPS */}
+            {locationLoading && (
+              <div className="flex items-center gap-2 text-sm text-gray-500 animate-pulse">
+                <Navigation size={16} className="text-[#017DB9]" />
+                Buscando sua localização...
+              </div>
+            )}
+            {!locationLoading && userLocation && (
+              <div className="flex items-center gap-2 text-sm font-medium text-[#007a73] bg-[#e6f7f6] px-3 py-1.5 rounded-full">
+                <MapPin size={15} />
+                Ordenados por proximidade
+              </div>
+            )}
+            {!locationLoading && locationError && (
+              <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full">
+                <Navigation size={15} />
+                {locationError}
+              </div>
+            )}
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {LOCAIS_DESAFIO.map((local) => {
-              const isUnlocked = unlockedLocais.includes(local.id);
+            {locaisLoading ? (
+              <div className="col-span-3 flex justify-center py-12 text-gray-500 animate-pulse">
+                Carregando locais...
+              </div>
+            ) : locaisOrdenados.length === 0 ? (
+              <div className="col-span-3 text-center py-12 text-gray-500">
+                Nenhum local com coordenadas cadastradas foi encontrado.
+              </div>
+            ) : (
+              locaisOrdenados.map((local) => {
+                const localKey = String(local.localId);
+                const isUnlocked = unlockedLocaisUnicos.includes(localKey);
+                const distancia = userLocation
+                  ? getDistanceFromLatLonInM(userLocation.lat, userLocation.lng, local.latitude!, local.longitude!)
+                  : null;
+                const nomeExibicao = (local.nome || local.nomeLocal || "Local sem nome").trim();
+                const categoriaExibicao = formatCategoryLabel(local.categoria);
+                const imagemUrl =
+                  local.localImages?.[0]?.url ??
+                  local.localImg?.[0]?.url ??
+                  local.logoUrl ??
+                  "/placeholder-user.jpg";
+                const logoUrl = getFullImageUrl(imagemUrl) || "/placeholder-user.jpg";
 
-              return (
-                <div
-                  key={local.id}
-                  className={`flex flex-col justify-between p-6 rounded-2xl border transition-all duration-300 ${
-                    isUnlocked
-                      ? "border-[#007a73] bg-[#f0f9f8]"
-                      : "border-gray-200 bg-white hover:border-[#017DB9] hover:shadow-md"
-                  }`}
-                >
-                  <div className="mb-4">
-                    <h3 className="text-xl font-bold text-gray-800">
-                      {local.nome}
-                    </h3>
-                    {isUnlocked && (
-                      <div className="inline-flex items-center gap-1 mt-2 text-[#007a73] text-sm font-semibold bg-[#e6f7f6] px-3 py-1 rounded-full">
-                        <MapPin size={14} /> Desbloqueado
+                return (
+                  <div
+                    key={localKey}
+                    className={`flex flex-col justify-between p-6 rounded-2xl border transition-all duration-300 ${
+                      isUnlocked
+                        ? "border-[#007a73] bg-[#f0f9f8]"
+                        : "border-gray-200 bg-white hover:border-[#017DB9] hover:shadow-md"
+                    }`}
+                  >
+                    <div className="mb-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <img
+                          src={logoUrl}
+                          alt={`Logo de ${nomeExibicao}`}
+                          className="w-14 h-14 rounded-xl object-cover border border-gray-200 bg-gray-100"
+                        />
+                        <div className="min-w-0">
+                          <h3 className="text-xl font-bold text-gray-800 truncate">
+                            {nomeExibicao}
+                          </h3>
+                          <p className="text-sm text-gray-500 truncate">
+                            {categoriaExibicao}
+                          </p>
+                        </div>
                       </div>
-                    )}
-                  </div>
 
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant={isUnlocked ? "ghost" : "default"}
-                        className={`w-full ${
-                          !isUnlocked
-                            ? "bg-[#017DB9] hover:bg-[#007a73] text-white"
-                            : "text-[#007a73] hover:bg-[#e6f7f6]"
-                        }`}
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {isUnlocked && (
+                          <div className="inline-flex items-center gap-1 text-[#007a73] text-sm font-semibold bg-[#e6f7f6] px-3 py-1 rounded-full">
+                            <MapPin size={14} /> Desbloqueado
+                          </div>
+                        )}
+                        {distancia !== null && (
+                          <div className="inline-flex items-center gap-1 text-gray-500 text-sm bg-gray-100 px-3 py-1 rounded-full">
+                            <Navigation size={13} />
+                            {formatarDistancia(distancia)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant={isUnlocked ? "ghost" : "default"}
+                          className={`w-full ${
+                            !isUnlocked
+                              ? "bg-[#017DB9] hover:bg-[#007a73] text-white"
+                              : "text-[#007a73] hover:bg-[#e6f7f6]"
+                          }`}
+                        >
+                          {isUnlocked ? "Ver Detalhes" : "Saiba Mais"}
+                        </Button>
+                      </DialogTrigger>
+
+                      <DialogContent
+                        className="sm:max-w-[500px] p-6 border-0 rounded-2xl shadow-lg"
+                        overlayClassName="bg-black/60 backdrop-blur-sm"
                       >
-                        {isUnlocked ? "Ver Detalhes" : "Saiba Mais"}
-                      </Button>
-                    </DialogTrigger>
+                        <DialogHeader>
+                          <DialogTitle className="text-2xl font-bold text-gray-800">
+                            {nomeExibicao}
+                          </DialogTitle>
+                        </DialogHeader>
 
-                    <DialogContent
-                      className="sm:max-w-[500px] p-6 border-0 rounded-2xl shadow-lg"
-                      overlayClassName="bg-black/60 backdrop-blur-sm"
-                    >
-                      <DialogHeader>
-                        <DialogTitle className="text-2xl font-bold text-gray-800">
-                          {local.nome}
-                        </DialogTitle>
-                      </DialogHeader>
+                        <div className="flex flex-col gap-4 mt-2">
+                          {/* Imagem do Local */}
+                          <div className="w-full h-48 rounded-xl overflow-hidden bg-gray-100">
+                            <img
+                              src={logoUrl}
+                              alt={nomeExibicao}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
 
-                      <div className="flex flex-col gap-4 mt-2">
-                        {/* Imagem do Local */}
-                        <div className="w-full h-48 rounded-xl overflow-hidden bg-gray-100">
-                          <img
-                            src={local.imagem}
-                            alt={local.nome}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
+                          {/* Descrição */}
+                          <DialogDescription className="text-gray-700 text-base leading-relaxed">
+                            {local.descricao?.replace(/<[^>]*>/g, "") ?? ""}
+                          </DialogDescription>
 
-                        {/* Descrição */}
-                        <DialogDescription className="text-gray-700 text-base leading-relaxed">
-                          {local.descricao}
-                        </DialogDescription>
-
-                        {/* Botões e Interações */}
-                        <div className="mt-4 border-t pt-4">
-                          {isUnlocked ? (
-                            <div className="flex flex-col items-center gap-2">
-                              <p className="text-sm text-gray-500 font-medium">
-                                Você já visitou este local!
-                              </p>
-                              <div className="flex justify-center items-center gap-2 bg-gradient-to-r from-[#017DB9] to-[#007a73] text-white font-semibold py-3 px-6 rounded-xl shadow-md w-full">
-                                <MapPin size={20} />
-                                Etiqueta: {local.etiqueta}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col gap-3">
-                              <div className="flex flex-col sm:flex-row gap-3">
-                                {/* Botão Traçar Rota */}
-                                <a
-                                  href={`https://www.google.com/maps/dir/?api=1&destination=${local.lat},${local.lng}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="w-full sm:w-1/2 flex items-center justify-center gap-2 border border-blue-200 text-[#017DB9] hover:bg-blue-50 py-6 rounded-xl"
-                                >
-                                  <Navigation size={18} />
-                                  Traçar Rota
-                                </a>
-
-                                {/* Botão Validar Localização */}
-                                <button
-                                  onClick={() => handleCheckIn(local)}
-                                  disabled={loadingId === local.id}
-                                  className="w-full sm:w-1/2 bg-[#017DB9] hover:bg-[#007a73] text-white font-semibold py-3 px-4 rounded-xl transition-colors disabled:opacity-70 flex justify-center items-center gap-2"
-                                >
-                                  {loadingId === local.id ? (
-                                    "Buscando GPS..."
-                                  ) : (
-                                    <>
-                                      <MapPin size={18} />
-                                      Validar Local
-                                    </>
-                                  )}
-                                </button>
-                              </div>
-
-                              {/* Feedback de Erro/Sucesso */}
-                              {feedback?.id === local.id && (
-                                <div
-                                  className={`text-center text-sm font-semibold mt-2 p-2 rounded-lg ${
-                                    feedback.type === "success"
-                                      ? "bg-[#e6f7f6] text-[#007a73]"
-                                      : "bg-red-50 text-red-500"
-                                  }`}
-                                >
-                                  {feedback.message}
+                          {/* Botões e Interações */}
+                          <div className="mt-4 border-t pt-4">
+                            {isUnlocked ? (
+                              <div className="flex flex-col items-center gap-2">
+                                <p className="text-sm text-gray-500 font-medium">
+                                  Você já visitou este local!
+                                </p>
+                                <div className="flex justify-center items-center gap-2 bg-gradient-to-r from-[#017DB9] to-[#007a73] text-white font-semibold py-3 px-6 rounded-xl shadow-md w-full">
+                                  <MapPin size={20} />
+                                  Categoria: {local.categoria}
                                 </div>
-                              )}
-                            </div>
-                          )}
+                              </div>
+                            ) : (
+                              <div className="flex flex-col gap-3">
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                  {/* Botão Traçar Rota */}
+                                  <a
+                                    href={`https://www.google.com/maps/dir/?api=1&destination=${local.latitude},${local.longitude}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full sm:w-1/2 flex items-center justify-center gap-2 border border-blue-200 text-[#017DB9] hover:bg-blue-50 py-6 rounded-xl"
+                                  >
+                                    <Navigation size={18} />
+                                    Traçar Rota
+                                  </a>
+
+                                  {/* Botão Validar Localização */}
+                                  <button
+                                    onClick={() => handleCheckIn(local)}
+                                    disabled={loadingId === localKey}
+                                    className="w-full sm:w-1/2 bg-[#017DB9] hover:bg-[#007a73] text-white font-semibold py-3 px-4 rounded-xl transition-colors disabled:opacity-70 flex justify-center items-center gap-2"
+                                  >
+                                    {loadingId === localKey ? (
+                                      "Buscando GPS..."
+                                    ) : (
+                                      <>
+                                        <MapPin size={18} />
+                                        Validar Local
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+
+                                {/* Feedback de Erro/Sucesso */}
+                                {feedback?.id === localKey && (
+                                  <div
+                                    className={`text-center text-sm font-semibold mt-2 p-2 rounded-lg ${
+                                      feedback.type === "success"
+                                        ? "bg-[#e6f7f6] text-[#007a73]"
+                                        : "bg-red-50 text-red-500"
+                                    }`}
+                                  >
+                                    {feedback.message}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              );
-            })}
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                );
+              })
+            )}
           </div>
         </section>
 

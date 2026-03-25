@@ -12,19 +12,19 @@ const { Option } = Select;
 const LocationPicker = dynamic(() => import("@/components/map/LocationPicker"), { ssr: false, loading: () => <div className="h-[200px] bg-gray-100 animate-pulse rounded-lg"/>});
 
 const categoriasLocais = [
-  "Comércio & Lojas",
-  "Educação & Capacitação",
-  "Emergências",
-  "Esportes",
-  "Eventos & Agenda",
-  "Hospedagem",
-  "Indústria",
-  "Mei de Saquá",
-  "Saúde & Bem-estar",
-  "Serviços Públicos",
-  "Supermercado & Feiras",
-  "Turismo & Lazer",
-  "Utilidades & Informações Gerais",
+  { label: "Comércio & Lojas", value: "comercio-e-lojas" },
+  { label: "Educação & Capacitação", value: "educacao-e-capacitacao" },
+  { label: "Emergências", value: "emergencias" },
+  { label: "Esportes", value: "esportes" },
+  { label: "Eventos & Agenda", value: "eventos-e-agenda" },
+  { label: "Hospedagem", value: "hospedagem" },
+  { label: "Indústria", value: "industria" },
+  { label: "Mei de Saquá", value: "mei-de-saqua" },
+  { label: "Saúde & Bem-estar", value: "saude-e-bem-estar" },
+  { label: "Serviços Públicos", value: "servicos-publicos" },
+  { label: "Supermercado & Feiras", value: "supermercado-e-feiras" },
+  { label: "Turismo & Lazer", value: "turismo-e-lazer" },
+  { label: "Utilidades & Informações Gerais", value: "utilidades-e-informacoes-gerais" },
 ];
 
 const formatCPF = (value: string) =>
@@ -176,7 +176,7 @@ export default function CadastroIndicacao({ visible, onClose, onSuccess, mode = 
         </Col>
         <Col xs={24} md={12}>
           <Form.Item name="categoria" label="Categoria Principal" rules={[{ required: true, message: "Selecione" }]}>
-            <Select placeholder="Selecione...">{categoriasLocais.map((c) => <Option key={c} value={c}>{c}</Option>)}</Select>
+            <Select placeholder="Selecione...">{categoriasLocais.map((c) => <Option key={c.value} value={c.value}>{c.label}</Option>)}</Select>
           </Form.Item>
         </Col>
       </Row>

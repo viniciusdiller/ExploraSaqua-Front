@@ -138,6 +138,15 @@ export const confirmEmailChange = (token: string) =>
 
 export const getAllLocais = () => fetchApi("/api/locais");
 
+export const getAllLocaisAtivos = async () => {
+  try {
+    return await fetchApi("/api/locais/ativos");
+  } catch {
+    // Fallback para ambientes onde a rota dedicada ainda nao existe.
+    return await getAllLocais();
+  }
+};
+
 export const getLocaisByCategoria = (categoria: string) =>
   fetchApi(`/api/locais/categoria/${encodeURIComponent(categoria)}`);
 
