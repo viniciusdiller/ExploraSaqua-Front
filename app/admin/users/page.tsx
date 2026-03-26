@@ -23,6 +23,8 @@ import {
   Grid,
   Space,
   Divider,
+  List,
+  Badge,
 } from "antd";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -37,6 +39,9 @@ import {
   SendOutlined,
   LockOutlined,
   FilterOutlined,
+  ShopOutlined,
+  CommentOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 import {
   getAllUsers,
@@ -44,7 +49,12 @@ import {
   adminDeleteUser,
   adminChangeUserPassword,
   adminResendConfirmation,
+  getAllActiveLocal,
+  getAllInactiveLocal,
+  getPendingAdminRequests,
+  adminGetReviewsByLocal,
 } from "@/lib/api";
+import { Local } from "@/types/Interface-Local";
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -58,6 +68,14 @@ interface User {
   username: string;
   email: string;
   enabled: boolean;
+}
+
+interface UserReviewItem {
+  id: number;
+  comentario: string;
+  nota: number | null;
+  localId: number;
+  nomeLocal: string;
 }
 
 const normalizeUser = (raw: any): User => {
@@ -93,6 +111,12 @@ const AdminUsuariosPage: React.FC = () => {
   const [passwordUser, setPasswordUser] = useState<User | null>(null);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordForm] = Form.useForm();
+
+  const [isInteractionModalVisible, setIsInteractionModalVisible] = useState(false);
+  const [interactionLoading, setInteractionLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userEstablishments, setUserEstablishments] = useState<Local[]>([]);
+  const [userComments, setUserComments] = useState<UserReviewItem[]>([]);
 
   const router = useRouter();
   const screens = useBreakpoint();
@@ -227,6 +251,137 @@ const AdminUsuariosPage: React.FC = () => {
     }
   };
 
+  const isLocalOwnedByUser = (local: any, user: User) => {
+    const ownerIdCandidates = [
+      local.usuarioId,
+      local.userId,
+      local.donoId,
+      local.proprietarioId,
+      local.responsavelId,
+      local.criadoPorId,
+      local.authorId,
+    ]
+      .map((val: any) => Number(val))
+      .filter((val: number) => !Number.isNaN(val) && val > 0);
+
+    if (ownerIdCandidates.includes(user.usuarioId)) return true;
+
+    const ownerTextCandidates = [
+      local.criadoPor,
+      local.username,
+      local.nomeResponsavel,
+      local.responsavel,
+      local.emailResponsavel,
+      local.email,
+      local.ownerUsername,
+    ]
+      .filter(Boolean)
+      .map((val: any) => String(val).toLowerCase());
+
+    const normalizedName = (user.nomeCompleto || "").toLowerCase();
+    const normalizedUsername = (user.username || "").toLowerCase();
+    const normalizedEmail = (user.email || "").toLowerCase();
+
+    return ownerTextCandidates.some(
+      (text: string) =>
+        text === normalizedName ||
+        text === normalizedUsername ||
+        text === normalizedEmail,
+    );
+  };
+
+  const normalizeCommentsFromResponse = (response: any) => {
+    if (Array.isArray(response)) return response;
+    if (response && Array.isArray(response.avaliacoes)) return response.avaliacoes;
+    if (response && Array.isArray(response.reviews)) return response.reviews;
+    if (response && Array.isArray(response.data)) return response.data;
+    return [];
+  };
+
+  const handleOpenInteractionDashboard = async (user: User) => {
+    const token = localStorage.getItem("admin_token");
+    if (!token) {
+      message.error("Sessão expirada. Faça login novamente.");
+      router.push("/admin/login");
+      return;
+    }
+
+    setSelectedUser(user);
+    setUserEstablishments([]);
+    setUserComments([]);
+    setIsInteractionModalVisible(true);
+    setInteractionLoading(true);
+
+    try {
+      const [locaisAtivosResp, locaisInativosResp, pendentesResp] = await Promise.all([
+        getAllActiveLocal(token),
+        getAllInactiveLocal(token),
+        getPendingAdminRequests(token),
+      ]);
+
+      const locaisAtivos = Array.isArray(locaisAtivosResp)
+        ? locaisAtivosResp
+        : locaisAtivosResp?.data || [];
+      const locaisInativos = Array.isArray(locaisInativosResp)
+        ? locaisInativosResp
+        : locaisInativosResp?.data || [];
+
+      const pendentes = pendentesResp || {};
+      const pendentesList = [
+        ...(Array.isArray(pendentes.cadastros) ? pendentes.cadastros : []),
+        ...(Array.isArray(pendentes.atualizacoes) ? pendentes.atualizacoes : []),
+        ...(Array.isArray(pendentes.exclusoes) ? pendentes.exclusoes : []),
+        ...(Array.isArray(pendentes.indicacoes) ? pendentes.indicacoes : []),
+      ];
+
+      const allLocais = [...locaisAtivos, ...locaisInativos, ...pendentesList].reduce(
+        (acc: Local[], local: any) => {
+          const id = Number(local?.localId ?? local?.id ?? 0);
+          if (!id) return acc;
+          if (acc.some((item) => Number(item.localId) === id)) return acc;
+          acc.push({ ...local, localId: id });
+          return acc;
+        },
+      []);
+
+      const ownedLocais = (allLocais as Local[]).filter((local: Local) =>
+        isLocalOwnedByUser(local, user),
+      );
+      setUserEstablishments(ownedLocais);
+
+      const reviewsByLocal = await Promise.allSettled(
+        (allLocais as Local[]).map(async (local: Local) => {
+          const response = await adminGetReviewsByLocal(String(local.localId), token);
+          const localReviews = normalizeCommentsFromResponse(response);
+
+          return localReviews
+            .filter((review: any) => {
+              const reviewUserId = Number(review?.usuario?.usuarioId ?? review?.usuarioId ?? review?.userId ?? 0);
+              return reviewUserId === user.usuarioId;
+            })
+            .map((review: any) => ({
+              id: Number(review.avaliacoesId ?? review.id ?? 0),
+              comentario: review.comentario || review.comment || "",
+              nota: review.nota ?? review.rating ?? null,
+              localId: local.localId,
+              nomeLocal: local.nomeLocal || (local as any).nome || `Local ${local.localId}`,
+            }));
+        }),
+      );
+
+      const flattenedReviews = reviewsByLocal
+        .filter((result): result is PromiseFulfilledResult<UserReviewItem[]> => result.status === "fulfilled")
+        .flatMap((result) => result.value)
+        .sort((a, b) => b.id - a.id);
+
+      setUserComments(flattenedReviews);
+    } catch (error: any) {
+      message.error(error.message || "Falha ao carregar interações do usuário.");
+    } finally {
+      setInteractionLoading(false);
+    }
+  };
+
   const renderUserList = (list: User[]) => {
     if (list.length === 0)
       return (
@@ -245,8 +400,9 @@ const AdminUsuariosPage: React.FC = () => {
             <Col xs={24} xl={12} key={user.usuarioId}>
               <Card
                 bordered={false}
-                className="shadow-sm hover:shadow-md transition-all duration-300 rounded-xl overflow-hidden border border-gray-100"
+                className="shadow-sm hover:shadow-md transition-all duration-300 rounded-xl overflow-hidden border border-gray-100 cursor-pointer"
                 bodyStyle={{ padding: "20px" }}
+                onClick={() => handleOpenInteractionDashboard(user)}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex gap-4">
@@ -258,9 +414,18 @@ const AdminUsuariosPage: React.FC = () => {
                     />
                     <div className="flex flex-col">
                       <div className="flex items-center gap-2 mb-1">
-                        <Text strong className="text-lg leading-none m-0">
-                          {user.nomeCompleto}
-                        </Text>
+                        <Button
+                          type="link"
+                          className="!p-0 !h-auto"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenInteractionDashboard(user);
+                          }}
+                        >
+                          <Text strong className="text-lg leading-none m-0">
+                            {user.nomeCompleto}
+                          </Text>
+                        </Button>
                         <Tag
                           bordered={false}
                           className="rounded-full px-3 text-[10px] font-bold tracking-wider"
@@ -287,7 +452,10 @@ const AdminUsuariosPage: React.FC = () => {
                       <Button
                         shape="circle"
                         icon={<EditOutlined />}
-                        onClick={() => handleEdit(user)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(user);
+                        }}
                         className="hover:text-blue-600 hover:border-blue-600"
                       />
                     </Tooltip>
@@ -295,7 +463,10 @@ const AdminUsuariosPage: React.FC = () => {
                       <Button
                         shape="circle"
                         icon={<KeyOutlined />}
-                        onClick={() => handleOpenPasswordModal(user)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenPasswordModal(user);
+                        }}
                       />
                     </Tooltip>
                   </div>
@@ -309,7 +480,10 @@ const AdminUsuariosPage: React.FC = () => {
                     size="small"
                     icon={<SendOutlined />}
                     disabled={user.enabled}
-                    onClick={() => handleResendEmail(user)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleResendEmail(user);
+                    }}
                     className={
                       user.enabled
                         ? "text-gray-400"
@@ -333,6 +507,7 @@ const AdminUsuariosPage: React.FC = () => {
                       danger
                       size="small"
                       icon={<DeleteOutlined />}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       Remover
                     </Button>
@@ -443,6 +618,130 @@ const AdminUsuariosPage: React.FC = () => {
       </div>
 
       {/* Modais com Estilo Melhorado */}
+      <Modal
+        title={
+          <div className="pb-2 border-b">
+            <div className="flex items-center justify-between gap-3">
+              <Space>
+                <Avatar size={48} icon={<UserOutlined />} className="bg-blue-100 text-blue-600" />
+                <div>
+                  <Text strong className="text-base block">
+                    Mini Dashboard do Usuário
+                  </Text>
+                  <Text type="secondary">
+                    {selectedUser?.nomeCompleto} • @{selectedUser?.username}
+                  </Text>
+                </div>
+              </Space>
+            </div>
+          </div>
+        }
+        open={isInteractionModalVisible}
+        onCancel={() => setIsInteractionModalVisible(false)}
+        footer={null}
+        width={screens.lg ? 980 : "95vw"}
+        centered
+      >
+        <Spin spinning={interactionLoading} tip="Buscando interações do usuário...">
+          <div className="pt-4 space-y-6">
+            <Row gutter={[12, 12]}>
+              <Col xs={24} md={8}>
+                <Card className="rounded-xl" bodyStyle={{ padding: 14 }}>
+                  <Space>
+                    <Badge color="#3b82f6" />
+                    <ShopOutlined className="text-blue-500" />
+                    <Text type="secondary">Estabelecimentos</Text>
+                  </Space>
+                  <Title level={3} className="!m-0">
+                    {userEstablishments.length}
+                  </Title>
+                </Card>
+              </Col>
+              <Col xs={24} md={8}>
+                <Card className="rounded-xl" bodyStyle={{ padding: 14 }}>
+                  <Space>
+                    <Badge color="#f59e0b" />
+                    <CommentOutlined className="text-amber-500" />
+                    <Text type="secondary">Comentários</Text>
+                  </Space>
+                  <Title level={3} className="!m-0">
+                    {userComments.length}
+                  </Title>
+                </Card>
+              </Col>
+              <Col xs={24} md={8}>
+                <Card className="rounded-xl" bodyStyle={{ padding: 14 }}>
+                  <Space>
+                    <Badge color="#10b981" />
+                    <EyeOutlined className="text-emerald-500" />
+                    <Text type="secondary">Interações Totais</Text>
+                  </Space>
+                  <Title level={3} className="!m-0">
+                    {userEstablishments.length + userComments.length}
+                  </Title>
+                </Card>
+              </Col>
+            </Row>
+
+            <Row gutter={[16, 16]}>
+              <Col xs={24} lg={12}>
+                <Card title="Estabelecimentos cadastrados" className="h-full">
+                  {userEstablishments.length === 0 ? (
+                    <Empty description="Nenhum estabelecimento encontrado para este usuário." image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                  ) : (
+                    <List
+                      dataSource={userEstablishments}
+                      renderItem={(local) => (
+                        <List.Item>
+                          <List.Item.Meta
+                            title={local.nomeLocal || (local as any).nome || `Local ${local.localId}`}
+                            description={
+                              <span>
+                                ID: {local.localId} • Categoria: {local.categoria || "N/A"}
+                              </span>
+                            }
+                          />
+                        </List.Item>
+                      )}
+                    />
+                  )}
+                </Card>
+              </Col>
+
+              <Col xs={24} lg={12}>
+                <Card title="Comentários feitos" className="h-full">
+                  {userComments.length === 0 ? (
+                    <Empty description="Nenhum comentário encontrado para este usuário." image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                  ) : (
+                    <List
+                      dataSource={userComments}
+                      renderItem={(comment) => (
+                        <List.Item>
+                          <List.Item.Meta
+                            title={comment.nomeLocal}
+                            description={
+                              <div>
+                                <Text className="block text-sm">
+                                  {comment.comentario || "(Sem texto)"}
+                                </Text>
+                                <Text type="secondary" className="text-xs">
+                                  Local ID: {comment.localId}
+                                  {comment.nota !== null ? ` • Nota: ${comment.nota}` : ""}
+                                </Text>
+                              </div>
+                            }
+                          />
+                        </List.Item>
+                      )}
+                    />
+                  )}
+                </Card>
+              </Col>
+            </Row>
+          </div>
+        </Spin>
+      </Modal>
+
       <Modal
         title={<div className="pb-4 border-b">Editar Perfil do Usuário</div>}
         open={isEditModalVisible}

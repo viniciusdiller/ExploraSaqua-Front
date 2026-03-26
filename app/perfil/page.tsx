@@ -34,7 +34,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import {
@@ -46,6 +46,27 @@ import {
 import { cn } from "@/lib/utils";
 import { contemPalavrao } from "@/lib/profanityFilter";
 import { removeEmojis, containsEmoji, isValidEmail } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  getPerfilEstabelecimentos,
+  updatePerfilEstabelecimento,
+} from "@/lib/profile-estabelecimentos";
+import {
+  PerfilEstabelecimento,
+  PerfilEstabelecimentoStatus,
+} from "@/types/profile-estabelecimentos";
+
+type EstabelecimentoFiltro = "todos" | "ativos" | "pendentes" | "inativos";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
+type FormularioEdicaoEstabelecimento = {
+  nomeLocal: string;
+  categoria: string;
+  endereco: string;
+  instagram: string;
+  descricao: string;
+};
 
 export default function PerfilPage() {
   const { user, logout, isLoading, updateUser: updateUserContext } = useAuth();
@@ -69,6 +90,39 @@ export default function PerfilPage() {
   const [userTag, setUserTag] = useState<string | null>(null);
   const [visitedCount, setVisitedCount] = useState<number | null>(null);
   const [totalLocations, setTotalLocations] = useState<number | null>(null);
+  const [meusEstabelecimentos, setMeusEstabelecimentos] = useState<
+    PerfilEstabelecimento[]
+  >([]);
+  const [totalEstabelecimentos, setTotalEstabelecimentos] = useState(0);
+  const [isLoadingEstabelecimentos, setIsLoadingEstabelecimentos] =
+    useState(false);
+  const [erroEstabelecimentos, setErroEstabelecimentos] = useState<
+    string | null
+  >(null);
+  const [filtroStatus, setFiltroStatus] =
+    useState<EstabelecimentoFiltro>("todos");
+  const [isDetalhesEstabelecimentoOpen, setIsDetalhesEstabelecimentoOpen] =
+    useState(false);
+  const [estabelecimentoSelecionado, setEstabelecimentoSelecionado] =
+    useState<PerfilEstabelecimento | null>(null);
+  const [isEditandoEstabelecimento, setIsEditandoEstabelecimento] =
+    useState(false);
+  const [isSalvandoEstabelecimento, setIsSalvandoEstabelecimento] =
+    useState(false);
+  const [formularioEdicao, setFormularioEdicao] =
+    useState<FormularioEdicaoEstabelecimento>({
+      nomeLocal: "",
+      categoria: "",
+      endereco: "",
+      instagram: "",
+      descricao: "",
+    });
+  const [novaLogo, setNovaLogo] = useState<File | null>(null);
+  const [novasImagens, setNovasImagens] = useState<File[]>([]);
+  const [previewNovaLogo, setPreviewNovaLogo] = useState<string | null>(null);
+  const [previewNovasImagens, setPreviewNovasImagens] = useState<string[]>([]);
+  const inputLogoRef = useRef<HTMLInputElement | null>(null);
+  const inputImagensRef = useRef<HTMLInputElement | null>(null);
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const valueComEmoji = e.target.value;
@@ -139,6 +193,30 @@ export default function PerfilPage() {
 
     fetchProgress();
   }, [user]);
+
+  const fetchMeusEstabelecimentos = async () => {
+    if (!user?.token) return [] as PerfilEstabelecimento[];
+
+    try {
+      setIsLoadingEstabelecimentos(true);
+      setErroEstabelecimentos(null);
+      const resp = await getPerfilEstabelecimentos(user.token);
+      const locais = Array.isArray(resp.locais) ? resp.locais : [];
+      setMeusEstabelecimentos(locais);
+      setTotalEstabelecimentos(Number(resp.total) || 0);
+      return locais;
+    } catch {
+      setErroEstabelecimentos("Falha ao carregar seus estabelecimentos.");
+      return [] as PerfilEstabelecimento[];
+    } finally {
+      setIsLoadingEstabelecimentos(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMeusEstabelecimentos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.token]);
 
   if (isLoading) {
     return (
@@ -251,6 +329,266 @@ export default function PerfilPage() {
       toast.error(`Erro ao excluir a conta: ${error.message}`);
     }
   };
+
+  const getStatusLabel = (status: PerfilEstabelecimentoStatus) => {
+    const statusLabelMap: Record<PerfilEstabelecimentoStatus, string> = {
+      ativo: "Ativo",
+      inativo: "Inativo",
+      pendente_aprovacao: "Pendente de aprovação",
+      pendente_atualizacao: "Pendente de atualização",
+      pendente_exclusao: "Pendente de exclusão",
+      rejeitado: "Rejeitado",
+    };
+
+    return statusLabelMap[status] || "Sem status";
+  };
+
+  const getStatusBadgeClass = (status: PerfilEstabelecimentoStatus) => {
+    if (status === "ativo") {
+      return "bg-emerald-100 text-emerald-800 border-emerald-200";
+    }
+    if (status === "inativo") {
+      return "bg-zinc-100 text-zinc-700 border-zinc-200";
+    }
+    if (status === "rejeitado") {
+      return "bg-rose-100 text-rose-800 border-rose-200";
+    }
+    return "bg-amber-100 text-amber-800 border-amber-200";
+  };
+
+  const resumirEndereco = (endereco: string | null) => {
+    if (!endereco) return "Endereço não informado";
+    if (endereco.length <= 60) return endereco;
+    return `${endereco.slice(0, 57)}...`;
+  };
+
+  const limparHtml = (texto: string | null | undefined) => {
+    if (!texto) return "";
+    return texto
+      .replace(/<[^>]*>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  const normalizarUrlImagem = (url: string | null | undefined) => {
+    if (!url) return null;
+
+    const semBarrasInvertidas = url.replace(/\\/g, "/");
+
+    if (/^https?:\/\//i.test(semBarrasInvertidas)) {
+      return semBarrasInvertidas;
+    }
+
+    const caminhoLimpo = semBarrasInvertidas.startsWith("/")
+      ? semBarrasInvertidas.slice(1)
+      : semBarrasInvertidas;
+
+    if (!API_URL) {
+      return `/${caminhoLimpo}`;
+    }
+
+    return `${API_URL.replace(/\/$/, "")}/${caminhoLimpo}`;
+  };
+
+  const abrirDetalhesEstabelecimento = (local: PerfilEstabelecimento) => {
+    setEstabelecimentoSelecionado(local);
+    setFormularioEdicao({
+      nomeLocal: local.nomeLocal || "",
+      categoria: local.categoria || "",
+      endereco: local.endereco || "",
+      instagram: local.instagram || "",
+      descricao: limparHtml(local.descricao),
+    });
+    if (previewNovaLogo) {
+      URL.revokeObjectURL(previewNovaLogo);
+    }
+    previewNovasImagens.forEach((url) => URL.revokeObjectURL(url));
+    setNovaLogo(null);
+    setNovasImagens([]);
+    setPreviewNovaLogo(null);
+    setPreviewNovasImagens([]);
+    setIsEditandoEstabelecimento(false);
+    setIsDetalhesEstabelecimentoOpen(true);
+  };
+
+  const atualizarCampoEdicao = (
+    campo: keyof FormularioEdicaoEstabelecimento,
+    valor: string
+  ) => {
+    setFormularioEdicao((prev) => ({ ...prev, [campo]: valor }));
+  };
+
+  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivo = event.target.files?.[0] || null;
+    if (previewNovaLogo) {
+      URL.revokeObjectURL(previewNovaLogo);
+    }
+    setNovaLogo(arquivo);
+    setPreviewNovaLogo(arquivo ? URL.createObjectURL(arquivo) : null);
+  };
+
+  const handleImagensChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivos = Array.from(event.target.files || []);
+    previewNovasImagens.forEach((url) => URL.revokeObjectURL(url));
+    setNovasImagens(arquivos);
+    setPreviewNovasImagens(arquivos.map((arquivo) => URL.createObjectURL(arquivo)));
+  };
+
+  const removerNovaLogoSelecionada = () => {
+    if (previewNovaLogo) {
+      URL.revokeObjectURL(previewNovaLogo);
+    }
+    setNovaLogo(null);
+    setPreviewNovaLogo(null);
+    if (inputLogoRef.current) {
+      inputLogoRef.current.value = "";
+    }
+  };
+
+  const removerNovaImagemSelecionada = (index: number) => {
+    setNovasImagens((prev) => prev.filter((_, currentIndex) => currentIndex !== index));
+    setPreviewNovasImagens((prev) => {
+      const urlRemovida = prev[index];
+      if (urlRemovida) {
+        URL.revokeObjectURL(urlRemovida);
+      }
+      return prev.filter((_, currentIndex) => currentIndex !== index);
+    });
+    if (inputImagensRef.current) {
+      inputImagensRef.current.value = "";
+    }
+  };
+
+  const salvarEstabelecimento = async () => {
+    if (!estabelecimentoSelecionado || !user?.token) {
+      toast.error("Erro de autenticação. Faça login novamente.");
+      return;
+    }
+
+    const payload = {
+      nomeLocal: removeEmojis(formularioEdicao.nomeLocal.trim()),
+      categoria: formularioEdicao.categoria.trim(),
+      endereco: removeEmojis(formularioEdicao.endereco.trim()),
+      instagram: formularioEdicao.instagram.trim(),
+      descricao: removeEmojis(formularioEdicao.descricao.trim()),
+      logo: novaLogo,
+      imagens: novasImagens,
+    };
+
+    if (
+      (payload.nomeLocal && contemPalavrao(payload.nomeLocal)) ||
+      (payload.descricao && contemPalavrao(payload.descricao))
+    ) {
+      toast.error("Remova palavras inapropriadas antes de salvar.");
+      return;
+    }
+
+    const houveAlteracaoTexto =
+      payload.nomeLocal !== (estabelecimentoSelecionado.nomeLocal || "") ||
+      payload.categoria !== (estabelecimentoSelecionado.categoria || "") ||
+      payload.endereco !== (estabelecimentoSelecionado.endereco || "") ||
+      payload.instagram !== (estabelecimentoSelecionado.instagram || "") ||
+      payload.descricao !== limparHtml(estabelecimentoSelecionado.descricao);
+
+    if (!houveAlteracaoTexto && !payload.logo && payload.imagens.length === 0) {
+      toast.info("Nenhuma alteração foi feita.");
+      return;
+    }
+
+    setIsSalvandoEstabelecimento(true);
+    try {
+      const atualizado = await updatePerfilEstabelecimento(
+        estabelecimentoSelecionado.localId,
+        user.token,
+        payload
+      );
+
+      const locaisAtualizados = await fetchMeusEstabelecimentos();
+      const atualizadoRefetch = locaisAtualizados.find(
+        (item) => item.localId === estabelecimentoSelecionado.localId
+      );
+      const estabelecimentoFinal = atualizadoRefetch
+        ? atualizadoRefetch
+        : combinarEstabelecimentoAtualizado(estabelecimentoSelecionado, atualizado);
+
+      setMeusEstabelecimentos((prev) =>
+        prev.map((item) =>
+          item.localId === estabelecimentoFinal.localId ? estabelecimentoFinal : item
+        )
+      );
+      setEstabelecimentoSelecionado(estabelecimentoFinal);
+      setFormularioEdicao({
+        nomeLocal: estabelecimentoFinal.nomeLocal || "",
+        categoria: estabelecimentoFinal.categoria || "",
+        endereco: estabelecimentoFinal.endereco || "",
+        instagram: estabelecimentoFinal.instagram || "",
+        descricao: limparHtml(estabelecimentoFinal.descricao),
+      });
+      if (previewNovaLogo) {
+        URL.revokeObjectURL(previewNovaLogo);
+      }
+      previewNovasImagens.forEach((url) => URL.revokeObjectURL(url));
+      setNovaLogo(null);
+      setNovasImagens([]);
+      setPreviewNovaLogo(null);
+      setPreviewNovasImagens([]);
+      setIsEditandoEstabelecimento(false);
+      toast.success("Estabelecimento atualizado com sucesso.");
+    } catch (error: any) {
+      toast.error(
+        error?.message ||
+          "Falha ao atualizar estabelecimento. Verifique os arquivos enviados."
+      );
+    } finally {
+      setIsSalvandoEstabelecimento(false);
+    }
+  };
+
+  const obterImagemCapa = (local: PerfilEstabelecimento) => {
+    const logo = normalizarUrlImagem(local.logoUrl || local.logo);
+    if (logo) return logo;
+    return normalizarUrlImagem(local.locaisImg?.[0]?.url);
+  };
+
+  const obterLogoAtual = (local: PerfilEstabelecimento) => {
+    return normalizarUrlImagem(local.logoUrl || local.logo);
+  };
+
+  const obterImagensAtuais = (local: PerfilEstabelecimento) => {
+    return (local.locaisImg || [])
+      .map((imagem) => normalizarUrlImagem(imagem?.url))
+      .filter((url): url is string => Boolean(url));
+  };
+
+  const combinarEstabelecimentoAtualizado = (
+    anterior: PerfilEstabelecimento,
+    parcial: PerfilEstabelecimento
+  ): PerfilEstabelecimento => {
+    return {
+      ...anterior,
+      ...parcial,
+      logoUrl: parcial.logoUrl ?? anterior.logoUrl,
+      logo: parcial.logo ?? anterior.logo,
+      locaisImg:
+        Array.isArray(parcial.locaisImg) && parcial.locaisImg.length > 0
+          ? parcial.locaisImg
+          : anterior.locaisImg,
+    };
+  };
+
+  const estabelecimentosFiltrados = meusEstabelecimentos.filter((local) => {
+    if (filtroStatus === "ativos") {
+      return local.status === "ativo";
+    }
+    if (filtroStatus === "inativos") {
+      return local.status === "inativo";
+    }
+    if (filtroStatus === "pendentes") {
+      return local.status.startsWith("pendente");
+    }
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-8">
@@ -409,6 +747,443 @@ export default function PerfilPage() {
                 </Dialog>
               </CardFooter>
             </Card>
+
+            <Card className="rounded-xl shadow-md">
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <CardTitle>Meus Estabelecimentos</CardTitle>
+                    <CardDescription>
+                      Total cadastrado: {totalEstabelecimentos}
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant={filtroStatus === "todos" ? "default" : "outline"}
+                      onClick={() => setFiltroStatus("todos")}
+                    >
+                      Todos
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={filtroStatus === "ativos" ? "default" : "outline"}
+                      onClick={() => setFiltroStatus("ativos")}
+                    >
+                      Ativos
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={
+                        filtroStatus === "pendentes" ? "default" : "outline"
+                      }
+                      onClick={() => setFiltroStatus("pendentes")}
+                    >
+                      Pendentes
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={filtroStatus === "inativos" ? "default" : "outline"}
+                      onClick={() => setFiltroStatus("inativos")}
+                    >
+                      Inativos
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoadingEstabelecimentos ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {Array.from({ length: 4 }).map((_, idx) => (
+                      <div
+                        key={`skeleton-estabelecimento-${idx}`}
+                        className="overflow-hidden rounded-xl border"
+                      >
+                        <Skeleton className="h-36 w-full rounded-none" />
+                        <div className="p-4 space-y-3">
+                          <Skeleton className="h-5 w-2/3" />
+                          <Skeleton className="h-4 w-1/3" />
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-9 w-28" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : erroEstabelecimentos ? (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+                    <p>{erroEstabelecimentos}</p>
+                    <Button
+                      variant="outline"
+                      className="mt-3"
+                      onClick={fetchMeusEstabelecimentos}
+                    >
+                      Tentar novamente
+                    </Button>
+                  </div>
+                ) : totalEstabelecimentos === 0 ? (
+                  <div className="rounded-xl border border-dashed p-6 text-center text-gray-600">
+                    Você ainda não cadastrou estabelecimentos. Quando cadastrar,
+                    eles aparecerão aqui.
+                  </div>
+                ) : estabelecimentosFiltrados.length === 0 ? (
+                  <div className="rounded-xl border border-dashed p-6 text-center text-gray-600">
+                    Nenhum estabelecimento encontrado para o filtro selecionado.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {estabelecimentosFiltrados.map((local) => {
+                      const capa = obterImagemCapa(local);
+                      const nomeLocal = local.nomeLocal || "Estabelecimento sem nome";
+                      return (
+                        <div
+                          key={local.localId}
+                          className="border rounded-xl overflow-hidden bg-white"
+                        >
+                          {capa ? (
+                            <img
+                              src={capa}
+                              alt={`Capa de ${nomeLocal}`}
+                              className="w-full h-40 object-cover"
+                              loading="lazy"
+                              onError={(e) => {
+                                e.currentTarget.src = "/avatars/default-avatar.png";
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-40 bg-gray-100 flex items-center justify-center text-gray-500 text-sm">
+                              Sem imagem de capa
+                            </div>
+                          )}
+
+                          <div className="p-4 space-y-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <h3 className="font-semibold text-gray-900 line-clamp-2">
+                                {nomeLocal}
+                              </h3>
+                              <Badge
+                                variant="outline"
+                                className={getStatusBadgeClass(local.status)}
+                              >
+                                {getStatusLabel(local.status)}
+                              </Badge>
+                            </div>
+
+                            <p className="text-sm text-gray-600">
+                              Categoria: {local.categoria || "Não informada"}
+                            </p>
+                            <p className="text-sm text-gray-600 line-clamp-2">
+                              {resumirEndereco(local.endereco)}
+                            </p>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => abrirDetalhesEstabelecimento(local)}
+                            >
+                              Ver detalhes
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Dialog
+              open={isDetalhesEstabelecimentoOpen}
+              onOpenChange={(open) => {
+                setIsDetalhesEstabelecimentoOpen(open);
+                if (!open) {
+                  setIsEditandoEstabelecimento(false);
+                  if (previewNovaLogo) {
+                    URL.revokeObjectURL(previewNovaLogo);
+                  }
+                  previewNovasImagens.forEach((url) => URL.revokeObjectURL(url));
+                  setNovaLogo(null);
+                  setNovasImagens([]);
+                  setPreviewNovaLogo(null);
+                  setPreviewNovasImagens([]);
+                }
+              }}
+            >
+              <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-hidden">
+                <DialogHeader>
+                  <DialogTitle>
+                    {estabelecimentoSelecionado?.nomeLocal ||
+                      "Detalhes do estabelecimento"}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Visualização dos dados do seu estabelecimento, mesmo em
+                    status pendente.
+                  </DialogDescription>
+                </DialogHeader>
+
+                {estabelecimentoSelecionado && (
+                  <div className="max-h-[calc(90vh-13rem)] overflow-y-auto pr-2 space-y-4">
+                    {obterImagemCapa(estabelecimentoSelecionado) ? (
+                      <img
+                        src={obterImagemCapa(estabelecimentoSelecionado) as string}
+                        alt={`Capa de ${
+                          estabelecimentoSelecionado.nomeLocal ||
+                          "estabelecimento"
+                        }`}
+                        className="w-full h-52 object-cover rounded-lg border"
+                        onError={(e) => {
+                          e.currentTarget.src = "/avatars/default-avatar.png";
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-52 rounded-lg border bg-gray-100 flex items-center justify-center text-gray-500 text-sm">
+                        Sem imagem disponível
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm text-gray-600">
+                        Categoria: {estabelecimentoSelecionado.categoria || "Não informada"}
+                      </p>
+                      <Badge
+                        variant="outline"
+                        className={getStatusBadgeClass(
+                          estabelecimentoSelecionado.status
+                        )}
+                      >
+                        {getStatusLabel(estabelecimentoSelecionado.status)}
+                      </Badge>
+                    </div>
+
+                    {isEditandoEstabelecimento ? (
+                      <div className="space-y-4 text-sm text-gray-700">
+                        <div>
+                          <Label htmlFor="edit-nome-local">Nome do estabelecimento</Label>
+                          <Input
+                            id="edit-nome-local"
+                            value={formularioEdicao.nomeLocal}
+                            onChange={(e) =>
+                              atualizarCampoEdicao("nomeLocal", e.target.value)
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="edit-categoria">Categoria</Label>
+                          <Input
+                            id="edit-categoria"
+                            value={formularioEdicao.categoria}
+                            onChange={(e) =>
+                              atualizarCampoEdicao("categoria", e.target.value)
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="edit-endereco">Endereço</Label>
+                          <Input
+                            id="edit-endereco"
+                            value={formularioEdicao.endereco}
+                            onChange={(e) =>
+                              atualizarCampoEdicao("endereco", e.target.value)
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="edit-instagram">Instagram</Label>
+                          <Input
+                            id="edit-instagram"
+                            value={formularioEdicao.instagram}
+                            onChange={(e) =>
+                              atualizarCampoEdicao("instagram", e.target.value)
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="edit-descricao">Descrição</Label>
+                          <textarea
+                            id="edit-descricao"
+                            value={formularioEdicao.descricao}
+                            onChange={(e) =>
+                              atualizarCampoEdicao("descricao", e.target.value)
+                            }
+                            className="flex min-h-28 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="edit-logo">Nova logo</Label>
+                          {obterLogoAtual(estabelecimentoSelecionado) && (
+                            <div className="mb-3">
+                              <p className="mb-2 text-xs text-gray-500">Logo atual</p>
+                              <img
+                                src={obterLogoAtual(estabelecimentoSelecionado) as string}
+                                alt="Logo atual do estabelecimento"
+                                className="h-24 w-24 rounded-lg border object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.src = "/avatars/default-avatar.png";
+                                }}
+                              />
+                            </div>
+                          )}
+                          <Input
+                            ref={inputLogoRef}
+                            id="edit-logo"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoChange}
+                          />
+                          {novaLogo && (
+                            <p className="mt-2 text-xs text-gray-500">
+                              Arquivo selecionado: {novaLogo.name}
+                            </p>
+                          )}
+                          {previewNovaLogo && (
+                            <div className="mt-3 flex items-start gap-3">
+                              <img
+                                src={previewNovaLogo}
+                                alt="Preview da nova logo"
+                                className="h-24 w-24 rounded-lg border object-cover"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={removerNovaLogoSelecionada}
+                                disabled={isSalvandoEstabelecimento}
+                              >
+                                Remover foto
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <Label htmlFor="edit-imagens">Novas imagens do portfólio</Label>
+                          {obterImagensAtuais(estabelecimentoSelecionado).length > 0 && (
+                            <div className="mb-3">
+                              <p className="mb-2 text-xs text-gray-500">Imagens atuais</p>
+                              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                {obterImagensAtuais(estabelecimentoSelecionado).map((url, index) => (
+                                  <img
+                                    key={`${url}-atual-${index}`}
+                                    src={url}
+                                    alt={`Imagem atual ${index + 1}`}
+                                    className="h-24 w-full rounded-lg border object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.src = "/avatars/default-avatar.png";
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <Input
+                            ref={inputImagensRef}
+                            id="edit-imagens"
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handleImagensChange}
+                          />
+                          {novasImagens.length > 0 && (
+                            <p className="mt-2 text-xs text-gray-500">
+                              {novasImagens.length} arquivo(s) selecionado(s)
+                            </p>
+                          )}
+                          {previewNovasImagens.length > 0 && (
+                            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                              {previewNovasImagens.map((url, index) => (
+                                <div key={`${url}-${index}`} className="space-y-2">
+                                  <img
+                                    src={url}
+                                    alt={`Preview da imagem ${index + 1}`}
+                                    className="h-24 w-full rounded-lg border object-cover"
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={() => removerNovaImagemSelecionada(index)}
+                                    disabled={isSalvandoEstabelecimento}
+                                  >
+                                    Remover
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 text-sm text-gray-700">
+                        <p>
+                          <span className="font-semibold">Endereço:</span>{" "}
+                          {estabelecimentoSelecionado.endereco || "Não informado"}
+                        </p>
+                        <p>
+                          <span className="font-semibold">Instagram:</span>{" "}
+                          {estabelecimentoSelecionado.instagram || "Não informado"}
+                        </p>
+                        <p>
+                          <span className="font-semibold">Descrição:</span>{" "}
+                          {limparHtml(estabelecimentoSelecionado.descricao) ||
+                            "Sem descrição"}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <DialogFooter>
+                  {isEditandoEstabelecimento ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        disabled={isSalvandoEstabelecimento}
+                        onClick={() => {
+                          setIsEditandoEstabelecimento(false);
+                          if (estabelecimentoSelecionado) {
+                            setFormularioEdicao({
+                              nomeLocal: estabelecimentoSelecionado.nomeLocal || "",
+                              categoria: estabelecimentoSelecionado.categoria || "",
+                              endereco: estabelecimentoSelecionado.endereco || "",
+                              instagram: estabelecimentoSelecionado.instagram || "",
+                              descricao: limparHtml(estabelecimentoSelecionado.descricao),
+                            });
+                          }
+                          if (previewNovaLogo) {
+                            URL.revokeObjectURL(previewNovaLogo);
+                          }
+                          previewNovasImagens.forEach((url) => URL.revokeObjectURL(url));
+                          setNovaLogo(null);
+                          setNovasImagens([]);
+                          setPreviewNovaLogo(null);
+                          setPreviewNovasImagens([]);
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        onClick={salvarEstabelecimento}
+                        disabled={isSalvandoEstabelecimento}
+                      >
+                        {isSalvandoEstabelecimento && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        Salvar estabelecimento
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsEditandoEstabelecimento(true)}
+                      >
+                        Editar estabelecimento
+                      </Button>
+                      <DialogClose asChild>
+                        <Button variant="outline">Fechar</Button>
+                      </DialogClose>
+                    </>
+                  )}
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             {/* Card de Alteração de Senha */}
             <Card className="rounded-xl shadow-md">
