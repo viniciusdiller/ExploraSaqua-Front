@@ -1,6 +1,6 @@
 import React from "react";
-import { Typography, Button } from "antd";
-import { CommentOutlined, HomeOutlined, MenuOutlined } from "@ant-design/icons";
+import { Typography, Button, Dropdown } from "antd";
+import { CommentOutlined, HomeOutlined, MenuOutlined, UserAddOutlined, AppstoreOutlined } from "@ant-design/icons";
 import Link from "next/link";
 
 const { Title } = Typography;
@@ -11,6 +11,24 @@ interface AdminHeaderProps {
 }
 
 const AdminHeader: React.FC<AdminHeaderProps> = ({ isMobile, primaryColor }) => {
+  const actionItems = [
+    {
+      key: "comentarios",
+      icon: <CommentOutlined />,
+      label: <Link href="/admin/comentarios">Gerenciar Comentários</Link>,
+    },
+    {
+      key: "locais",
+      icon: <AppstoreOutlined />,
+      label: <Link href="/admin/locais?view=todos">Gerenciar Locais</Link>,
+    },
+    {
+      key: "usuarios",
+      icon: <UserAddOutlined />,
+      label: <Link href="/admin/users">Gerenciar Usuários</Link>,
+    },
+  ];
+
   return (
     <div className="flex items-center mb-6 gap-4">
       {/* Left: title (keeps responsive centering via Title props) */}
@@ -31,18 +49,16 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ isMobile, primaryColor }) => 
 
       {/* Right: actions */}
       <div className="flex-1 flex justify-end items-center gap-2">
-        <Link href="/admin/comentarios" passHref>
-          <Button icon={<CommentOutlined />} size="large" style={{ backgroundColor: primaryColor, color: "#fff" }} className={isMobile ? "w-full" : ""}>
-            Gerenciar Comentários
+        <Dropdown menu={{ items: actionItems }} trigger={["click"]} placement="bottomRight">
+          <Button
+            icon={<MenuOutlined />}
+            size="large"
+            style={{ backgroundColor: primaryColor, color: "#fff" }}
+            className={isMobile ? "w-full" : ""}
+          >
+            Gerenciar
           </Button>
-        </Link>
-
-        {/* Como há apenas uma página de locais agora, usamos botão direto para /admin/locais */}
-        <Link href="/admin/locais?view=todos" passHref>
-          <Button icon={<MenuOutlined />} size="large" style={{ backgroundColor: primaryColor, color: "#fff" }} className={isMobile ? "w-full" : ""}>
-            Gerenciar Locais
-          </Button>
-        </Link>
+        </Dropdown>
       </div>
     </div>
   );
