@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Row, Spin, message, Grid, ConfigProvider, Modal, Input, Typography, Button } from "antd";
-import { UserAddOutlined, EditOutlined, DeleteOutlined, MenuOutlined } from "@ant-design/icons";
+import { UserAddOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { getPendingAdminRequests, adminToggleLocalAtivo, adminDeleteLocal } from "@/lib/api";
 import { Local } from "@/types/Interface-Local";
 import AdminHeader from "@/components/admin/dashboard/AdminHeader";
@@ -138,35 +137,12 @@ const AdminDashboard: React.FC = () => {
   const showModal = (item: Local) => { setSelectedItem(item); setModalVisible(true); };
   const showIndicationModal = (item: Local) => { setSelectedIndication(item); setIndicationModalVisible(true); };
 
-  // small menu state and outside-click handler
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (ev: MouseEvent) => {
-      if (!menuRef.current) return;
-      if (!(ev.target instanceof Node)) return;
-      if (!menuRef.current.contains(ev.target)) setMenuOpen(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   return (
     <ConfigProvider theme={{ token: { colorPrimary: COLORS.primary, colorLink: COLORS.primary, borderRadius: 8 } }}>
       <div className="p-8">
         <Spin spinning={loading}>
           
           <AdminHeader isMobile={isMobile} primaryColor={COLORS.primary} />
-
-          {/* Botão rápido para Gerenciar Usuários */}
-          <div className="flex justify-end mb-6">
-            <Link href="/admin/users" passHref>
-              <Button type="primary" icon={<UserAddOutlined />} className="bg-[#0b6d9c] hover:!bg-[#09546f] border-[#0b6d9c] text-white">
-                Gerenciar Usuários
-              </Button>
-            </Link>
-          </div>
 
           <Row gutter={[16, 16]}>
             <PendingListCard
