@@ -113,21 +113,55 @@ export default function LocaisAllPage() {
     apply();
   }, [locais, viewMode]);
 
+  const toSearchableText = (value: unknown): string => {
+    if (value === null || value === undefined) return "";
+    if (typeof value === "string" || typeof value === "number") return String(value);
+    if (Array.isArray(value)) return value.map((item) => toSearchableText(item)).join(" ");
+    if (typeof value === "object") return Object.values(value as Record<string, unknown>).map((item) => toSearchableText(item)).join(" ");
+    return "";
+  };
+
+  const normalizeSearchText = (value: string): string =>
+    value
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]/g, "");
+
   const handleSearch = (value: string) => {
-    const q = value.toLowerCase();
+    const q = value.toLowerCase().trim();
+    const qNormalized = normalizeSearchText(value);
+
     // pesquisa é aplicada sobre a lista já filtrada pelo modo atual
-    const base = viewMode === "ativos" ? locais.filter((l: any) => l.status === "ativo") : viewMode === "inativos" ? locais.filter((l: any) => l.status === "inativo") : locais;
+    const base =
+      viewMode === "ativos"
+        ? locais.filter((l: any) => l.status === "ativo")
+        : viewMode === "inativos"
+          ? locais.filter((l: any) => l.status === "inativo")
+          : locais;
+
     const filtered = base.filter((l) => {
-      const nome = l.nomeLocal || (l as any).nome || "";
-      const responsavel = l.nomeResponsavel || (l as any).responsavel || "";
-      const categoria = l.categoria || "";
-      return (
-        nome.toLowerCase().includes(q) ||
-        responsavel.toLowerCase().includes(q) ||
-        categoria.toLowerCase().includes(q) ||
-        String(l.localId).includes(q)
-      );
+      const camposBusca = [
+        l.nomeLocal,
+        (l as any).nome,
+        l.categoria,
+        l.nomeResponsavel,
+        (l as any).responsavel,
+        (l as any).emailResponsavel,
+        (l as any).emailContato,
+        (l as any).cpfResponsavel,
+        (l as any).contatoResponsavel,
+        (l as any).telefoneResponsavel,
+        (l as any).celularResponsavel,
+        l.localId,
+      ]
+        .map((campo) => toSearchableText(campo))
+        .join(" ")
+        .toLowerCase();
+
+      return camposBusca.includes(q) || normalizeSearchText(camposBusca).includes(qNormalized);
     });
+
     setFilteredLocais(filtered);
     setCurrentPage(1);
   };
@@ -270,7 +304,7 @@ export default function LocaisAllPage() {
       </div>
 
       <Search
-        placeholder="Buscar por ID, nome, categoria ou responsável..."
+        placeholder="Buscar por ID, nome, categoria, responsável, e-mail ou CPF..."
         onSearch={handleSearch}
         onChange={(e) => handleSearch((e.target as any).value)}
         enterButton
