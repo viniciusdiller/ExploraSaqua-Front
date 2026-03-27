@@ -100,7 +100,9 @@ export default function EspacoExplorePage() {
   }, []);
 
   const unlockedLocaisUnicos = Array.from(new Set(unlockedLocais));
-  const unlockedCount = unlockedLocaisUnicos.length;
+  // Filtra apenas IDs que ainda existem entre os locais ativos, evitando contar locais deletados
+  const activeLocalIds = new Set(locais.map(l => String(l.localId)));
+  const unlockedCount = unlockedLocaisUnicos.filter(id => activeLocalIds.has(id)).length;
   const totalLocais = totalLocations ?? locais.length;
   const visitedCountBase = Math.max(visitedCount ?? 0, unlockedCount);
   const visitedCountDisplay = totalLocais > 0
@@ -329,12 +331,15 @@ export default function EspacoExplorePage() {
   const progressFromVisited = totalLocais > 0
     ? Math.round((visitedCountDisplay / totalLocais) * 100)
     : localProgress;
-  const progress = Math.max(
-    backendProgress !== null ? Math.round(backendProgress) : 0,
-    localProgress,
-    progressFromVisited,
+  const progress = Math.min(
+    Math.max(
+      backendProgress !== null ? Math.round(backendProgress) : 0,
+      localProgress,
+      progressFromVisited,
+    ),
+    100,
   );
-  const isCompleted = locais.length > 0 && unlockedCount === locais.length;
+  const isCompleted = locais.length > 0 && unlockedCount >= locais.length;
 
   // Ordenar locais por distância quando o GPS estiver disponível
   const locaisOrdenados = userLocation
