@@ -413,6 +413,119 @@ export const adminResendConfirmation = (id: number | string, token: string) =>
     },
   });
 
+// Busca estabelecimentos do usuário autenticado (suporta tentativa com query userId para cenários admin)
+export const getUserProfileEstablishments = async (
+  token: string,
+  userId?: number,
+): Promise<any> => {
+  const urls = userId
+    ? [
+        `${API_URL}/api/users/profile/estabelecimentos?usuarioId=${encodeURIComponent(String(userId))}&_=${Date.now()}`,
+        `${API_URL}/api/users/profile/estabelecimentos?userId=${encodeURIComponent(String(userId))}&_=${Date.now()}`,
+        `${API_URL}/api/users/profile/estabelecimentos?_=${Date.now()}`,
+      ]
+    : [`${API_URL}/api/users/profile/estabelecimentos?_=${Date.now()}`];
+
+  let lastError = "Falha ao buscar estabelecimentos do usuário.";
+
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+      });
+
+      const text = await response.text();
+      let data: any = {};
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = text;
+        }
+      }
+
+      if (!response.ok) {
+        lastError =
+          (typeof data === "object" && data && (data.message || data.error)) ||
+          (typeof data === "string" && data) ||
+          lastError;
+        continue;
+      }
+
+      return data;
+    } catch (error: any) {
+      lastError = error?.message || lastError;
+    }
+  }
+
+  throw new Error(lastError);
+};
+
+// Busca comentários do usuário autenticado (suporta variações de rota/payload e tentativa com userId para uso no admin)
+export const getUserProfileComments = async (
+  token: string,
+  userId?: number,
+): Promise<any> => {
+  const suffix = `&_=${Date.now()}`;
+  const queryUsuario = userId
+    ? `?usuarioId=${encodeURIComponent(String(userId))}${suffix}`
+    : `?_=${Date.now()}`;
+  const queryUser = userId
+    ? `?userId=${encodeURIComponent(String(userId))}${suffix}`
+    : `?_=${Date.now()}`;
+
+  const urls = [
+    `${API_URL}/api/users/profile/comentarios${queryUsuario}`,
+    `${API_URL}/api/users/profile/comentarios${queryUser}`,
+    `${API_URL}/api/users/profile/avaliacoes${queryUsuario}`,
+    `${API_URL}/api/users/profile/avaliacoes${queryUser}`,
+    `${API_URL}/api/users/profile/reviews${queryUsuario}`,
+    `${API_URL}/api/users/profile/reviews${queryUser}`,
+  ];
+
+  let lastError = "Falha ao buscar comentários do usuário.";
+
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: "no-store",
+      });
+
+      const text = await response.text();
+      let data: any = {};
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = text;
+        }
+      }
+
+      if (!response.ok) {
+        lastError =
+          (typeof data === "object" && data && (data.message || data.error)) ||
+          (typeof data === "string" && data) ||
+          lastError;
+        continue;
+      }
+
+      return data;
+    } catch (error: any) {
+      lastError = error?.message || lastError;
+    }
+  }
+
+  throw new Error(lastError);
+};
+
 // ==========================================
 // UTILITÁRIOS E ANALYTICS
 // ==========================================

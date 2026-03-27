@@ -53,6 +53,8 @@ import {
   getAllInactiveLocal,
   getPendingAdminRequests,
   adminGetReviewsByLocal,
+  getUserProfileEstablishments,
+  getUserProfileComments,
 } from "@/lib/api";
 import { Local } from "@/types/Interface-Local";
 
@@ -330,6 +332,7 @@ const AdminUsuariosPage: React.FC = () => {
   const normalizeCommentsFromResponse = (response: any) => {
     if (Array.isArray(response)) return response;
     if (response && Array.isArray(response.avaliacoes)) return response.avaliacoes;
+    if (response && Array.isArray(response.comentarios)) return response.comentarios;
     if (response && Array.isArray(response.reviews)) return response.reviews;
     if (response && Array.isArray(response.data)) return response.data;
     return [];
@@ -350,11 +353,38 @@ const AdminUsuariosPage: React.FC = () => {
     setInteractionLoading(true);
 
     try {
-      const [locaisAtivosResp, locaisInativosResp, pendentesResp] = await Promise.all([
+      const [
+        profileLocaisResp,
+        profileCommentsResp,
+        locaisAtivosResp,
+        locaisInativosResp,
+        pendentesResp,
+      ] = await Promise.all([
+        getUserProfileEstablishments(token, user.usuarioId),
+        getUserProfileComments(token, user.usuarioId).catch(() => null),
         getAllActiveLocal(token),
         getAllInactiveLocal(token),
         getPendingAdminRequests(token),
       ]);
+
+      const profileLocais = Array.isArray(profileLocaisResp)
+        ? profileLocaisResp
+        : Array.isArray(profileLocaisResp?.locais)
+          ? profileLocaisResp.locais
+          : [];
+
+      const normalizedProfileLocais = profileLocais
+        .map((local: any) => {
+          const id = Number(local?.localId ?? local?.id ?? 0);
+          if (!id) return null;
+          const isOwner = Number(local?.usuarioId ?? 0) === user.usuarioId;
+          return {
+            ...local,
+            localId: id,
+            cadastroOrigem: isOwner ? "owner" : "indication",
+          } as LocalWithCadastroOrigem;
+        })
+        .filter((local: LocalWithCadastroOrigem | null): local is LocalWithCadastroOrigem => Boolean(local));
 
       const locaisAtivos = Array.isArray(locaisAtivosResp)
         ? locaisAtivosResp
@@ -393,10 +423,54 @@ const AdminUsuariosPage: React.FC = () => {
 
       const allLocais = Array.from(allLocaisMap.values());
 
-      const ownedLocais = allLocais.filter((local: LocalWithCadastroOrigem) =>
-        isLocalOwnedByUser(local, user),
-      );
-      setUserEstablishments(ownedLocais);
+      if (normalizedProfileLocais.length > 0) {
+        setUserEstablishments(normalizedProfileLocais);
+      } else {
+        const ownedLocais = allLocais.filter((local: LocalWithCadastroOrigem) =>
+          isLocalOwnedByUser(local, user),
+        );
+        setUserEstablishments(ownedLocais);
+      }
+
+      const localNameById = new Map<number, string>();
+      [...allLocais, ...normalizedProfileLocais].forEach((local) => {
+        const id = Number(local?.localId ?? (local as any)?.id ?? 0);
+        if (!id) return;
+        if (localNameById.has(id)) return;
+        localNameById.set(id, local.nomeLocal || (local as any).nome || `Local ${id}`);
+      });
+
+      const profileComments = normalizeCommentsFromResponse(profileCommentsResp);
+      const normalizedProfileComments: UserReviewItem[] = profileComments
+        .map((review: any) => {
+          const reviewUserId = Number(review?.usuario?.usuarioId ?? review?.usuarioId ?? review?.userId ?? user.usuarioId);
+          if (reviewUserId !== user.usuarioId) return null;
+
+          const localId = Number(
+            review?.localId ?? review?.local?.localId ?? review?.local?.id ?? 0,
+          );
+          const nomeLocal =
+            review?.nomeLocal ||
+            review?.local?.nomeLocal ||
+            review?.local?.nome ||
+            (localId ? localNameById.get(localId) : undefined) ||
+            (localId ? `Local ${localId}` : "Local não informado");
+
+          return {
+            id: Number(review?.avaliacoesId ?? review?.id ?? 0),
+            comentario: review?.comentario || review?.comment || "",
+            nota: review?.nota ?? review?.rating ?? null,
+            localId,
+            nomeLocal,
+          };
+        })
+        .filter((item: UserReviewItem | null): item is UserReviewItem => Boolean(item))
+        .sort((a: UserReviewItem, b: UserReviewItem) => b.id - a.id);
+
+      if (normalizedProfileComments.length > 0) {
+        setUserComments(normalizedProfileComments);
+        return;
+      }
 
       const reviewsByLocal = await Promise.allSettled(
         allLocais.map(async (local: LocalWithCadastroOrigem) => {
