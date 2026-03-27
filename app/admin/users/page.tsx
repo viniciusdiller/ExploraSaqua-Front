@@ -53,6 +53,8 @@ import {
   getAllInactiveLocal,
   getPendingAdminRequests,
   adminGetReviewsByLocal,
+  getUserProfileEstablishments,
+  getUserProfileComments,
 } from "@/lib/api";
 import { Local } from "@/types/Interface-Local";
 
@@ -76,6 +78,12 @@ interface UserReviewItem {
   nota: number | null;
   localId: number;
   nomeLocal: string;
+}
+
+type CadastroOrigem = "indication" | "owner";
+
+interface LocalWithCadastroOrigem extends Local {
+  cadastroOrigem?: CadastroOrigem;
 }
 
 const normalizeUser = (raw: any): User => {
@@ -115,7 +123,7 @@ const AdminUsuariosPage: React.FC = () => {
   const [isInteractionModalVisible, setIsInteractionModalVisible] = useState(false);
   const [interactionLoading, setInteractionLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [userEstablishments, setUserEstablishments] = useState<Local[]>([]);
+  const [userEstablishments, setUserEstablishments] = useState<LocalWithCadastroOrigem[]>([]);
   const [userComments, setUserComments] = useState<UserReviewItem[]>([]);
 
   const router = useRouter();
@@ -290,9 +298,41 @@ const AdminUsuariosPage: React.FC = () => {
     );
   };
 
+  const getCadastroOrigem = (local: any): CadastroOrigem => {
+    const tipoCadastro = String(local?.tipoCadastro ?? local?.tipo ?? local?.type ?? "").toLowerCase();
+    const origem = String(local?.origem ?? local?.source ?? "").toLowerCase();
+    const hasIndicadorFields = Boolean(
+      local?.indicadorNome ||
+        local?.indicadorEmail ||
+        local?.indicadorContato ||
+        local?.cpfResponsavel,
+    );
+    const hasResponsavelContactFields = Boolean(
+      local?.contatoResponsavel ||
+        local?.emailResponsavel ||
+        local?.emailContato,
+    );
+
+    if (
+      tipoCadastro === "indication" ||
+      tipoCadastro === "indicacao" ||
+      tipoCadastro === "indicação" ||
+      origem.includes("indic") ||
+      local?.isIndicacao === true ||
+      local?.indicacao === true ||
+      hasIndicadorFields ||
+      hasResponsavelContactFields
+    ) {
+      return "indication";
+    }
+
+    return "owner";
+  };
+
   const normalizeCommentsFromResponse = (response: any) => {
     if (Array.isArray(response)) return response;
     if (response && Array.isArray(response.avaliacoes)) return response.avaliacoes;
+    if (response && Array.isArray(response.comentarios)) return response.comentarios;
     if (response && Array.isArray(response.reviews)) return response.reviews;
     if (response && Array.isArray(response.data)) return response.data;
     return [];
@@ -313,11 +353,38 @@ const AdminUsuariosPage: React.FC = () => {
     setInteractionLoading(true);
 
     try {
-      const [locaisAtivosResp, locaisInativosResp, pendentesResp] = await Promise.all([
+      const [
+        profileLocaisResp,
+        profileCommentsResp,
+        locaisAtivosResp,
+        locaisInativosResp,
+        pendentesResp,
+      ] = await Promise.all([
+        getUserProfileEstablishments(token, user.usuarioId),
+        getUserProfileComments(token, user.usuarioId).catch(() => null),
         getAllActiveLocal(token),
         getAllInactiveLocal(token),
         getPendingAdminRequests(token),
       ]);
+
+      const profileLocais = Array.isArray(profileLocaisResp)
+        ? profileLocaisResp
+        : Array.isArray(profileLocaisResp?.locais)
+          ? profileLocaisResp.locais
+          : [];
+
+      const normalizedProfileLocais = profileLocais
+        .map((local: any) => {
+          const id = Number(local?.localId ?? local?.id ?? 0);
+          if (!id) return null;
+          const isOwner = Number(local?.usuarioId ?? 0) === user.usuarioId;
+          return {
+            ...local,
+            localId: id,
+            cadastroOrigem: isOwner ? "owner" : "indication",
+          } as LocalWithCadastroOrigem;
+        })
+        .filter((local: LocalWithCadastroOrigem | null): local is LocalWithCadastroOrigem => Boolean(local));
 
       const locaisAtivos = Array.isArray(locaisAtivosResp)
         ? locaisAtivosResp
@@ -327,30 +394,86 @@ const AdminUsuariosPage: React.FC = () => {
         : locaisInativosResp?.data || [];
 
       const pendentes = pendentesResp || {};
+      const pendentesCadastros = Array.isArray(pendentes.cadastros) ? pendentes.cadastros : [];
+      const pendentesAtualizacoes = Array.isArray(pendentes.atualizacoes) ? pendentes.atualizacoes : [];
+      const pendentesExclusoes = Array.isArray(pendentes.exclusoes) ? pendentes.exclusoes : [];
+      const pendentesIndicacoes = Array.isArray(pendentes.indicacoes) ? pendentes.indicacoes : [];
+
       const pendentesList = [
-        ...(Array.isArray(pendentes.cadastros) ? pendentes.cadastros : []),
-        ...(Array.isArray(pendentes.atualizacoes) ? pendentes.atualizacoes : []),
-        ...(Array.isArray(pendentes.exclusoes) ? pendentes.exclusoes : []),
-        ...(Array.isArray(pendentes.indicacoes) ? pendentes.indicacoes : []),
+        ...pendentesCadastros,
+        ...pendentesAtualizacoes,
+        ...pendentesExclusoes,
+        ...pendentesIndicacoes.map((item: any) => ({ ...item, cadastroOrigem: "indication" as CadastroOrigem })),
       ];
 
-      const allLocais = [...locaisAtivos, ...locaisInativos, ...pendentesList].reduce(
-        (acc: Local[], local: any) => {
-          const id = Number(local?.localId ?? local?.id ?? 0);
-          if (!id) return acc;
-          if (acc.some((item) => Number(item.localId) === id)) return acc;
-          acc.push({ ...local, localId: id });
-          return acc;
-        },
-      []);
+      const allLocaisMap = new Map<number, LocalWithCadastroOrigem>();
 
-      const ownedLocais = (allLocais as Local[]).filter((local: Local) =>
-        isLocalOwnedByUser(local, user),
-      );
-      setUserEstablishments(ownedLocais);
+      [...locaisAtivos, ...locaisInativos, ...pendentesList].forEach((local: any) => {
+        const id = Number(local?.localId ?? local?.id ?? 0);
+        if (!id) return;
+
+        const cadastroOrigem = (local?.cadastroOrigem as CadastroOrigem | undefined) ?? getCadastroOrigem(local);
+        const current = allLocaisMap.get(id);
+
+        // Se houver conflito entre fontes, prioriza "indication" para não esconder essa informação.
+        if (!current || (current.cadastroOrigem !== "indication" && cadastroOrigem === "indication")) {
+          allLocaisMap.set(id, { ...local, localId: id, cadastroOrigem });
+        }
+      });
+
+      const allLocais = Array.from(allLocaisMap.values());
+
+      if (normalizedProfileLocais.length > 0) {
+        setUserEstablishments(normalizedProfileLocais);
+      } else {
+        const ownedLocais = allLocais.filter((local: LocalWithCadastroOrigem) =>
+          isLocalOwnedByUser(local, user),
+        );
+        setUserEstablishments(ownedLocais);
+      }
+
+      const localNameById = new Map<number, string>();
+      [...allLocais, ...normalizedProfileLocais].forEach((local) => {
+        const id = Number(local?.localId ?? (local as any)?.id ?? 0);
+        if (!id) return;
+        if (localNameById.has(id)) return;
+        localNameById.set(id, local.nomeLocal || (local as any).nome || `Local ${id}`);
+      });
+
+      const profileComments = normalizeCommentsFromResponse(profileCommentsResp);
+      const normalizedProfileComments: UserReviewItem[] = profileComments
+        .map((review: any) => {
+          const reviewUserId = Number(review?.usuario?.usuarioId ?? review?.usuarioId ?? review?.userId ?? user.usuarioId);
+          if (reviewUserId !== user.usuarioId) return null;
+
+          const localId = Number(
+            review?.localId ?? review?.local?.localId ?? review?.local?.id ?? 0,
+          );
+          const nomeLocal =
+            review?.nomeLocal ||
+            review?.local?.nomeLocal ||
+            review?.local?.nome ||
+            (localId ? localNameById.get(localId) : undefined) ||
+            (localId ? `Local ${localId}` : "Local não informado");
+
+          return {
+            id: Number(review?.avaliacoesId ?? review?.id ?? 0),
+            comentario: review?.comentario || review?.comment || "",
+            nota: review?.nota ?? review?.rating ?? null,
+            localId,
+            nomeLocal,
+          };
+        })
+        .filter((item: UserReviewItem | null): item is UserReviewItem => Boolean(item))
+        .sort((a: UserReviewItem, b: UserReviewItem) => b.id - a.id);
+
+      if (normalizedProfileComments.length > 0) {
+        setUserComments(normalizedProfileComments);
+        return;
+      }
 
       const reviewsByLocal = await Promise.allSettled(
-        (allLocais as Local[]).map(async (local: Local) => {
+        allLocais.map(async (local: LocalWithCadastroOrigem) => {
           const response = await adminGetReviewsByLocal(String(local.localId), token);
           const localReviews = normalizeCommentsFromResponse(response);
 
@@ -696,9 +819,18 @@ const AdminUsuariosPage: React.FC = () => {
                           <List.Item.Meta
                             title={local.nomeLocal || (local as any).nome || `Local ${local.localId}`}
                             description={
-                              <span>
-                                ID: {local.localId} • Categoria: {local.categoria || "N/A"}
-                              </span>
+                              <div>
+                                <span>
+                                  ID: {local.localId} • Categoria: {local.categoria || "N/A"}
+                                </span>
+                                <div className="mt-1">
+                                  <Tag color={(local as LocalWithCadastroOrigem).cadastroOrigem === "indication" ? "orange" : "blue"}>
+                                    {(local as LocalWithCadastroOrigem).cadastroOrigem === "indication"
+                                      ? "Cadastro por indicação"
+                                      : "Cadastro pelo dono"}
+                                  </Tag>
+                                </div>
+                              </div>
                             }
                           />
                         </List.Item>

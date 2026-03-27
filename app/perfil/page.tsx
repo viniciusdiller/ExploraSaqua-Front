@@ -124,6 +124,10 @@ export default function PerfilPage() {
   const inputLogoRef = useRef<HTMLInputElement | null>(null);
   const inputImagensRef = useRef<HTMLInputElement | null>(null);
 
+  const [isVendoComentarios, setIsVendoComentarios] = useState(false);
+  const [comentariosEstabelecimento, setComentariosEstabelecimento] = useState<any[]>([]);
+  const [isLoadingComentarios, setIsLoadingComentarios] = useState(false);
+
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const valueComEmoji = e.target.value;
     const valueSemEmoji = removeEmojis(valueComEmoji);
@@ -391,6 +395,71 @@ export default function PerfilPage() {
     return `${API_URL.replace(/\/$/, "")}/${caminhoLimpo}`;
   };
 
+  const normalizeReview = (r: any): any => {
+    if (!r) return null;
+    const usuario =
+      r.usuario ||
+      r.user ||
+      (r.usuarioId || r.userId
+        ? { usuarioId: r.usuarioId ?? r.userId, nomeCompleto: r.nome ?? r.nomeCompleto ?? "Usuário" }
+        : { usuarioId: 0, nomeCompleto: "Usuário" });
+    const replies = r.respostas || r.replies || r.children || [];
+    return {
+      avaliacoesId: r.avaliacoesId ?? r.id ?? r._id ?? 0,
+      comentario: r.comentario ?? r.texto ?? r.comment ?? r.content ?? "",
+      nota: r.nota ?? r.rating ?? null,
+      usuario,
+      respostas: Array.isArray(replies) ? replies.map(normalizeReview).filter(Boolean) : [],
+    };
+  };
+
+  const fetchReviewsRobust = async (localId: string): Promise<any[]> => {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+    const candidates = [
+      `/api/avaliacoes/locais/${localId}`,
+      `/api/avaliacoes/local/${localId}`,
+      `/api/avaliacoes/${localId}`,
+      `/api/avaliacoes?localId=${localId}`,
+    ];
+
+    const tryNormalize = (data: any): any[] | null => {
+      if (Array.isArray(data)) return data;
+      if (data && Array.isArray(data.avaliacoes)) return data.avaliacoes;
+      if (data && Array.isArray(data.reviews)) return data.reviews;
+      if (data && Array.isArray(data.data)) return data.data;
+      if (data && Array.isArray(data.items)) return data.items;
+      return null;
+    };
+
+    for (const path of candidates) {
+      try {
+        const resp = await fetch(`${apiBase}${path}`);
+        if (!resp.ok) continue;
+        const data = await resp.json();
+        const result = tryNormalize(data);
+        if (result !== null) return result;
+      } catch {
+        // tenta próximo candidato
+      }
+    }
+    return [];
+  };
+
+  const abrirComentariosEstabelecimento = async (local: PerfilEstabelecimento) => {
+    setIsVendoComentarios(true);
+    setIsLoadingComentarios(true);
+    setComentariosEstabelecimento([]);
+    try {
+      const raw = await fetchReviewsRobust(String(local.localId));
+      const normalized = raw.map(normalizeReview).filter(Boolean).slice().reverse();
+      setComentariosEstabelecimento(normalized);
+    } catch {
+      setComentariosEstabelecimento([]);
+    } finally {
+      setIsLoadingComentarios(false);
+    }
+  };
+
   const abrirDetalhesEstabelecimento = (local: PerfilEstabelecimento) => {
     setEstabelecimentoSelecionado(local);
     setFormularioEdicao({
@@ -409,6 +478,8 @@ export default function PerfilPage() {
     setPreviewNovaLogo(null);
     setPreviewNovasImagens([]);
     setIsEditandoEstabelecimento(false);
+    setIsVendoComentarios(false);
+    setComentariosEstabelecimento([]);
     setIsDetalhesEstabelecimentoOpen(true);
   };
 
@@ -897,6 +968,8 @@ export default function PerfilPage() {
                 setIsDetalhesEstabelecimentoOpen(open);
                 if (!open) {
                   setIsEditandoEstabelecimento(false);
+                  setIsVendoComentarios(false);
+                  setComentariosEstabelecimento([]);
                   if (previewNovaLogo) {
                     URL.revokeObjectURL(previewNovaLogo);
                   }
@@ -1109,6 +1182,62 @@ export default function PerfilPage() {
                           )}
                         </div>
                       </div>
+                    ) : isVendoComentarios ? (
+                      <div className="space-y-3">
+                        {isLoadingComentarios ? (
+                          <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Carregando comentários...
+                          </div>
+                        ) : comentariosEstabelecimento.length === 0 ? (
+                          <p className="text-sm text-gray-500 text-center py-4">
+                            Nenhum comentário encontrado para este estabelecimento.
+                          </p>
+                        ) : (
+                          comentariosEstabelecimento.map((review: any, index: number) => {
+                            const id = review.avaliacoesId ?? review.id ?? index;
+                            const autor =
+                              review.usuario?.nomeCompleto ||
+                              review.usuario?.nome ||
+                              review.nomeCompleto ||
+                              "Usuário";
+                            const nota = review.nota ?? review.rating ?? null;
+                            const texto = review.comentario || review.comment || "";
+                            return (
+                              <div
+                                key={id}
+                                className="border rounded-xl p-3 space-y-1 bg-gray-50"
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="text-sm font-semibold text-gray-800">{autor}</p>
+                                  {nota !== null && nota > 0 && (
+                                    <div className="flex items-center gap-0.5">
+                                      {Array.from({ length: 5 }).map((_, i) => (
+                                        <svg
+                                          key={i}
+                                          className={`w-3.5 h-3.5 ${
+                                            i < Math.round(nota)
+                                              ? "text-yellow-400"
+                                              : "text-gray-300"
+                                          }`}
+                                          fill="currentColor"
+                                          viewBox="0 0 20 20"
+                                        >
+                                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                        </svg>
+                                      ))}
+                                      <span className="text-xs text-gray-500 ml-1">{nota}/5</span>
+                                    </div>
+                                  )}
+                                </div>
+                                {texto && (
+                                  <p className="text-sm text-gray-600 break-words">{texto}</p>
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
                     ) : (
                       <div className="space-y-2 text-sm text-gray-700">
                         <p>
@@ -1168,8 +1297,29 @@ export default function PerfilPage() {
                         Salvar estabelecimento
                       </Button>
                     </>
+                  ) : isVendoComentarios ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsVendoComentarios(false)}
+                      >
+                        Voltar
+                      </Button>
+                      <DialogClose asChild>
+                        <Button variant="outline">Fechar</Button>
+                      </DialogClose>
+                    </>
                   ) : (
                     <>
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          estabelecimentoSelecionado &&
+                          abrirComentariosEstabelecimento(estabelecimentoSelecionado)
+                        }
+                      >
+                        Ver comentários
+                      </Button>
                       <Button
                         variant="outline"
                         onClick={() => setIsEditandoEstabelecimento(true)}
