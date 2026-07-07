@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Row, Spin, message, Grid, ConfigProvider, Modal, Input, Typography, Button } from "antd";
 import { UserAddOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 import { getPendingAdminRequests, adminToggleLocalAtivo, adminDeleteLocal } from "@/lib/api";
 import { Local } from "@/types/Interface-Local";
 import AdminHeader from "@/components/admin/dashboard/AdminHeader";
@@ -44,17 +45,49 @@ const AdminDashboard: React.FC = () => {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const token = localStorage.getItem("admin_token");
+    const token =
+      localStorage.getItem("admin_token") ||
+      Cookies.get("admin_token") ||
+      Cookies.get("token") ||
+      "";
+
+    if (token && !localStorage.getItem("admin_token")) {
+      localStorage.setItem("admin_token", token);
+    }
+
     if (!token) { message.error("Acesso negado."); return router.push("/admin/login"); }
     try {
       const newData: any = await getPendingAdminRequests(token);
       // compatibilidade: algumas APIs podem devolver 'indicacoes' dentro de outro campo
       const incomingCadastros: any[] = newData.cadastros || [];
+      const incomingAtualizacoes: any[] = newData.atualizacoes || [];
+      const incomingExclusoes: any[] = newData.exclusoes || [];
       const incomingIndicacoes: any[] = newData.indicacoes || newData.indicadores || [];
 
-      // Separar indicações que porventura estejam dentro de 'cadastros'
-      const cadastrosFiltered = incomingCadastros.filter((it) => (it.tipoCadastro || it.tipo || it.type) !== "indication");
+      // Separar indicações e reclassificar solicitações que possam ter vindo em 'cadastros'
+      const cadastrosFiltered = incomingCadastros.filter((it) => {
+        const tipoCadastro = String(it.tipoCadastro || it.tipo || it.type || "").toLowerCase();
+        const status = String(it.status || "").toLowerCase();
+        const tipoSolicitacao = String(it.tipoSolicitacao || it.tipo_solicitacao || "").toLowerCase();
+        return (
+          tipoCadastro !== "indication" &&
+          status !== "pendente_atualizacao" &&
+          status !== "pendente_exclusao" &&
+          tipoSolicitacao !== "atualizacao" &&
+          tipoSolicitacao !== "exclusao"
+        );
+      });
       const indicacoesFromCadastros = incomingCadastros.filter((it) => (it.tipoCadastro || it.tipo || it.type) === "indication");
+      const atualizacoesFromCadastros = incomingCadastros.filter((it) => {
+        const status = String(it.status || "").toLowerCase();
+        const tipoSolicitacao = String(it.tipoSolicitacao || it.tipo_solicitacao || "").toLowerCase();
+        return status === "pendente_atualizacao" || tipoSolicitacao === "atualizacao";
+      });
+      const exclusoesFromCadastros = incomingCadastros.filter((it) => {
+        const status = String(it.status || "").toLowerCase();
+        const tipoSolicitacao = String(it.tipoSolicitacao || it.tipo_solicitacao || "").toLowerCase();
+        return status === "pendente_exclusao" || tipoSolicitacao === "exclusao" || Boolean(it.motivo);
+      });
 
       // Mesclar indicacoes vindas de campos diferentes sem duplicar (usando localId como chave)
       const mergedIndicacoesMap: Record<string, any> = {};
@@ -62,9 +95,21 @@ const AdminDashboard: React.FC = () => {
         const key = String(it.localId || it.id || it._id || Math.random());
         mergedIndicacoesMap[key] = it;
       });
+      const mergedAtualizacoesMap: Record<string, any> = {};
+      [...incomingAtualizacoes, ...atualizacoesFromCadastros].forEach((it) => {
+        const key = String(it.localId || it.id || it._id || Math.random());
+        mergedAtualizacoesMap[key] = it;
+      });
+      const mergedExclusoesMap: Record<string, any> = {};
+      [...incomingExclusoes, ...exclusoesFromCadastros].forEach((it) => {
+        const key = String(it.localId || it.id || it._id || Math.random());
+        mergedExclusoesMap[key] = it;
+      });
       const mergedIndicacoes = Object.values(mergedIndicacoesMap);
+      const mergedAtualizacoes = Object.values(mergedAtualizacoesMap);
+      const mergedExclusoes = Object.values(mergedExclusoesMap);
 
-      setData({ cadastros: cadastrosFiltered, atualizacoes: newData.atualizacoes || [], exclusoes: newData.exclusoes || [], indicacoes: mergedIndicacoes });
+      setData({ cadastros: cadastrosFiltered, atualizacoes: mergedAtualizacoes, exclusoes: mergedExclusoes, indicacoes: mergedIndicacoes });
        setCurrentPages({ cadastros: 1, atualizacoes: 1, exclusoes: 1, indicacoes: 1 });
     } catch (error: any) {
       message.error(error.message || "Falha ao buscar dados.");

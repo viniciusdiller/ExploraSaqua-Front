@@ -151,12 +151,24 @@ const Atualizacao: React.FC<AtualizacaoProps> = ({ onSuccess }) => {
       });
 
       // Anexar ficheiros se existirem
-      if (logoFileList[0]?.originFileObj) formData.append("logo", logoFileList[0].originFileObj);
-      if (vigilanciaFileList[0]?.originFileObj) formData.append("vigilancia_sanitaria", vigilanciaFileList[0].originFileObj);
-      if (funcionamentoFileList[0]?.originFileObj) formData.append("alvara_funcionamento", funcionamentoFileList[0].originFileObj);
+      if (logoFileList[0]?.originFileObj) {
+        const file = logoFileList[0].originFileObj as File;
+        formData.append("logo", file, file.name);
+      }
+      if (vigilanciaFileList[0]?.originFileObj) {
+        const file = vigilanciaFileList[0].originFileObj as File;
+        formData.append("vigilancia_sanitaria", file, file.name);
+      }
+      if (funcionamentoFileList[0]?.originFileObj) {
+        const file = funcionamentoFileList[0].originFileObj as File;
+        formData.append("alvara_funcionamento", file, file.name);
+      }
       
       portfolioFileList.forEach((file) => {
-        if (file.originFileObj) formData.append("imagens", file.originFileObj);
+        if (file.originFileObj) {
+          const imageFile = file.originFileObj as File;
+          formData.append("imagens", imageFile, imageFile.name);
+        }
       });
 
       await solicitarAtualizacaoLocal(projetoId, formData, user.token);

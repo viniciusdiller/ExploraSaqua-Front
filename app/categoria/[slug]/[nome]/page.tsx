@@ -53,6 +53,7 @@ const COLORS = {
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const IMAGE_CACHE_BUSTER = Date.now();
 
 // --- UTILS ---
 const normalizeImagePath = (filePath: string) => {
@@ -66,6 +67,12 @@ const normalizeImagePath = (filePath: string) => {
     normalized = normalized.substring(1);
   }
   return normalized;
+};
+
+const withCacheBuster = (url: string) => {
+  if (!url || url.startsWith("blob:")) return url;
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}v=${IMAGE_CACHE_BUSTER}`;
 };
 
 // Tenta endpoints alternativos para reviews (quando o endpoint público padrão não existir)
@@ -839,7 +846,7 @@ function LocalPageContent() {
                   <TiltImage
                     src={
                       (local.logoUrl &&
-                        `${API_URL}/${normalizeImagePath(local.logoUrl)}`) ||
+                        withCacheBuster(`${API_URL}/${normalizeImagePath(local.logoUrl)}`)) ||
                       "/logos/Logo_Explore.png"
                     }
                     alt={`Logo de ${local.nomeLocal}`}

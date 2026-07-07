@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Spin } from "antd";
+import Cookies from "js-cookie";
 
 export default function AdminLayout({
   children,
@@ -14,12 +15,19 @@ export default function AdminLayout({
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("admin_token");
+    const localToken = localStorage.getItem("admin_token");
+    const cookieToken = Cookies.get("admin_token") || Cookies.get("token");
+    const token = localToken || cookieToken;
 
     const isLoginPage = pathname === "/admin/login";
 
+    // Mantem compatibilidade entre middleware (cookie) e telas client-side (localStorage).
+    if (!localToken && token) {
+      localStorage.setItem("admin_token", token);
+    }
+
     if (!token && !isLoginPage) {
-      router.push("/login");
+      router.push("/admin/login");
     } else if (token && isLoginPage) {
       router.push("/admin/dashboard");
     } else {
