@@ -75,6 +75,40 @@ const withCacheBuster = (url: string) => {
   return `${url}${separator}v=${IMAGE_CACHE_BUSTER}`;
 };
 
+// --- CHECK-IN POR GEOLOCALIZAÇÃO ("Já visitei") ---
+const MAX_VISIT_DISTANCE_METERS = 500;
+
+// Distância em metros entre duas coordenadas geográficas (fórmula de Haversine).
+const calcularDistanciaMetros = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number => {
+  const R = 6371000; // raio da Terra em metros
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+const getCurrentPosition = (): Promise<GeolocationPosition> =>
+  new Promise((resolve, reject) => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      reject(new Error("Seu navegador não suporta geolocalização."));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
+    });
+  });
+
 // Tenta endpoints alternativos para reviews (quando o endpoint público padrão não existir)
 const tryAlternativeReviewEndpoints = async (id: string) => {
   if (!API_URL) return null;
@@ -504,9 +538,37 @@ function LocalPageContent() {
       return;
     }
 
+    const localLat = Number(local.latitude);
+    const localLng = Number(local.longitude);
+    if (!local.latitude || !local.longitude || Number.isNaN(localLat) || Number.isNaN(localLng)) {
+      toast.error("Este local não tem localização cadastrada — não é possível confirmar a visita.");
+      return;
+    }
+
+    setIsMarkingVisit(true);
     try {
-      setIsMarkingVisit(true);
-      const resp = await markVisit(userId, localId, user.token);
+      const position = await getCurrentPosition().catch((geoError: any) => {
+        if (geoError?.code === 1) {
+          throw new Error("Você precisa permitir o acesso à localização para confirmar a visita.");
+        }
+        throw new Error("Não foi possível obter sua localização. Verifique se o GPS está ativado e tente novamente.");
+      });
+
+      const distancia = calcularDistanciaMetros(
+        position.coords.latitude,
+        position.coords.longitude,
+        localLat,
+        localLng
+      );
+
+      if (distancia > MAX_VISIT_DISTANCE_METERS) {
+        toast.error(
+          `Você está a ${Math.round(distancia)}m do local. Precisa estar a até ${MAX_VISIT_DISTANCE_METERS}m para confirmar a visita.`
+        );
+        return;
+      }
+
+      const resp = await markVisit(userId, localId, user.token, position.coords.latitude, position.coords.longitude);
 
       // sucesso ao registrar visita
       toast.success(resp?.message || "Visita registrada com sucesso.");

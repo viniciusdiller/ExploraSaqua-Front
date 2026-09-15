@@ -1,6 +1,7 @@
 import React from "react";
 import { Typography, Image, Button, Row, Col } from "antd";
 import FormattedDescription from "@/components/FormattedDescription";
+import DOMPurify from "dompurify";
 
 const { Text } = Typography;
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -67,7 +68,7 @@ export const renderValue = (key: string, value: any): React.ReactNode => {
   }
 
   // Textos longos
-  if (key === "descricao") return <div className="prose prose-sm max-w-none prose-p:my-1" dangerouslySetInnerHTML={{ __html: value }} />;
+  if (key === "descricao") return <div className="prose prose-sm max-w-none prose-p:my-1" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(value) }} />;
   if (key === "descricaoDiferencial") return <FormattedDescription text={value} />;
   if (["motivo", "motivoExclusao", "outrasAlteracoes"].includes(key)) {
     return <Typography.Paragraph style={{ whiteSpace: "pre-wrap", margin: 0 }}>{String(value)}</Typography.Paragraph>;

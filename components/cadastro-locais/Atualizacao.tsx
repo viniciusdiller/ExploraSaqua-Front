@@ -34,7 +34,7 @@ import "react-quill/dist/quill.snow.css";
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 const LocationPicker = dynamic(() => import("@/components/map/LocationPicker"), { 
   ssr: false,
-  loading: () => <div className="h-[350px] bg-gray-100 animate-pulse flex items-center justify-center rounded-lg">A carregar mapa...</div>
+  loading: () => <div className="h-[350px] bg-gray-100 animate-pulse flex items-center justify-center rounded-lg">Carregando mapa...</div>
 });
 
 const COLORS = {
@@ -200,7 +200,7 @@ const Atualizacao: React.FC<AtualizacaoProps> = ({ onSuccess }) => {
           </Col>
           <Col xs={24} md={12}>
             <Form.Item name="nomeLocal" label="Nome Fantasia Atual" rules={[{ required: true }]}>
-              <Input prefix={<ShopOutlined />} placeholder="Como o local está registado" />
+              <Input prefix={<ShopOutlined />} placeholder="Como o local está registrado" />
             </Form.Item>
           </Col>
         </Row>
@@ -249,7 +249,7 @@ const Atualizacao: React.FC<AtualizacaoProps> = ({ onSuccess }) => {
               </Form.Item>
             </Col>
             <Col>
-              <Button icon={<SearchOutlined />} onClick={handleAddressSearch} loading={searchingAddress} className="mt-8">Procurar</Button>
+              <Button icon={<SearchOutlined />} onClick={handleAddressSearch} loading={searchingAddress} className="mt-8">Buscar</Button>
             </Col>
           </Row>
           <div className="mt-4 h-[300px] rounded-lg overflow-hidden border border-gray-300">

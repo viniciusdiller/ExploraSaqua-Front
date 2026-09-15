@@ -78,12 +78,12 @@ export default function EsqueciSenhaPage() {
 
       <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4">
         <div className="w-full max-w-md">
-          {/* LOGO EXPLORA SAQUA */}
+          {/* LOGO EXPLORESAQUA */}
           <div className="text-center mb-6">
             <Link href="/" passHref>
               <Image
                 src="/logos/Logo_Explore.png"
-                alt="Logo Explore Saqua"
+                alt="Logo Explore Saquá"
                 width={200}
                 height={80}
                 className="mx-auto w-auto h-16 object-contain"

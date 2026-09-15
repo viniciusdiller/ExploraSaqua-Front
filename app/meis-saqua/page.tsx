@@ -88,7 +88,7 @@ export default function MeisSaquaPage() {
           <h1 className="text-4xl md:text-6xl font-bold text-gray-800 mb-6">
             Portal{" "}
             <span className="bg-gradient-to-r from-[#017DB9] to-[#22c362] bg-clip-text text-transparent">
-              MEI de Saqua
+              MEI de Saquá
             </span>
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed font-medium">
@@ -169,7 +169,7 @@ export default function MeisSaquaPage() {
             
             <Link href="https://meidesaqua.saquarema.rj.gov.br/" target="_blank">
               <Button className="bg-[#017DB9] hover:bg-blue-700 text-white text-xl px-16 py-10 rounded-3xl flex items-center gap-4 transition-all transform hover:scale-105 shadow-2xl mx-auto">
-                Visitar Portal MEI de Saqua
+                Visitar Portal MEI de Saquá
                 <ExternalLink size={26} />
               </Button>
             </Link>

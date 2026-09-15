@@ -77,8 +77,7 @@ const GerarCertificadoButton: React.FC<Props> = ({
       const centerX = width / 2;
 
       // 2. Carregar Logos
-      // Ajuste para o caminho correto da sua logo
-      const logoOdsImg = await loadImage("/logo_aquitemods.png");
+      const logoOdsImg = await loadImage("/logos/Logo-ExploreSaqua.png");
 
       // --- ELEMENTOS DE FUNDO (MARCA D'ÁGUA SUAVE) ---
       doc.setDrawColor(240, 240, 240);
@@ -146,7 +145,7 @@ const GerarCertificadoButton: React.FC<Props> = ({
       doc.setFontSize(14);
       doc.setTextColor(COLORS.TEXT_BLACK);
       doc.text(
-        "A plataforma AquiTemODS certifica que o projeto",
+        "A plataforma ExploreSaqua certifica que o projeto",
         centerX,
         currentY,
         { align: "center" }
@@ -222,7 +221,7 @@ const GerarCertificadoButton: React.FC<Props> = ({
       doc.setFontSize(11);
       doc.setTextColor(COLORS.TEXT_BLACK);
       const msg =
-        "Agradecemos por fazer parte da plataforma Aqui Tem ODS e por fortalecer ações que transformam nossa realidade, alinhadas aos propósitos da Agenda 2030. Sua iniciativa é essencial para construirmos juntos um futuro mais sustentável.";
+        "Agradecemos por fazer parte da plataforma ExploreSaqua e por fortalecer ações que transformam nossa realidade, alinhadas aos propósitos da Agenda 2030. Sua iniciativa é essencial para construirmos juntos um futuro mais sustentável.";
       const msgSplit = doc.splitTextToSize(msg, 180);
       doc.text(msgSplit, centerX, currentY, { align: "center" });
 
@@ -245,7 +244,7 @@ const GerarCertificadoButton: React.FC<Props> = ({
       doc.line(width - 100, footerY - 5, width - 20, footerY - 5);
 
       doc.text(
-        "Assinatura Digital – Coordenação Aqui Tem ODS",
+        "Assinatura Digital – Equipe ExploreSaqua",
         width - 20,
         footerY,
         { align: "right" }

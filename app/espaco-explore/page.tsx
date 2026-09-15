@@ -246,7 +246,7 @@ export default function EspacoExplorePage() {
               const localId = Number(local.localId ?? 0);
               if (userId && localId) {
                 try {
-                  await markVisit(userId, localId, user.token);
+                  await markVisit(userId, localId, user.token, userLat, userLng);
 
                   // Atualiza progresso diretamente do backend para manter consistencia.
                   try {
@@ -300,7 +300,7 @@ export default function EspacoExplorePage() {
           setFeedback({
             id: localKey,
             message: alreadyUnlocked
-              ? "Este local ja foi validado anteriormente."
+              ? "Este local já foi validado anteriormente."
               : "Check-in confirmado com sucesso!",
             type: "success",
           });

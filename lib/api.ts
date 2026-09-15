@@ -273,7 +273,7 @@ export const solicitarExclusaoLocal = (id: string, data: any, token?: string) =>
 // ==========================================
 
 export const getReviewsByLocal = (id: string) =>
-  fetchApi(`/api/avaliacoes/locais/${id}`);
+  fetchApi(`/api/avaliacoes/local/${id}`);
 
 export const submitReview = (data: any, token: string) =>
   fetchApi("/api/avaliacoes", {
@@ -331,26 +331,6 @@ export const getAllInactiveLocal = async (token: string): Promise<any> => {
 
   if (!response.ok) {
     throw new Error("Falha ao buscar locais inativos");
-  }
-
-  return response.json();
-};
-
-// Busca locais pelo campo `status` no backend (ex: 'ativo' ou 'inativo')
-export const getLocaisAdminByStatus = async (
-  status: 'ativo' | 'inativo',
-  token: string
-): Promise<any> => {
-  const url = `${API_URL}/api/admin/locais?status=${encodeURIComponent(status)}&_=${Date.now()}`;
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    cache: 'no-store',
-  });
-
-  if (!response.ok) {
-    throw new Error(`Falha ao buscar locais com status ${status}`);
   }
 
   return response.json();
@@ -650,7 +630,7 @@ export function formatarDataParaMesAno(dateString: string): string {
 
 export function getAdminStats(token: string) {
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
-  return fetch(`${API_URL}/api/admin/indicadores`, {
+  return fetch(`${API_URL}/api/admin/dashboard-stats`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -665,13 +645,19 @@ export function getAdminStats(token: string) {
 }
 
 // Marca visita de um usuário a um local
-export const markVisit = (userId: number, localId: number, token: string) =>
+export const markVisit = (
+  userId: number,
+  localId: number,
+  token: string,
+  latitude?: number,
+  longitude?: number
+) =>
   fetchApi(`/api/users/${userId}/visits`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ localId }),
+    body: JSON.stringify({ localId, latitude, longitude }),
   });
 
 // Busca o progresso do usuário (porcentagem de locais visitados)

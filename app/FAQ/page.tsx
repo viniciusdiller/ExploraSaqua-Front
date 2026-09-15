@@ -145,10 +145,10 @@ export default function FAQPage() {
                 <br />
                 2. Acesse a página{" "}
                 <Link
-                  href="/sugerir-local"
+                  href="/cadastro-locais"
                   className="text-[#017DB9] font-bold underline hover:text-[#005f8d]"
                 >
-                  "Sugerir Local"
+                  "Cadastro de Locais"
                 </Link>{" "}
                 no menu do seu perfil.
                 <br />

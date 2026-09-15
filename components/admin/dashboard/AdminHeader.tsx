@@ -20,7 +20,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ isMobile, primaryColor }) => 
     {
       key: "locais",
       icon: <AppstoreOutlined />,
-      label: <Link href="/admin/locais?view=todos">Gerenciar Locais</Link>,
+      label: <Link href="/admin/locais">Gerenciar Locais</Link>,
     },
     {
       key: "usuarios",
