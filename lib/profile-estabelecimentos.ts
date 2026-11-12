@@ -96,29 +96,44 @@ export async function updatePerfilEstabelecimento(
     formData.append("imagens", imagem);
   });
 
-  const response = await fetch(
-    `${API_URL}/api/users/profile/estabelecimentos/${localId}`,
-    {
-      method: "PUT",
+  const endpoint = `${API_URL}/api/locais/${localId}/solicitar-atualizacao`;
+  const methods: Array<"POST" | "PUT"> = ["POST", "PUT"];
+  const fallbackMessage =
+    "Falha ao solicitar atualização do estabelecimento. Verifique os dados e os arquivos enviados.";
+
+  const cloneFormData = (source: FormData) => {
+    const next = new FormData();
+    source.forEach((value, key) => {
+      next.append(key, value);
+    });
+    return next;
+  };
+
+  for (let index = 0; index < methods.length; index += 1) {
+    const method = methods[index];
+    const response = await fetch(endpoint, {
+      method,
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      body: formData,
+      body: cloneFormData(formData),
+    });
+
+    const text = await response.text();
+    let data: unknown = {};
+
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = text;
+      }
     }
-  );
 
-  const text = await response.text();
-  let data: unknown = {};
-
-  if (text) {
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = text;
+    if (response.ok) {
+      return data as PerfilEstabelecimento;
     }
-  }
 
-  if (!response.ok) {
     if (response.status === 401) {
       localStorage.removeItem("user");
       window.location.href = "/login";
@@ -129,10 +144,15 @@ export async function updatePerfilEstabelecimento(
       throw new Error("Os arquivos enviados são muito grandes.");
     }
 
-    const fallbackMessage =
-      "Falha ao atualizar estabelecimento. Verifique os dados e os arquivos enviados.";
+    const isMethodNotAllowed = response.status === 405;
+    const shouldTryNextMethod = isMethodNotAllowed && index < methods.length - 1;
+
+    if (shouldTryNextMethod) {
+      continue;
+    }
+
     throw new Error(extrairMensagemErro(data, fallbackMessage));
   }
 
-  return data as PerfilEstabelecimento;
+  throw new Error(fallbackMessage);
 }

@@ -29,7 +29,6 @@ import { toast } from "sonner";
 import { cadastrarLocal } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import dynamic from "next/dynamic";
-import "react-quill/dist/quill.snow.css";
 
 // Importação do Componente de Mapa
 const LocationPicker = dynamic(() => import("@/components/map/LocationPicker"), { 

@@ -1,9 +1,17 @@
 import React from "react";
 import { Typography, Image, Button, Row, Col } from "antd";
 import FormattedDescription from "@/components/FormattedDescription";
+import DOMPurify from "dompurify";
 
 const { Text } = Typography;
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const IMAGE_CACHE_BUSTER = Date.now();
+
+const withCacheBuster = (url: string) => {
+  if (!url || url.startsWith("blob:")) return url;
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}v=${IMAGE_CACHE_BUSTER}`;
+};
 
 export const fieldConfig: Record<string, { label: string; order: number; group: string }> = {
   nomeResponsavel: { label: "Nome do Responsável", order: 1, group: "identificacao" },
@@ -37,10 +45,10 @@ export const fieldConfig: Record<string, { label: string; order: number; group: 
 
 export const getFullImageUrl = (path: string): string => {
   if (!path) return "";
-  if (path.startsWith("http") || path.startsWith("blob:")) return path;
+  if (path.startsWith("http") || path.startsWith("blob:")) return withCacheBuster(path);
   const normalizedPath = path.replace(/\\/g, "/");
   const cleanPath = normalizedPath.startsWith("/") ? normalizedPath.substring(1) : normalizedPath;
-  return `${API_URL}/${cleanPath}`;
+  return withCacheBuster(`${API_URL}/${cleanPath}`);
 };
 
 export const renderValue = (key: string, value: any): React.ReactNode => {
@@ -60,7 +68,7 @@ export const renderValue = (key: string, value: any): React.ReactNode => {
   }
 
   // Textos longos
-  if (key === "descricao") return <div className="prose prose-sm max-w-none prose-p:my-1" dangerouslySetInnerHTML={{ __html: value }} />;
+  if (key === "descricao") return <div className="prose prose-sm max-w-none prose-p:my-1" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(value) }} />;
   if (key === "descricaoDiferencial") return <FormattedDescription text={value} />;
   if (["motivo", "motivoExclusao", "outrasAlteracoes"].includes(key)) {
     return <Typography.Paragraph style={{ whiteSpace: "pre-wrap", margin: 0 }}>{String(value)}</Typography.Paragraph>;

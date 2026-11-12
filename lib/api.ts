@@ -168,30 +168,112 @@ export const solicitarAtualizacaoLocal = (
   id: string,
   data: FormData,
   token?: string
-) =>
-  fetchApi(`/api/locais/solicitar-atualizacao/${id}`, {
-    method: "PUT",
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: data,
-  });
+) => {
+  const headers: Record<string, string> = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
 
-export const solicitarExclusaoLocal = (id: string, data: any, token?: string) =>
-  fetchApi(`/api/locais/solicitar-exclusao/${id}`, {
+  const cloneFormData = (source: FormData) => {
+    const next = new FormData();
+    source.forEach((value, key) => {
+      next.append(key, value);
+    });
+    return next;
+  };
+
+  const parseResponse = async (response: Response) => {
+    const text = await response.text();
+    if (!text) return {};
+    try {
+      return JSON.parse(text);
+    } catch {
+      return text;
+    }
+  };
+
+  return (async () => {
+    const endpoint = `${API_URL}/api/locais/${id}/solicitar-atualizacao`;
+    const methods: Array<"POST" | "PUT"> = ["POST", "PUT"];
+
+    for (let index = 0; index < methods.length; index += 1) {
+      const method = methods[index];
+      const response = await fetch(endpoint, {
+        method,
+        headers,
+        body: cloneFormData(data),
+      });
+
+      const parsed = await parseResponse(response);
+
+      if (response.ok) {
+        return parsed;
+      }
+
+      if (response.status === 401) {
+        localStorage.removeItem("user");
+        window.location.href = "/login";
+        throw new Error("Sessão expirada. Redirecionando para login...");
+      }
+
+      if (response.status === 413) {
+        throw new Error("Os arquivos enviados são muito grandes.");
+      }
+
+      const isMethodNotAllowed = response.status === 405;
+      const shouldTryNextMethod = isMethodNotAllowed && index < methods.length - 1;
+
+      if (shouldTryNextMethod) {
+        continue;
+      }
+
+      if (response.status === 404) {
+        throw new Error(
+          "Rota de solicitação de atualização não encontrada no backend."
+        );
+      }
+
+      const message =
+        typeof parsed === "object" && parsed
+          ? (parsed as { message?: string; error?: string }).message ||
+            (parsed as { message?: string; error?: string }).error
+          : undefined;
+
+      if (message) {
+        throw new Error(message);
+      }
+
+      if (typeof parsed === "string" && parsed.trim()) {
+        throw new Error(parsed);
+      }
+
+      throw new Error("Falha ao solicitar atualização.");
+    }
+
+    throw new Error("Falha ao solicitar atualização.");
+  })();
+};
+
+export const solicitarExclusaoLocal = (id: string, data: any, token?: string) => {
+  const payload =
+    data && typeof data === "object"
+      ? { ...data, projetoId: data.projetoId ?? id }
+      : { projetoId: id };
+
+  return fetchApi(`/api/locais/solicitar-exclusao`, {
     method: "POST",
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
+};
 
 // ==========================================
 // AVALIAÇÕES (Reviews)
 // ==========================================
 
 export const getReviewsByLocal = (id: string) =>
-  fetchApi(`/api/avaliacoes/locais/${id}`);
+  fetchApi(`/api/avaliacoes/local/${id}`);
 
 export const submitReview = (data: any, token: string) =>
   fetchApi("/api/avaliacoes", {
@@ -249,26 +331,6 @@ export const getAllInactiveLocal = async (token: string): Promise<any> => {
 
   if (!response.ok) {
     throw new Error("Falha ao buscar locais inativos");
-  }
-
-  return response.json();
-};
-
-// Busca locais pelo campo `status` no backend (ex: 'ativo' ou 'inativo')
-export const getLocaisAdminByStatus = async (
-  status: 'ativo' | 'inativo',
-  token: string
-): Promise<any> => {
-  const url = `${API_URL}/api/admin/locais?status=${encodeURIComponent(status)}&_=${Date.now()}`;
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    cache: 'no-store',
-  });
-
-  if (!response.ok) {
-    throw new Error(`Falha ao buscar locais com status ${status}`);
   }
 
   return response.json();
@@ -568,7 +630,7 @@ export function formatarDataParaMesAno(dateString: string): string {
 
 export function getAdminStats(token: string) {
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
-  return fetch(`${API_URL}/api/admin/indicadores`, {
+  return fetch(`${API_URL}/api/admin/dashboard-stats`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -583,13 +645,19 @@ export function getAdminStats(token: string) {
 }
 
 // Marca visita de um usuário a um local
-export const markVisit = (userId: number, localId: number, token: string) =>
+export const markVisit = (
+  userId: number,
+  localId: number,
+  token: string,
+  latitude?: number,
+  longitude?: number
+) =>
   fetchApi(`/api/users/${userId}/visits`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ localId }),
+    body: JSON.stringify({ localId, latitude, longitude }),
   });
 
 // Busca o progresso do usuário (porcentagem de locais visitados)

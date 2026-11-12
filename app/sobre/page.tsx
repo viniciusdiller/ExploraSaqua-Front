@@ -262,7 +262,7 @@ export default function SobreExploraSaquaPage() {
           </h2>
           <div className="flex justify-center">
             <Link
-              href="/sugerir-local" // Rota atualizada conforme nossa refatoração
+              href="/cadastro-locais"
               className="group block text-center w-full sm:w-1/2 lg:w-1/3"
             >
               <div className="overflow-hidden rounded-lg border border-gray-200 group-hover:shadow-xl transition-shadow duration-300 bg-gray-50 p-4">

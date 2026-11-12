@@ -7,13 +7,12 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    domains: ["placeholder.svg"],
     unoptimized: true,
     remotePatterns: [
       {
         protocol: "http",
         hostname: "172.16.32.199",
-        port: "3305",
+        port: "3005",
         pathname: "/uploads/**",
       },
     ],
@@ -25,7 +24,7 @@ const nextConfig = {
     return [
       {
         source: "/uploads/:path*",
-        destination: "http://localhost:3305/uploads/:path*",
+        destination: "http://localhost:3005/uploads/:path*",
       },
     ];
   },

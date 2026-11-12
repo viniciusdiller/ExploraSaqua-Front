@@ -3,76 +3,78 @@ import { MetadataRoute } from "next";
 // --- INÍCIO DA CONFIGURAÇÃO ---
 
 // 1. URL PÚBLICA (para o Google)
-const baseUrl = "https://aquitemods.saquarema.rj.gov.br";
+// TODO: definir NEXT_PUBLIC_SITE_URL no ambiente de produção assim que o domínio
+// final do ExploreSaqua existir (não usar "aquitemods.saquarema.rj.gov.br", que é
+// o domínio de um projeto diferente).
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3004";
 
 // 2. URL INTERNA (para o Next.js buscar os dados no backend)
-// Como ambos rodam no mesmo servidor Linux, usamos localhost.
-const backendApiBaseUrl = "http://localhost:3303"; // <--- ALTERAÇÃO PRINCIPAL
+const backendApiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3005";
 
-// Interface para os dados do projeto
-interface Projeto {
-  id: number;
-  nome: string;
-  ods: number;
-  updatedAt: string; // ou Date
+// Categorias reais do ExploreSaqua (mesmos ids usados em app/page.tsx e nos links
+// "/categoria/{id}" — mantenha esta lista em sincronia se novas categorias forem
+// adicionadas lá).
+const CATEGORY_IDS = [
+  "comercio-e-lojas",
+  "educacao-e-capacitacao",
+  "emergencias",
+  "esportes",
+  "eventos-e-agenda",
+  "hospedagem",
+  "industria",
+  "mei-de-saqua",
+  "saude-e-bem-estar",
+  "servicos-publicos",
+  "supermercado-e-feiras",
+  "turismo-e-lazer",
+  "utilidades-e-informacoes-gerais",
+];
+
+interface Local {
+  localId: number;
+  nomeLocal: string | null;
+  categoria: string | null;
+  updatedAt: string;
 }
 
 // --- FIM DA CONFIGURAÇÃO ---
 
-/**
- * Função para "slugify" o nome do projeto.
- */
-function slugify(nome: string): string {
-  return encodeURIComponent(nome);
-}
-
-/**
- * Função para criar o slug da ODS
- */
-function getOdsSlug(ods: number): string {
-  return `ods-${ods}`;
-}
-
 // Função principal do sitemap
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  // 1. Buscar projetos dinâmicos
-  let projectRoutes: MetadataRoute.Sitemap = [];
+  // 1. Buscar locais ativos (páginas dinâmicas de cada estabelecimento)
+  let localRoutes: MetadataRoute.Sitemap = [];
   try {
-    // Usando a URL interna para o fetch
-    const res = await fetch(`${backendApiBaseUrl}/api/projetos`, {
+    const res = await fetch(`${backendApiBaseUrl}/api/locais`, {
       next: { revalidate: 3600 }, // Atualiza a cada 1 hora
     });
 
     if (!res.ok) {
-      throw new Error(`Sitemap: Falha ao buscar projetos: ${res.statusText}`);
+      throw new Error(`Sitemap: Falha ao buscar locais: ${res.statusText}`);
     }
 
-    const projetos: Projeto[] = await res.json();
+    const locais: Local[] = await res.json();
 
-    projectRoutes = projetos.map((projeto) => ({
-      url: `${baseUrl}/categoria/${getOdsSlug(projeto.ods)}/${slugify(
-        projeto.nome
-      )}`, // URL pública
-      lastModified: new Date(projeto.updatedAt),
-      priority: 0.6,
-      changeFrequency: "monthly",
-    }));
+    localRoutes = locais
+      .filter((local) => local.nomeLocal && local.categoria)
+      .map((local) => ({
+        url: `${baseUrl}/categoria/${local.categoria}/${encodeURIComponent(local.nomeLocal as string)}`,
+        lastModified: new Date(local.updatedAt),
+        priority: 0.6,
+        changeFrequency: "monthly" as const,
+      }));
   } catch (error) {
-    console.error("Sitemap: Erro ao gerar sitemap para projetos:", error);
+    console.error("Sitemap: Erro ao gerar sitemap para locais:", error);
   }
 
-  // 2. Páginas de Categoria (ODS 1-17)
-  const odsCategories: MetadataRoute.Sitemap = Array.from(
-    { length: 17 },
-    (_, i) => i + 1
-  ).map((odsNum) => ({
-    url: `${baseUrl}/categoria/${getOdsSlug(odsNum)}`,
+  // 2. Páginas de Categoria
+  const categoryRoutes: MetadataRoute.Sitemap = CATEGORY_IDS.map((categoryId) => ({
+    url: `${baseUrl}/categoria/${categoryId}`,
     lastModified: new Date(),
     priority: 0.8,
     changeFrequency: "weekly",
   }));
 
-  // 3. Páginas Estáticas
+  // 3. Páginas Estáticas (só as públicas — páginas de conta/admin ficam de fora)
   const staticRoutes: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}/`,
@@ -93,19 +95,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
     },
     {
-      url: `${baseUrl}/espaco-dos-ods`,
+      url: `${baseUrl}/espaco-explore`,
       lastModified: new Date(),
-      priority: 0.9,
+      priority: 0.7,
       changeFrequency: "weekly",
     },
     {
-      url: `${baseUrl}/enigmas-do-futuro`,
+      url: `${baseUrl}/meis-saqua`,
       lastModified: new Date(),
       priority: 0.7,
+      changeFrequency: "monthly",
+    },
+    {
+      url: `${baseUrl}/cadastro-locais`,
+      lastModified: new Date(),
+      priority: 0.6,
       changeFrequency: "monthly",
     },
   ];
 
   // 4. Combina todas as rotas
-  return [...staticRoutes, ...odsCategories, ...projectRoutes];
+  return [...staticRoutes, ...categoryRoutes, ...localRoutes];
 }

@@ -42,6 +42,8 @@ import {
   changeUserPassword,
   deleteUserAccount,
   getUserProgress,
+  solicitarAtualizacaoLocal,
+  solicitarExclusaoLocal,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { contemPalavrao } from "@/lib/profanityFilter";
@@ -50,7 +52,6 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   getPerfilEstabelecimentos,
-  updatePerfilEstabelecimento,
 } from "@/lib/profile-estabelecimentos";
 import {
   PerfilEstabelecimento,
@@ -59,6 +60,7 @@ import {
 
 type EstabelecimentoFiltro = "todos" | "ativos" | "pendentes" | "inativos";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const IMAGE_CACHE_BUSTER = Date.now();
 
 type FormularioEdicaoEstabelecimento = {
   nomeLocal: string;
@@ -109,6 +111,10 @@ export default function PerfilPage() {
     useState(false);
   const [isSalvandoEstabelecimento, setIsSalvandoEstabelecimento] =
     useState(false);
+  const [isExclusaoDialogOpen, setIsExclusaoDialogOpen] = useState(false);
+  const [motivoExclusao, setMotivoExclusao] = useState("");
+  const [telefoneExclusao, setTelefoneExclusao] = useState("");
+  const [isSolicitandoExclusao, setIsSolicitandoExclusao] = useState(false);
   const [formularioEdicao, setFormularioEdicao] =
     useState<FormularioEdicaoEstabelecimento>({
       nomeLocal: "",
@@ -380,8 +386,14 @@ export default function PerfilPage() {
 
     const semBarrasInvertidas = url.replace(/\\/g, "/");
 
+    const withCacheBuster = (value: string) => {
+      if (!value) return value;
+      const separator = value.includes("?") ? "&" : "?";
+      return `${value}${separator}v=${IMAGE_CACHE_BUSTER}`;
+    };
+
     if (/^https?:\/\//i.test(semBarrasInvertidas)) {
-      return semBarrasInvertidas;
+      return withCacheBuster(semBarrasInvertidas);
     }
 
     const caminhoLimpo = semBarrasInvertidas.startsWith("/")
@@ -389,10 +401,10 @@ export default function PerfilPage() {
       : semBarrasInvertidas;
 
     if (!API_URL) {
-      return `/${caminhoLimpo}`;
+      return withCacheBuster(`/${caminhoLimpo}`);
     }
 
-    return `${API_URL.replace(/\/$/, "")}/${caminhoLimpo}`;
+    return withCacheBuster(`${API_URL.replace(/\/$/, "")}/${caminhoLimpo}`);
   };
 
   const normalizeReview = (r: any): any => {
@@ -480,6 +492,9 @@ export default function PerfilPage() {
     setIsEditandoEstabelecimento(false);
     setIsVendoComentarios(false);
     setComentariosEstabelecimento([]);
+    setIsExclusaoDialogOpen(false);
+    setMotivoExclusao("");
+    setTelefoneExclusao("");
     setIsDetalhesEstabelecimentoOpen(true);
   };
 
@@ -537,6 +552,18 @@ export default function PerfilPage() {
       return;
     }
 
+    const projetoId = String(
+      estabelecimentoSelecionado.localId ||
+        (estabelecimentoSelecionado as any).projetoId ||
+        (estabelecimentoSelecionado as any).id ||
+        ""
+    );
+
+    if (!projetoId) {
+      toast.error("Não foi possível identificar o estabelecimento.");
+      return;
+    }
+
     const payload = {
       nomeLocal: removeEmojis(formularioEdicao.nomeLocal.trim()),
       categoria: formularioEdicao.categoria.trim(),
@@ -569,10 +596,22 @@ export default function PerfilPage() {
 
     setIsSalvandoEstabelecimento(true);
     try {
-      const atualizado = await updatePerfilEstabelecimento(
-        estabelecimentoSelecionado.localId,
-        user.token,
-        payload
+      const formData = new FormData();
+
+      if (payload.nomeLocal) formData.append("nomeLocal", payload.nomeLocal);
+      if (payload.categoria) formData.append("categoria", payload.categoria);
+      if (payload.endereco) formData.append("endereco", payload.endereco);
+      if (payload.instagram) formData.append("instagram", payload.instagram);
+      if (payload.descricao) formData.append("descricao", payload.descricao);
+      if (payload.logo) formData.append("logo", payload.logo, payload.logo.name);
+      payload.imagens.forEach((imagem) => {
+        formData.append("imagens", imagem, imagem.name);
+      });
+
+      await solicitarAtualizacaoLocal(
+        projetoId,
+        formData,
+        user.token
       );
 
       const locaisAtualizados = await fetchMeusEstabelecimentos();
@@ -581,7 +620,15 @@ export default function PerfilPage() {
       );
       const estabelecimentoFinal = atualizadoRefetch
         ? atualizadoRefetch
-        : combinarEstabelecimentoAtualizado(estabelecimentoSelecionado, atualizado);
+        : combinarEstabelecimentoAtualizado(estabelecimentoSelecionado, {
+            ...estabelecimentoSelecionado,
+            status: "pendente_atualizacao",
+            nomeLocal: payload.nomeLocal || estabelecimentoSelecionado.nomeLocal,
+            categoria: payload.categoria || estabelecimentoSelecionado.categoria,
+            endereco: payload.endereco || estabelecimentoSelecionado.endereco,
+            instagram: payload.instagram || estabelecimentoSelecionado.instagram,
+            descricao: payload.descricao || estabelecimentoSelecionado.descricao,
+          });
 
       setMeusEstabelecimentos((prev) =>
         prev.map((item) =>
@@ -605,14 +652,75 @@ export default function PerfilPage() {
       setPreviewNovaLogo(null);
       setPreviewNovasImagens([]);
       setIsEditandoEstabelecimento(false);
-      toast.success("Estabelecimento atualizado com sucesso.");
+      toast.success("Solicitação de atualização enviada para aprovação.");
     } catch (error: any) {
       toast.error(
         error?.message ||
-          "Falha ao atualizar estabelecimento. Verifique os arquivos enviados."
+          "Falha ao solicitar atualização. Verifique os arquivos enviados."
       );
     } finally {
       setIsSalvandoEstabelecimento(false);
+    }
+  };
+
+  const solicitarExclusaoEstabelecimento = async () => {
+    if (!estabelecimentoSelecionado || !user?.token) {
+      toast.error("Erro de autenticação. Faça login novamente.");
+      return;
+    }
+
+    const projetoId = String(
+      estabelecimentoSelecionado.localId ||
+        (estabelecimentoSelecionado as any).projetoId ||
+        (estabelecimentoSelecionado as any).id ||
+        ""
+    );
+
+    if (!projetoId) {
+      toast.error("Não foi possível identificar o estabelecimento.");
+      return;
+    }
+
+    const motivoLimpo = motivoExclusao.trim();
+    const telefoneLimpo = telefoneExclusao.replace(/\D/g, "");
+
+    if (!motivoLimpo) {
+      toast.error("Informe o motivo da exclusão.");
+      return;
+    }
+
+    if (!telefoneLimpo) {
+      toast.error("Informe um telefone para contato.");
+      return;
+    }
+
+    setIsSolicitandoExclusao(true);
+    try {
+      await solicitarExclusaoLocal(
+        projetoId,
+        {
+          projetoId,
+          nomeLocal: estabelecimentoSelecionado.nomeLocal || "",
+          motivo: motivoLimpo,
+          emailResponsavel: user.email,
+          contatoResponsavel: telefoneLimpo,
+          nomeResponsavel: user.nomeCompleto,
+        },
+        user.token
+      );
+
+      await fetchMeusEstabelecimentos();
+      setIsExclusaoDialogOpen(false);
+      setMotivoExclusao("");
+      setTelefoneExclusao("");
+      toast.success("Solicitação de exclusão enviada para aprovação.");
+    } catch (error: any) {
+      toast.error(
+        error?.message ||
+          "Falha ao solicitar exclusão. Tente novamente."
+      );
+    } finally {
+      setIsSolicitandoExclusao(false);
     }
   };
 
@@ -1324,13 +1432,95 @@ export default function PerfilPage() {
                         variant="outline"
                         onClick={() => setIsEditandoEstabelecimento(true)}
                       >
-                        Editar estabelecimento
+                        Solicitar atualização
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          if (!estabelecimentoSelecionado) return;
+                          setMotivoExclusao("");
+                          setTelefoneExclusao("");
+                          setIsExclusaoDialogOpen(true);
+                        }}
+                      >
+                        Solicitar exclusão
                       </Button>
                       <DialogClose asChild>
                         <Button variant="outline">Fechar</Button>
                       </DialogClose>
                     </>
                   )}
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog
+              open={isExclusaoDialogOpen}
+              onOpenChange={(open) => {
+                setIsExclusaoDialogOpen(open);
+                if (!open) {
+                  setMotivoExclusao("");
+                  setTelefoneExclusao("");
+                }
+              }}
+            >
+              <DialogContent className="sm:max-w-[520px]">
+                <DialogHeader>
+                  <DialogTitle>Solicitar exclusão do estabelecimento</DialogTitle>
+                  <DialogDescription>
+                    O pedido será enviado para análise da equipe administrativa.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="grid gap-4 py-2">
+                  <div>
+                    <Label htmlFor="telefone-exclusao">Telefone para contato</Label>
+                    <Input
+                      id="telefone-exclusao"
+                      value={telefoneExclusao}
+                      onChange={(e) => {
+                        const valor = e.target.value.replace(/\D/g, "");
+                        const formatado = valor
+                          .replace(/^(\d{2})(\d)/, "($1) $2")
+                          .replace(/(\d{5})(\d)/, "$1-$2")
+                          .replace(/(-\d{4})\d+?$/, "$1");
+                        setTelefoneExclusao(formatado);
+                      }}
+                      placeholder="(22) 99999-9999"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="motivo-exclusao">Motivo da exclusão</Label>
+                    <textarea
+                      id="motivo-exclusao"
+                      value={motivoExclusao}
+                      onChange={(e) => setMotivoExclusao(e.target.value)}
+                      placeholder="Explique por que deseja remover o estabelecimento"
+                      rows={4}
+                      className="flex min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsExclusaoDialogOpen(false)}
+                    disabled={isSolicitandoExclusao}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={solicitarExclusaoEstabelecimento}
+                    disabled={isSolicitandoExclusao}
+                  >
+                    {isSolicitandoExclusao && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Enviar solicitação
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>

@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 // 1. ATUALIZEI OS SLIDES PARA COMEÇAR COM SUA LOGO
 const slides = [
-  { src: "/logos/Logo_Explore.png", alt: "Logo Explore Saqua" },
+  { src: "/logos/Logo_Explore.png", alt: "Logo Explore Saquá" },
   { src: "/logos/Logo-Lab-ISA.png", alt: "Logo Lab ISA" },
   {
     src: "/logos/logoSMGS.png",

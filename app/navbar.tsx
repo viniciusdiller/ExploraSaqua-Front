@@ -174,13 +174,13 @@ export function Navbar() {
               href="/espaco-explore"
               className="text-gray-700 hover:text-[#a8cf45]  transition-colors"
             >
-              Espaço Explorador
+              Espaço Explore
             </Link>
             <Link
               href="/meis-saqua"
               className="text-gray-700 hover:text-[#a8cf45] transition-colors"
             >
-              MEI de Saqua
+              MEI de Saquá
             </Link>
             <Link
               href="/FAQ"
@@ -240,7 +240,7 @@ export function Navbar() {
           ) : (
             <Link href="/login">
               <button className="bg-[#a8cf45]  text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-orange-500 transition-colors">
-                Login
+                Entrar
               </button>
             </Link>
           )}
@@ -283,14 +283,14 @@ export function Navbar() {
               className="text-gray-700 hover:text-[#a8cf45]  transition-colors font-medium"
               onClick={() => setIsOpen(false)}
             >
-              Espaço Explorador
+              Espaço Explore
             </Link>
             <Link
               href="/meis-saqua"
               className="text-gray-700 hover:text-[#a8cf45] transition-colors font-medium"
               onClick={() => setIsOpen(false)}
             >
-               MEI de Saqua
+               MEI de Saquá
             </Link>
             <Link
               href="/FAQ"
@@ -340,7 +340,7 @@ export function Navbar() {
                 className="flex items-center gap-3 text-gray-700 hover:text-[#a8cf45]  transition-colors font-medium"
                 onClick={() => setIsOpen(false)}
               >
-                <LogIn size={20} /> Efetuar Login
+                <LogIn size={20} /> Entrar
               </Link>
             )}
 

@@ -121,7 +121,8 @@ export const LocalImages: React.FC<LocalImagesProps> = ({
             )}
             {portfolioToDelete.length > 0 && (
               <Tag color="red" style={{ marginTop: 10, width: "100%" }}>
-                {portfolioToDelete.length} imagem(ns) serão removidas.
+                {portfolioToDelete.length}{" "}
+                {portfolioToDelete.length === 1 ? "imagem será removida" : "imagens serão removidas"}.
               </Tag>
             )}
           </div>

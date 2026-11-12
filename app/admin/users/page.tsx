@@ -854,7 +854,7 @@ const AdminUsuariosPage: React.FC = () => {
                             description={
                               <div>
                                 <Text className="block text-sm">
-                                  {comment.comentario || "(Sem texto)"}
+                                  Comentário feito: {comment.comentario || "(Sem texto)"}
                                 </Text>
                                 <Text type="secondary" className="text-xs">
                                   Local ID: {comment.localId}

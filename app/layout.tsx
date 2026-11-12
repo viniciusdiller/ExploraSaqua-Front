@@ -20,9 +20,9 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Explore Saqua",
+  title: "ExploreSaqua",
   description:
-    "O ponto de encontro entre inovação, gestão e sustentabilidade. Conheça o AquiTemODS!",
+    "Descubra o comércio local, o turismo e os empreendedores de Saquarema no ExploreSaqua.",
 
   icons: {
     icon: [
@@ -35,30 +35,32 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
 
   // --- 3. OPEN GRAPH (WHATSAPP, FACEBOOK, LINKEDIN, ETC.) ---
+  // TODO: preencher "url" com o domínio de produção assim que o site for publicado
+  // (ainda não existe um domínio definido — não usar "aquitemods.saquarema.rj.gov.br",
+  // que é o domínio de um projeto diferente).
   openGraph: {
     type: "website",
     locale: "pt_BR",
-    url: "https://aquitemods.saquarema.rj.gov.br/",
-    title: "Explora Saqua",
+    title: "ExploreSaqua",
     description:
-      "O ponto de encontro entre inovação, gestão e sustentabilidade. Conheça o AquiTemODS!",
+      "Descubra o comércio local, o turismo e os empreendedores de Saquarema no ExploreSaqua.",
     images: [
       {
-        url: "https://aquitemods.saquarema.rj.gov.br//og-image.png",
+        url: "/logos/Logo-ExploreSaqua.png",
         width: 1200,
         height: 630,
-        alt: "Logo Explora Saqua",
+        alt: "Logo ExploreSaqua",
       },
     ],
-    siteName: "Explora Saqua",
+    siteName: "ExploreSaqua",
   },
 
   // --- 4. TWITTER CARDS (ESPECÍFICO DO TWITTER) ---
   twitter: {
     card: "summary_large_image",
-    title: "Explore Saqua",
-    description: "Conectando projetos sociais a voluntários e doadores.",
-    images: ["https://aquitemods.saquarema.rj.gov.br//og-image.png"],
+    title: "ExploreSaqua",
+    description: "Descubra o comércio local, o turismo e os empreendedores de Saquarema.",
+    images: ["/logos/Logo-ExploreSaqua.png"],
   },
 };
 export default function RootLayout({
@@ -71,15 +73,16 @@ export default function RootLayout({
       <body
         className={`${poppins.variable} bg-white flex flex-col min-h-screen`}
       >
+        {/* "url" e "logo" ficam de fora até existir um domínio de produção definido —
+            JSON-LD exige URLs absolutas, e usar um domínio de outro projeto seria pior
+            do que omitir o campo. */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Organization",
-              name: "Explora Saqua",
-              url: "https://aquitemods.saquarema.rj.gov.br/",
-              logo: "https://aquitemods.saquarema.rj.gov.br/LogoRedonda.png",
+              name: "ExploreSaqua",
             }),
           }}
         />
