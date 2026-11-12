@@ -5,9 +5,8 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "@/components/ui/sonner";
 import { ConditionalFooter } from "@/components/conditional/ConditionalFooter";
-import AccessibilityStyles from "@/components/acessibilidade/AccessibilityStyles";
 import { ConditionalNavbar } from "@/components/conditional/ConditionalNavbar";
-import { ConditionalAccessibility } from "@/components/conditional/ConditionalAccessibility";
+import AcessibilidadeSaqua from "@/components/acessibilidade/AcessibilidadeSaqua";
 import "react-quill/dist/quill.snow.css";
 import "@/app/cadastro-locais/quill-styles.css";
 
@@ -69,9 +68,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <head>
-        <AccessibilityStyles />
-      </head>
       <body
         className={`${poppins.variable} bg-white flex flex-col min-h-screen`}
       >
@@ -102,7 +98,7 @@ export default function RootLayout({
             <main className="flex-grow">{children}</main>
             <ConditionalFooter />
             <Toaster richColors />
-            <ConditionalAccessibility />
+            <AcessibilidadeSaqua />
           </AuthProvider>
         </ConfigProvider>
       </body>
